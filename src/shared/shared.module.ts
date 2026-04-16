@@ -10,6 +10,7 @@ import { StorageModule } from './infrastructure/storage/storage.module';
 import { HttpExceptionFilter } from './presentation/filters/http-exception.filter';
 import { LoggerService } from './infrastructure/logger/logger.service';
 import { LoggerInterceptor } from './presentation/interceptors/logger.interceptor';
+import { InternalGatewayGuard } from './presentation/guards/internal-gateway.guard';
 
 @Global()
 @Module({
@@ -25,6 +26,7 @@ import { LoggerInterceptor } from './presentation/interceptors/logger.intercepto
   ],
   providers: [
     LoggerInterceptor,
+    InternalGatewayGuard,
     {
       provide: HttpExceptionFilter,
       useFactory: (logger: LoggerService) => new HttpExceptionFilter(logger),
@@ -37,6 +39,7 @@ import { LoggerInterceptor } from './presentation/interceptors/logger.intercepto
     LoggerModule,
     ConfigModule,
     HttpExceptionFilter,
+    InternalGatewayGuard,
     LoggerInterceptor,
     QueueModule,
     SecurityModule,

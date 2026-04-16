@@ -22,7 +22,7 @@ export class LoggerInterceptor implements NestInterceptor {
     const response = context.switchToHttp().getResponse<Response>();
     const { method, url, ip } = request;
     const body = request.body as Record<string, unknown> | undefined;
-    const requestId = this.generateRequestId();
+    const requestId = this.resolveRequestId(request);
     const startTime = Date.now();
 
     request.requestId = requestId;
@@ -66,6 +66,19 @@ export class LoggerInterceptor implements NestInterceptor {
 
   private generateRequestId(): string {
     return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  }
+
+  private resolveRequestId(request: Request): string {
+    const forwardedRequestId = request.headers['x-request-id'];
+
+    if (
+      typeof forwardedRequestId === 'string' &&
+      forwardedRequestId.trim().length > 0
+    ) {
+      return forwardedRequestId;
+    }
+
+    return this.generateRequestId();
   }
 
   private maskSensitiveData(

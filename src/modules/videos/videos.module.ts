@@ -2,8 +2,16 @@ import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ChannelsModule } from '../channels/channels.module';
 import { EngagementModule } from '../engagement/engagement.module';
-import { VideoApplicationService } from './application/video.application.service';
 import { VideoQueryService } from './application/video-query.service';
+import { ConfirmVideoUploadUseCase } from './application/use-cases/confirm-video-upload.use-case';
+import { GetLatestVideosUseCase } from './application/use-cases/get-latest-videos.use-case';
+import { GetSubscribedVideosUseCase } from './application/use-cases/get-subscribed-videos.use-case';
+import { GetVideosByCategoryUseCase } from './application/use-cases/get-videos-by-category.use-case';
+import { HandleVideoProcessedFailedUseCase } from './application/use-cases/handle-video-processed-failed.use-case';
+import { HandleVideoProcessedSuccessUseCase } from './application/use-cases/handle-video-processed-success.use-case';
+import { InitVideoUploadUseCase } from './application/use-cases/init-video-upload.use-case';
+import { PlayVideoUseCase } from './application/use-cases/play-video.use-case';
+import { UnlockVideoUseCase } from './application/use-cases/unlock-video.use-case';
 import { VideoProcessingConsumer } from './infrastructure/consumers/video-processing.consumer';
 import { VideoPurchaseUnlockOrmEntity } from './infrastructure/persistence/video-purchase-unlock.orm-entity';
 import { VideoPurchaseUnlockRepository } from './infrastructure/persistence/video-purchase-unlock.repository';
@@ -24,8 +32,16 @@ import { VIDEO_REPOSITORY } from './domain/repositories/video.repository';
   providers: [
     VideoRepository,
     VideoPurchaseUnlockRepository,
-    VideoApplicationService,
     VideoQueryService,
+    InitVideoUploadUseCase,
+    ConfirmVideoUploadUseCase,
+    PlayVideoUseCase,
+    UnlockVideoUseCase,
+    GetLatestVideosUseCase,
+    GetVideosByCategoryUseCase,
+    GetSubscribedVideosUseCase,
+    HandleVideoProcessedSuccessUseCase,
+    HandleVideoProcessedFailedUseCase,
     VideoProcessingConsumer,
     {
       provide: VIDEO_REPOSITORY,
@@ -40,6 +56,6 @@ import { VIDEO_REPOSITORY } from './domain/repositories/video.repository';
       useExisting: VideoQueryService,
     },
   ],
-  exports: [VideoApplicationService, VIDEO_REPOSITORY, VIDEO_QUERY_SERVICE],
+  exports: [VIDEO_REPOSITORY, VIDEO_QUERY_SERVICE],
 })
 export class VideosModule {}

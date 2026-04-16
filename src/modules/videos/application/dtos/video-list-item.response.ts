@@ -1,0 +1,41 @@
+import type { VideoEntity } from '../../domain/entities/video.entity';
+
+export interface VideoListItemResponse {
+  id: string;
+  channelId: string;
+  title: string;
+  description: string;
+  category: string;
+  status: string;
+  price: number;
+  requiredTierLevel: number | null;
+  thumbnailUrl: string | null;
+  durationSeconds: number | null;
+  resolutions: string[];
+  viewCount: number;
+  publishedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export function mapVideoEntityToListItem(
+  video: VideoEntity,
+): VideoListItemResponse {
+  return {
+    id: video.id,
+    channelId: video.channelId,
+    title: video.title,
+    description: video.description,
+    category: video.category,
+    status: video.status,
+    price: video.price,
+    requiredTierLevel: video.requiredTierLevel,
+    thumbnailUrl: video.thumbnailUrl,
+    durationSeconds: video.durationSeconds,
+    resolutions: video.resolutions,
+    viewCount: video.viewCount,
+    publishedAt: video.publishedAt,
+    createdAt: video.createdAt,
+    updatedAt: video.updatedAt,
+  };
+}

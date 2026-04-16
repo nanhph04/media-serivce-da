@@ -6,9 +6,11 @@ import {
   Param,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiHeader, ApiTags } from '@nestjs/swagger';
 import { CurrentUserId } from '@shared/presentation/decorators/user-id.decorator';
+import { InternalGatewayGuard } from '@shared/presentation/guards/internal-gateway.guard';
 import { ChannelApplicationService } from '../../application/channel.application.service';
 import type { CreateMembershipTierRequestDto } from '../dtos/create-membership-tier.request';
 import type { MembershipTierResponseDto } from '../dtos/membership-tier.response';
@@ -16,6 +18,7 @@ import type { UpdateMembershipTierRequestDto } from '../dtos/update-membership-t
 
 @ApiTags('membership-tiers')
 @ApiHeader({ name: 'x-user-id', required: true })
+@UseGuards(InternalGatewayGuard)
 @Controller('channels/:channelId/membership-tiers')
 export class MembershipTierController {
   constructor(

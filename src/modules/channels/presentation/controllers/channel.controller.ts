@@ -1,6 +1,16 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiHeader, ApiTags } from '@nestjs/swagger';
 import { CurrentUserId } from '@shared/presentation/decorators/user-id.decorator';
+import { SkipInternalGatewayGuard } from '@shared/presentation/decorators/skip-internal-gateway.decorator';
+import { InternalGatewayGuard } from '@shared/presentation/guards/internal-gateway.guard';
 import { ChannelApplicationService } from '../../application/channel.application.service';
 import type { CreateChannelRequestDto } from '../dtos/create-channel.request';
 import type { UpdateChannelRequestDto } from '../dtos/update-channel.request';
@@ -12,6 +22,7 @@ import type {
 
 @ApiTags('channels')
 @ApiHeader({ name: 'x-user-id', required: true })
+@UseGuards(InternalGatewayGuard)
 @Controller('channels')
 export class ChannelController {
   constructor(
@@ -49,6 +60,7 @@ export class ChannelController {
   }
 
   @Get(':id')
+  @SkipInternalGatewayGuard()
   async getChannelDetail(
     @Param('id') channelId: string,
   ): Promise<ChannelDetailResponseDto> {
