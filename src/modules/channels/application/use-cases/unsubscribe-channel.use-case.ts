@@ -1,6 +1,6 @@
-import { IChannelSubscriptionRepository } from '../../domain/repositories/channel-subscription.repository';
+import type { IChannelMembershipRepository } from '../../domain/repositories/channel-membership.repository';
 import { UnsubscribeChannelCommand } from '../dtos/subscribe-channel.command';
-import { ChannelSubscriptionResponse } from '../dtos/channel-subscription.response';
+import type { ChannelMembershipResponse } from '../dtos/channel-membership.response';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import {
   BadRequestException,
@@ -9,44 +9,44 @@ import {
 
 export class UnsubscribeChannelUseCase extends BaseUseCase<
   UnsubscribeChannelCommand,
-  ChannelSubscriptionResponse
+  ChannelMembershipResponse
 > {
   constructor(
-    private readonly subscriptionRepository: IChannelSubscriptionRepository,
+    private readonly membershipRepository: IChannelMembershipRepository,
   ) {
     super();
   }
 
   async execute(
     command: UnsubscribeChannelCommand,
-  ): Promise<ChannelSubscriptionResponse> {
-    const subscription =
-      await this.subscriptionRepository.findByUserIdAndChannelId(
+  ): Promise<ChannelMembershipResponse> {
+    const membership =
+      await this.membershipRepository.findByUserIdAndChannelId(
         command.userId,
         command.channelId,
       );
 
-    if (!subscription) {
-      throw new NotFoundException('Subscription not found');
+    if (!membership) {
+      throw new NotFoundException('Membership not found');
     }
 
-    if (!subscription.isActive()) {
+    if (!membership.isActive()) {
       throw new BadRequestException('Already unsubscribed from this channel');
     }
 
-    subscription.cancel();
-    await this.subscriptionRepository.update(subscription);
+    membership.cancel();
+    await this.membershipRepository.update(membership);
 
     return {
-      id: subscription.id,
-      userId: subscription.userId,
-      channelId: subscription.channelId,
-      membershipId: subscription.membershipId,
-      expiryDate: subscription.expiryDate,
-      retryCount: subscription.retryCount,
-      status: subscription.status,
-      createdAt: subscription.createdAt,
-      updatedAt: subscription.updatedAt,
+      id: membership.id,
+      userId: membership.userId,
+      channelId: membership.channelId,
+      membershipId: membership.membershipId,
+      expiryDate: membership.expiryDate,
+      retryCount: membership.retryCount,
+      status: membership.status,
+      createdAt: membership.createdAt,
+      updatedAt: membership.updatedAt,
     };
   }
 }

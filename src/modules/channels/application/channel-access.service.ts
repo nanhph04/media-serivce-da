@@ -9,9 +9,9 @@ import {
   type IChannelRepository,
 } from '../domain/repositories/channel.repository';
 import {
-  CHANNEL_SUBSCRIPTION_REPOSITORY,
-  type IChannelSubscriptionRepository,
-} from '../domain/repositories/channel-subscription.repository';
+  CHANNEL_MEMBERSHIP_REPOSITORY,
+  type IChannelMembershipRepository,
+} from '../domain/repositories/channel-membership.repository';
 import {
   MEMBERSHIP_TIER_REPOSITORY,
   type IMembershipTierRepository,
@@ -26,8 +26,8 @@ export class ChannelAccessService implements IChannelAccessService {
   constructor(
     @Inject(CHANNEL_REPOSITORY)
     private readonly channelRepository: IChannelRepository,
-    @Inject(CHANNEL_SUBSCRIPTION_REPOSITORY)
-    private readonly subscriptionRepository: IChannelSubscriptionRepository,
+    @Inject(CHANNEL_MEMBERSHIP_REPOSITORY)
+    private readonly membershipRepository: IChannelMembershipRepository,
     @Inject(MEMBERSHIP_TIER_REPOSITORY)
     private readonly membershipTierRepository: IMembershipTierRepository,
   ) {}
@@ -57,13 +57,13 @@ export class ChannelAccessService implements IChannelAccessService {
       throw new NotFoundException('Channel not found');
     }
 
-    const subscription =
-      await this.subscriptionRepository.findByUserIdAndChannelIdActive(
+    const membership =
+      await this.membershipRepository.findByUserIdAndChannelIdActive(
         userId,
         channelId,
       );
 
-    if (!subscription) {
+    if (!membership) {
       return {
         channelOwnerId: channel.userId,
         activeMembershipTierLevel: null,
@@ -71,7 +71,7 @@ export class ChannelAccessService implements IChannelAccessService {
     }
 
     const tier = await this.membershipTierRepository.findById(
-      subscription.membershipId,
+      membership.membershipId,
     );
 
     return {
@@ -81,11 +81,10 @@ export class ChannelAccessService implements IChannelAccessService {
   }
 
   async getActiveSubscribedChannelIds(userId: string): Promise<string[]> {
-    const subscriptions =
-      await this.subscriptionRepository.findByUserId(userId);
+    const memberships = await this.membershipRepository.findByUserId(userId);
 
-    return subscriptions
-      .filter((subscription) => subscription.isCurrentlyActive())
-      .map((subscription) => subscription.channelId);
+    return memberships
+      .filter((membership) => membership.isCurrentlyActive())
+      .map((membership) => membership.channelId);
   }
 }

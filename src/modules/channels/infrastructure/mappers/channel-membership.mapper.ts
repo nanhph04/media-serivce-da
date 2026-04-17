@@ -1,13 +1,13 @@
 import {
-  ChannelSubscriptionEntity,
-  SubscriptionStatus,
-  ChannelSubscriptionProps,
-} from '../../domain/entities/channel-subscription.entity';
-import { ChannelSubscriptionOrmEntity } from '../persistence/channel-subscription.orm-entity';
+  ChannelMembershipEntity,
+  ChannelMembershipStatus,
+  type ChannelMembershipProps,
+} from '../../domain/entities/channel-membership.entity';
+import { ChannelMembershipOrmEntity } from '../persistence/channel-membership.orm-entity';
 
-export class ChannelSubscriptionMapper {
-  toDomain(ormEntity: ChannelSubscriptionOrmEntity): ChannelSubscriptionEntity {
-    const props: ChannelSubscriptionProps = {
+export class ChannelMembershipMapper {
+  toDomain(ormEntity: ChannelMembershipOrmEntity): ChannelMembershipEntity {
+    const props: ChannelMembershipProps = {
       id: ormEntity.id,
       userId: ormEntity.userId,
       channelId: ormEntity.channelId,
@@ -18,13 +18,13 @@ export class ChannelSubscriptionMapper {
       createdAt: ormEntity.createdAt,
       updatedAt: ormEntity.updatedAt,
     };
-    return new ChannelSubscriptionEntity(props);
+    return new ChannelMembershipEntity(props);
   }
 
   toOrm(
-    domainEntity: ChannelSubscriptionEntity,
-    existing?: ChannelSubscriptionOrmEntity,
-  ): ChannelSubscriptionOrmEntity {
+    domainEntity: ChannelMembershipEntity,
+    existing?: ChannelMembershipOrmEntity,
+  ): ChannelMembershipOrmEntity {
     if (existing) {
       existing.id = domainEntity.id;
       existing.userId = domainEntity.userId;
@@ -32,19 +32,19 @@ export class ChannelSubscriptionMapper {
       existing.membershipId = domainEntity.membershipId;
       existing.expiryDate = domainEntity.expiryDate;
       existing.retryCount = domainEntity.retryCount;
-      existing.status = domainEntity.status as unknown as SubscriptionStatus;
+      existing.status = domainEntity.status as ChannelMembershipStatus;
       existing.updatedAt = domainEntity.updatedAt;
       return existing;
     }
 
-    const ormEntity = new ChannelSubscriptionOrmEntity();
+    const ormEntity = new ChannelMembershipOrmEntity();
     ormEntity.id = domainEntity.id;
     ormEntity.userId = domainEntity.userId;
     ormEntity.channelId = domainEntity.channelId;
     ormEntity.membershipId = domainEntity.membershipId;
     ormEntity.expiryDate = domainEntity.expiryDate;
     ormEntity.retryCount = domainEntity.retryCount;
-    ormEntity.status = domainEntity.status as unknown as SubscriptionStatus;
+    ormEntity.status = domainEntity.status as ChannelMembershipStatus;
     ormEntity.createdAt = domainEntity.createdAt;
     ormEntity.updatedAt = domainEntity.updatedAt;
     return ormEntity;

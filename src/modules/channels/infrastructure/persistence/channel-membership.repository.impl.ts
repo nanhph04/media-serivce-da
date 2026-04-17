@@ -1,57 +1,59 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Equal } from 'typeorm';
-import { IChannelSubscriptionRepository } from '../../domain/repositories/channel-subscription.repository';
+import { Equal, Repository } from 'typeorm';
+import type { IChannelMembershipRepository } from '../../domain/repositories/channel-membership.repository';
 import {
-  ChannelSubscriptionEntity,
-  SubscriptionStatus,
-} from '../../domain/entities/channel-subscription.entity';
-import { ChannelSubscriptionOrmEntity } from '../persistence/channel-subscription.orm-entity';
-import { ChannelSubscriptionMapper } from '../mappers/channel-subscription.mapper';
+  ChannelMembershipEntity,
+  ChannelMembershipStatus,
+} from '../../domain/entities/channel-membership.entity';
+import { ChannelMembershipOrmEntity } from './channel-membership.orm-entity';
+import { ChannelMembershipMapper } from '../mappers/channel-membership.mapper';
 
 @Injectable()
-export class ChannelSubscriptionRepositoryImpl implements IChannelSubscriptionRepository {
+export class ChannelMembershipRepositoryImpl
+  implements IChannelMembershipRepository
+{
   constructor(
-    @InjectRepository(ChannelSubscriptionOrmEntity)
-    private readonly ormRepository: Repository<ChannelSubscriptionOrmEntity>,
-    private readonly mapper: ChannelSubscriptionMapper,
+    @InjectRepository(ChannelMembershipOrmEntity)
+    private readonly ormRepository: Repository<ChannelMembershipOrmEntity>,
+    private readonly mapper: ChannelMembershipMapper,
   ) {}
 
-  async create(subscription: ChannelSubscriptionEntity): Promise<void> {
-    const ormEntity = this.mapper.toOrm(subscription);
+  async create(membership: ChannelMembershipEntity): Promise<void> {
+    const ormEntity = this.mapper.toOrm(membership);
     await this.ormRepository.save(ormEntity);
   }
 
-  async update(subscription: ChannelSubscriptionEntity): Promise<void> {
+  async update(membership: ChannelMembershipEntity): Promise<void> {
     const ormEntity = await this.ormRepository.findOne({
-      where: { id: subscription.id },
+      where: { id: membership.id },
     });
     if (!ormEntity) {
-      throw new Error('Subscription not found');
+      throw new Error('Membership not found');
     }
-    const updatedEntity = this.mapper.toOrm(subscription, ormEntity);
+    const updatedEntity = this.mapper.toOrm(membership, ormEntity);
     await this.ormRepository.save(updatedEntity);
   }
 
-  async upsert(subscription: ChannelSubscriptionEntity): Promise<void> {
+  async upsert(membership: ChannelMembershipEntity): Promise<void> {
     const existing = await this.ormRepository.findOne({
       where: {
-        userId: subscription.userId,
-        channelId: subscription.channelId,
+        userId: membership.userId,
+        channelId: membership.channelId,
       },
     });
 
     if (!existing) {
-      await this.create(subscription);
+      await this.create(membership);
       return;
     }
 
-    const updated = this.mapper.toOrm(subscription, existing);
+    const updated = this.mapper.toOrm(membership, existing);
     updated.id = existing.id;
     await this.ormRepository.save(updated);
   }
 
-  async findById(id: string): Promise<ChannelSubscriptionEntity | null> {
+  async findById(id: string): Promise<ChannelMembershipEntity | null> {
     const ormEntity = await this.ormRepository.findOne({
       where: { id },
     });
@@ -64,7 +66,7 @@ export class ChannelSubscriptionRepositoryImpl implements IChannelSubscriptionRe
   async findByUserIdAndChannelId(
     userId: string,
     channelId: string,
-  ): Promise<ChannelSubscriptionEntity | null> {
+  ): Promise<ChannelMembershipEntity | null> {
     const ormEntity = await this.ormRepository.findOne({
       where: { userId, channelId },
     });
@@ -76,14 +78,14 @@ export class ChannelSubscriptionRepositoryImpl implements IChannelSubscriptionRe
 
   async findByChannelId(
     channelId: string,
-  ): Promise<ChannelSubscriptionEntity[]> {
+  ): Promise<ChannelMembershipEntity[]> {
     const ormEntities = await this.ormRepository.find({
       where: { channelId },
     });
     return ormEntities.map((ormEntity) => this.mapper.toDomain(ormEntity));
   }
 
-  async findByUserId(userId: string): Promise<ChannelSubscriptionEntity[]> {
+  async findByUserId(userId: string): Promise<ChannelMembershipEntity[]> {
     const ormEntities = await this.ormRepository.find({
       where: { userId },
     });
@@ -92,16 +94,16 @@ export class ChannelSubscriptionRepositoryImpl implements IChannelSubscriptionRe
 
   async countByChannelId(channelId: string): Promise<number> {
     return this.ormRepository.count({
-      where: { channelId, status: Equal(SubscriptionStatus.ACTIVE) },
+      where: { channelId, status: Equal(ChannelMembershipStatus.ACTIVE) },
     });
   }
 
   async findByUserIdAndChannelIdActive(
     userId: string,
     channelId: string,
-  ): Promise<ChannelSubscriptionEntity | null> {
+  ): Promise<ChannelMembershipEntity | null> {
     const ormEntity = await this.ormRepository.findOne({
-      where: { userId, channelId, status: SubscriptionStatus.ACTIVE },
+      where: { userId, channelId, status: ChannelMembershipStatus.ACTIVE },
     });
     if (!ormEntity) {
       return null;

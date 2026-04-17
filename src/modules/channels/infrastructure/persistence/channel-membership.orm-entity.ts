@@ -6,11 +6,11 @@ import {
   UpdateDateColumn,
   Index,
 } from 'typeorm';
-import { SubscriptionStatus } from '../../domain/entities/channel-subscription.entity';
+import { ChannelMembershipStatus } from '../../domain/entities/channel-membership.entity';
 
-@Entity('channel_subscriptions')
+@Entity('channel_memberships')
 @Index(['userId', 'channelId'], { unique: true })
-export class ChannelSubscriptionOrmEntity {
+export class ChannelMembershipOrmEntity {
   @PrimaryColumn({ type: 'varchar', length: 36 })
   id!: string;
 
@@ -29,8 +29,8 @@ export class ChannelSubscriptionOrmEntity {
   @Column({ type: 'int', name: 'retry_count', default: 0 })
   retryCount!: number;
 
-  @Column({ type: 'enum', enum: SubscriptionStatus })
-  status!: SubscriptionStatus;
+  @Column({ type: 'enum', enum: ChannelMembershipStatus })
+  status!: ChannelMembershipStatus;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

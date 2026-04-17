@@ -1,8 +1,8 @@
-import { IChannelSubscriptionRepository } from '../../domain/repositories/channel-subscription.repository';
+import type { IChannelMembershipRepository } from '../../domain/repositories/channel-membership.repository';
 import { IChannelRepository } from '../../domain/repositories/channel.repository';
-import { ChannelSubscriptionEntity } from '../../domain/entities/channel-subscription.entity';
+import { ChannelMembershipEntity } from '../../domain/entities/channel-membership.entity';
 import { SubscribeChannelCommand } from '../dtos/subscribe-channel.command';
-import { ChannelSubscriptionResponse } from '../dtos/channel-subscription.response';
+import type { ChannelMembershipResponse } from '../dtos/channel-membership.response';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import {
   BadRequestException,
@@ -11,10 +11,10 @@ import {
 
 export class SubscribeChannelUseCase extends BaseUseCase<
   SubscribeChannelCommand,
-  ChannelSubscriptionResponse
+  ChannelMembershipResponse
 > {
   constructor(
-    private readonly subscriptionRepository: IChannelSubscriptionRepository,
+    private readonly membershipRepository: IChannelMembershipRepository,
     private readonly channelRepository: IChannelRepository,
   ) {
     super();
@@ -22,7 +22,7 @@ export class SubscribeChannelUseCase extends BaseUseCase<
 
   async execute(
     command: SubscribeChannelCommand,
-  ): Promise<ChannelSubscriptionResponse> {
+  ): Promise<ChannelMembershipResponse> {
     const channel = await this.channelRepository.findById(command.channelId);
     if (!channel) {
       throw new NotFoundException('Channel not found');
@@ -33,7 +33,7 @@ export class SubscribeChannelUseCase extends BaseUseCase<
     }
 
     const existingSubscription =
-      await this.subscriptionRepository.findByUserIdAndChannelId(
+      await this.membershipRepository.findByUserIdAndChannelId(
         command.userId,
         command.channelId,
       );
@@ -43,7 +43,7 @@ export class SubscribeChannelUseCase extends BaseUseCase<
         throw new BadRequestException('Already subscribed to this channel');
       }
       existingSubscription.reactivate();
-      await this.subscriptionRepository.update(existingSubscription);
+      await this.membershipRepository.update(existingSubscription);
       return {
         id: existingSubscription.id,
         userId: existingSubscription.userId,
@@ -59,25 +59,25 @@ export class SubscribeChannelUseCase extends BaseUseCase<
 
     const expiryDate = new Date();
     expiryDate.setMonth(expiryDate.getMonth() + 1);
-    const subscription = ChannelSubscriptionEntity.create({
+    const membership = ChannelMembershipEntity.create({
       userId: command.userId,
       channelId: command.channelId,
       membershipId: command.membershipId,
       expiryDate: expiryDate,
     });
 
-    await this.subscriptionRepository.create(subscription);
+    await this.membershipRepository.create(membership);
 
     return {
-      id: subscription.id,
-      userId: subscription.userId,
-      channelId: subscription.channelId,
-      membershipId: subscription.membershipId,
-      expiryDate: subscription.expiryDate,
-      retryCount: subscription.retryCount,
-      status: subscription.status,
-      createdAt: subscription.createdAt,
-      updatedAt: subscription.updatedAt,
+      id: membership.id,
+      userId: membership.userId,
+      channelId: membership.channelId,
+      membershipId: membership.membershipId,
+      expiryDate: membership.expiryDate,
+      retryCount: membership.retryCount,
+      status: membership.status,
+      createdAt: membership.createdAt,
+      updatedAt: membership.updatedAt,
     };
   }
 }

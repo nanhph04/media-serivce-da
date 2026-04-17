@@ -50,7 +50,7 @@ export class ChannelDetailResponseDto {
   publicVideos!: PublicVideoDto[];
 }
 
-export class ChannelSubscriptionStatusResponseDto {
+export class ChannelMembershipStatusResponseDto {
   @ApiProperty()
   isActive!: boolean;
 

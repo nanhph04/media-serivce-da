@@ -1,24 +1,24 @@
-export enum SubscriptionStatus {
+export enum ChannelMembershipStatus {
   ACTIVE = 'active',
   CANCELLED = 'cancelled',
 }
 
-export interface ChannelSubscriptionProps {
+export interface ChannelMembershipProps {
   id: string;
   userId: string;
   channelId: string;
   membershipId: string;
   expiryDate: Date | null;
   retryCount: number;
-  status: SubscriptionStatus;
+  status: ChannelMembershipStatus;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export class ChannelSubscriptionEntity {
-  private props: ChannelSubscriptionProps;
+export class ChannelMembershipEntity {
+  private props: ChannelMembershipProps;
 
-  constructor(props: ChannelSubscriptionProps) {
+  constructor(props: ChannelMembershipProps) {
     this.props = props;
   }
 
@@ -46,7 +46,7 @@ export class ChannelSubscriptionEntity {
     return this.props.retryCount;
   }
 
-  get status(): SubscriptionStatus {
+  get status(): ChannelMembershipStatus {
     return this.props.status;
   }
 
@@ -63,38 +63,38 @@ export class ChannelSubscriptionEntity {
     channelId: string;
     membershipId: string;
     expiryDate: Date | null;
-  }): ChannelSubscriptionEntity {
-    return new ChannelSubscriptionEntity({
+  }): ChannelMembershipEntity {
+    return new ChannelMembershipEntity({
       id: crypto.randomUUID(),
       userId: input.userId,
       channelId: input.channelId,
       membershipId: input.membershipId,
       expiryDate: input.expiryDate,
       retryCount: 0,
-      status: SubscriptionStatus.ACTIVE,
+      status: ChannelMembershipStatus.ACTIVE,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
   }
 
   public cancel(): void {
-    if (this.props.status === SubscriptionStatus.CANCELLED) {
+    if (this.props.status === ChannelMembershipStatus.CANCELLED) {
       return;
     }
-    this.props.status = SubscriptionStatus.CANCELLED;
+    this.props.status = ChannelMembershipStatus.CANCELLED;
     this.props.updatedAt = new Date();
   }
 
   public reactivate(): void {
-    if (this.props.status === SubscriptionStatus.ACTIVE) {
+    if (this.props.status === ChannelMembershipStatus.ACTIVE) {
       return;
     }
-    this.props.status = SubscriptionStatus.ACTIVE;
+    this.props.status = ChannelMembershipStatus.ACTIVE;
     this.props.updatedAt = new Date();
   }
 
   public isActive(): boolean {
-    return this.props.status === SubscriptionStatus.ACTIVE;
+    return this.props.status === ChannelMembershipStatus.ACTIVE;
   }
 
   public syncMembership(input: {
@@ -103,12 +103,12 @@ export class ChannelSubscriptionEntity {
   }): void {
     this.props.membershipId = input.membershipId;
     this.props.expiryDate = input.expiryDate;
-    this.props.status = SubscriptionStatus.ACTIVE;
+    this.props.status = ChannelMembershipStatus.ACTIVE;
     this.props.updatedAt = new Date();
   }
 
   public isCurrentlyActive(): boolean {
-    if (this.props.status !== SubscriptionStatus.ACTIVE) {
+    if (this.props.status !== ChannelMembershipStatus.ACTIVE) {
       return false;
     }
 

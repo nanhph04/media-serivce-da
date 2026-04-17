@@ -45,6 +45,7 @@ async function bootstrap() {
   const port = configService.get<number>('PORT') ?? 4002;
 
   await app.listen(port);
-  console.log(`Application running on port ${port}`);
+    logger.logInfo("Media Service started", { port });
+  logger.logInfo(`Swagger docs available at http://localhost:${port}/api-docs`);
 }
 void bootstrap();

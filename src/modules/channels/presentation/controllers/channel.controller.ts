@@ -17,7 +17,7 @@ import type { UpdateChannelRequestDto } from '../dtos/update-channel.request';
 import type { ChannelResponseDto } from '../dtos/channel.response';
 import type {
   ChannelDetailResponseDto,
-  ChannelSubscriptionStatusResponseDto,
+  ChannelMembershipStatusResponseDto,
 } from '../dtos/channel-detail.response';
 
 @ApiTags('channels')
@@ -95,12 +95,12 @@ export class ChannelController {
     };
   }
 
-  @Get(':id/subscription-status')
-  async getSubscriptionStatus(
+  @Get(':id/membership-status')
+  async getMembershipStatus(
     @CurrentUserId() userId: string,
     @Param('id') channelId: string,
-  ): Promise<ChannelSubscriptionStatusResponseDto> {
-    const status = await this.channelApplicationService.getSubscriptionStatus({
+  ): Promise<ChannelMembershipStatusResponseDto> {
+    const status = await this.channelApplicationService.getMembershipStatus({
       channelId,
       userId,
     });

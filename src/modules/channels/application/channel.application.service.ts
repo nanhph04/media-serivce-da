@@ -14,16 +14,16 @@ import {
   ChannelEntity,
   ChannelStatus,
 } from '../domain/entities/channel.entity';
-import { ChannelSubscriptionEntity } from '../domain/entities/channel-subscription.entity';
+import { ChannelMembershipEntity } from '../domain/entities/channel-membership.entity';
 import { MembershipTierEntity } from '../domain/entities/membership-tier.entity';
 import {
   CHANNEL_REPOSITORY,
   type IChannelRepository,
 } from '../domain/repositories/channel.repository';
 import {
-  CHANNEL_SUBSCRIPTION_REPOSITORY,
-  type IChannelSubscriptionRepository,
-} from '../domain/repositories/channel-subscription.repository';
+  CHANNEL_MEMBERSHIP_REPOSITORY,
+  type IChannelMembershipRepository,
+} from '../domain/repositories/channel-membership.repository';
 import {
   MEMBERSHIP_TIER_REPOSITORY,
   type IMembershipTierRepository,
@@ -52,8 +52,8 @@ export class ChannelApplicationService {
     private readonly channelRepository: IChannelRepository,
     @Inject(MEMBERSHIP_TIER_REPOSITORY)
     private readonly membershipTierRepository: IMembershipTierRepository,
-    @Inject(CHANNEL_SUBSCRIPTION_REPOSITORY)
-    private readonly subscriptionRepository: IChannelSubscriptionRepository,
+    @Inject(CHANNEL_MEMBERSHIP_REPOSITORY)
+    private readonly membershipRepository: IChannelMembershipRepository,
     @Inject(MEMBERSHIP_CONFIG)
     private readonly membershipConfig: IMembershipConfig,
     private readonly configService: ConfigService,
@@ -225,7 +225,7 @@ export class ChannelApplicationService {
     return tier;
   }
 
-  async getSubscriptionStatus(input: {
+  async getMembershipStatus(input: {
     channelId: string;
     userId: string;
   }): Promise<{
@@ -233,16 +233,16 @@ export class ChannelApplicationService {
     membershipId: string | null;
     expiryDate: Date | null;
   }> {
-    const subscription =
-      await this.subscriptionRepository.findByUserIdAndChannelIdActive(
+    const membership =
+      await this.membershipRepository.findByUserIdAndChannelIdActive(
         input.userId,
         input.channelId,
       );
 
     return {
-      isActive: subscription?.isCurrentlyActive() ?? false,
-      membershipId: subscription?.membershipId ?? null,
-      expiryDate: subscription?.expiryDate ?? null,
+      isActive: membership?.isCurrentlyActive() ?? false,
+      membershipId: membership?.membershipId ?? null,
+      expiryDate: membership?.expiryDate ?? null,
     };
   }
 
@@ -264,7 +264,7 @@ export class ChannelApplicationService {
         }
 
         const existing =
-          await this.subscriptionRepository.findByUserIdAndChannelId(
+          await this.membershipRepository.findByUserIdAndChannelId(
             value.data.userId,
             value.data.channelId,
           );
@@ -276,11 +276,11 @@ export class ChannelApplicationService {
               ? new Date(value.data.expiryDate)
               : null,
           });
-          await this.subscriptionRepository.upsert(existing);
+          await this.membershipRepository.upsert(existing);
           return;
         }
 
-        const subscription = ChannelSubscriptionEntity.create({
+        const membership = ChannelMembershipEntity.create({
           userId: value.data.userId,
           channelId: value.data.channelId,
           membershipId: value.data.membershipTierId,
@@ -288,7 +288,7 @@ export class ChannelApplicationService {
             ? new Date(value.data.expiryDate)
             : null,
         });
-        await this.subscriptionRepository.upsert(subscription);
+        await this.membershipRepository.upsert(membership);
       },
     );
   }
