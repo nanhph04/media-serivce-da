@@ -1,7 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  IsIn,
+  ArrayUnique,
   IsInt,
+  IsArray,
+  IsIn,
   IsOptional,
   IsString,
   MaxLength,
@@ -23,10 +25,12 @@ export class InitVideoUploadRequestDto {
   @IsOptional()
   description = '';
 
-  @ApiPropertyOptional({ default: 'general' })
-  @IsString()
+  @ApiPropertyOptional({ type: [String], default: [] })
+  @IsArray()
+  @ArrayUnique()
+  @IsString({ each: true })
   @IsOptional()
-  category = 'general';
+  categories: string[] = [];
 
   @ApiPropertyOptional({ enum: ['public', 'private'], default: 'public' })
   @IsIn(['public', 'private'])

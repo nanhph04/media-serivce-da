@@ -3,6 +3,7 @@ import {
   CreateDateColumn,
   Entity,
   Index,
+  OneToMany,
   PrimaryColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -10,10 +11,10 @@ import {
   VideoStatus,
   VideoVisibility,
 } from '../../domain/entities/video.entity';
+import { VideoCategoryOrmEntity } from './video-category.orm-entity';
 
 @Entity('videos')
 @Index(['channelId', 'status'])
-@Index(['category', 'status'])
 export class VideoOrmEntity {
   @PrimaryColumn({ type: 'varchar', length: 36 })
   id!: string;
@@ -29,9 +30,6 @@ export class VideoOrmEntity {
 
   @Column({ type: 'text', default: '' })
   description!: string;
-
-  @Column({ type: 'varchar', length: 100, default: 'general' })
-  category!: string;
 
   @Column({
     type: 'enum',
@@ -88,4 +86,14 @@ export class VideoOrmEntity {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt!: Date;
+
+  @OneToMany(
+    () => VideoCategoryOrmEntity,
+    (videoCategory) => videoCategory.video,
+    {
+      cascade: true,
+      eager: true,
+    },
+  )
+  videoCategories!: VideoCategoryOrmEntity[];
 }

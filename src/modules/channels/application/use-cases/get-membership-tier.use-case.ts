@@ -1,13 +1,19 @@
-import { IMembershipTierRepository } from '../../domain/repositories/membership-tier.repository';
-import { MembershipTierResponse } from '../dtos/membership-tier.response';
+import { Inject, Injectable } from '@nestjs/common';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import { NotFoundException } from '@shared/domain/exceptions/domain.exception';
+import {
+  MEMBERSHIP_TIER_REPOSITORY,
+  type IMembershipTierRepository,
+} from '../../domain/repositories/membership-tier.repository';
+import type { MembershipTierResponse } from '../dtos/membership-tier.response';
 
+@Injectable()
 export class GetMembershipTierUseCase extends BaseUseCase<
   { channelId: string; tierId: string },
   MembershipTierResponse
 > {
   constructor(
+    @Inject(MEMBERSHIP_TIER_REPOSITORY)
     private readonly membershipTierRepository: IMembershipTierRepository,
   ) {
     super();

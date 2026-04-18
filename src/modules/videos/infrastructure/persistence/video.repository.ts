@@ -6,7 +6,9 @@ import {
   VideoStatus,
   VideoVisibility,
 } from '../../domain/entities/video.entity';
+import { Category } from '../../../categories/domain/entities/category.entity';
 import type { IVideoRepository } from '../../domain/repositories/video.repository';
+import { VideoCategoryOrmEntity } from './video-category.orm-entity';
 import { VideoOrmEntity } from './video.orm-entity';
 
 @Injectable()
@@ -23,7 +25,6 @@ export class VideoRepository implements IVideoRepository {
       ownerId: video.ownerId,
       title: video.title,
       description: video.description,
-      category: video.category,
       visibility: video.visibility,
       status: video.status,
       price: video.price,
@@ -38,6 +39,22 @@ export class VideoRepository implements IVideoRepository {
       publishedAt: video.publishedAt,
       createdAt: video.createdAt,
       updatedAt: video.updatedAt,
+      videoCategories: video.category.map(
+        (category): VideoCategoryOrmEntity => ({
+          videoId: video.id,
+          categoryId: category.id,
+          video: undefined as never,
+          category: {
+            id: category.id,
+            name: category.name,
+            slug: category.slug,
+            description: category.description,
+            status: category.status,
+            createdAt: category.createdAt,
+            updatedAt: category.updatedAt,
+          },
+        }),
+      ),
     });
   }
 
@@ -74,15 +91,19 @@ export class VideoRepository implements IVideoRepository {
     category: string,
     limit: number,
   ): Promise<VideoEntity[]> {
-    const rows = await this.ormRepository.find({
-      where: {
-        category,
-        status: VideoStatus.PUBLIC,
+    const rows = await this.ormRepository
+      .createQueryBuilder('video')
+      .leftJoinAndSelect('video.videoCategories', 'videoCategory')
+      .leftJoinAndSelect('videoCategory.category', 'category')
+      .where('video.status = :status', { status: VideoStatus.PUBLIC })
+      .andWhere('video.visibility = :visibility', {
         visibility: VideoVisibility.PUBLIC,
-      },
-      order: { publishedAt: 'DESC', createdAt: 'DESC' },
-      take: limit,
-    });
+      })
+      .andWhere('category.slug = :category', { category })
+      .orderBy('video.publishedAt', 'DESC')
+      .addOrderBy('video.createdAt', 'DESC')
+      .take(limit)
+      .getMany();
     return rows.map((row) => this.toDomain(row));
   }
 
@@ -113,7 +134,18 @@ export class VideoRepository implements IVideoRepository {
       ownerId: row.ownerId,
       title: row.title,
       description: row.description,
-      category: row.category,
+      category: row.videoCategories.map(
+        (item) =>
+          new Category({
+            id: item.category.id,
+            name: item.category.name,
+            slug: item.category.slug,
+            description: item.category.description,
+            status: item.category.status,
+            createdAt: item.category.createdAt,
+            updatedAt: item.category.updatedAt,
+          }),
+      ),
       visibility: row.visibility,
       status: row.status,
       price: row.price,

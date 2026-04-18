@@ -11,7 +11,11 @@ import {
 import { ApiHeader, ApiTags } from '@nestjs/swagger';
 import { CurrentUserId } from '@shared/presentation/decorators/user-id.decorator';
 import { InternalGatewayGuard } from '@shared/presentation/guards/internal-gateway.guard';
-import { ChannelApplicationService } from '../../application/channel.application.service';
+import { CreateMembershipTierUseCase } from '../../application/use-cases/create-membership-tier.use-case';
+import { DisableMembershipTierUseCase } from '../../application/use-cases/disable-membership-tier.use-case';
+import { GetMembershipTierUseCase } from '../../application/use-cases/get-membership-tier.use-case';
+import { GetMembershipTiersUseCase } from '../../application/use-cases/get-membership-tiers.use-case';
+import { UpdateMembershipTierUseCase } from '../../application/use-cases/update-membership-tier.use-case';
 import type { CreateMembershipTierRequestDto } from '../dtos/create-membership-tier.request';
 import type { MembershipTierResponseDto } from '../dtos/membership-tier.response';
 import type { UpdateMembershipTierRequestDto } from '../dtos/update-membership-tier.request';
@@ -22,14 +26,20 @@ import type { UpdateMembershipTierRequestDto } from '../dtos/update-membership-t
 @Controller('channels/:channelId/membership-tiers')
 export class MembershipTierController {
   constructor(
-    private readonly channelApplicationService: ChannelApplicationService,
+    private readonly getMembershipTiersUseCase: GetMembershipTiersUseCase,
+    private readonly getMembershipTierUseCase: GetMembershipTierUseCase,
+    private readonly createMembershipTierUseCase: CreateMembershipTierUseCase,
+    private readonly updateMembershipTierUseCase: UpdateMembershipTierUseCase,
+    private readonly disableMembershipTierUseCase: DisableMembershipTierUseCase,
   ) {}
 
   @Get()
   async getMembershipTiers(
     @Param('channelId') channelId: string,
   ): Promise<MembershipTierResponseDto[]> {
-    const appResult = await this.channelApplicationService.getTiers(channelId);
+    const appResult = await this.getMembershipTiersUseCase.execute({
+      channelId,
+    });
     return appResult.map((tier) => this.mapToResponseDto(tier));
   }
 
@@ -38,10 +48,10 @@ export class MembershipTierController {
     @Param('channelId') channelId: string,
     @Param('tierId') tierId: string,
   ): Promise<MembershipTierResponseDto> {
-    const appResult = await this.channelApplicationService.getTier(
+    const appResult = await this.getMembershipTierUseCase.execute({
       channelId,
       tierId,
-    );
+    });
     return this.mapToResponseDto(appResult);
   }
 
@@ -51,7 +61,7 @@ export class MembershipTierController {
     @Param('channelId') channelId: string,
     @Body() dto: CreateMembershipTierRequestDto,
   ): Promise<MembershipTierResponseDto> {
-    const appResult = await this.channelApplicationService.createTier({
+    const appResult = await this.createMembershipTierUseCase.execute({
       channelId,
       userId,
       name: dto.name,
@@ -68,7 +78,7 @@ export class MembershipTierController {
     @Param('tierId') tierId: string,
     @Body() dto: UpdateMembershipTierRequestDto,
   ): Promise<MembershipTierResponseDto> {
-    const appResult = await this.channelApplicationService.updateTier({
+    const appResult = await this.updateMembershipTierUseCase.execute({
       channelId,
       tierId,
       userId,
@@ -85,7 +95,7 @@ export class MembershipTierController {
     @Param('channelId') channelId: string,
     @Param('tierId') tierId: string,
   ): Promise<MembershipTierResponseDto> {
-    const appResult = await this.channelApplicationService.disableTier({
+    const appResult = await this.disableMembershipTierUseCase.execute({
       channelId,
       tierId,
       userId,

@@ -1,0 +1,76 @@
+import { Inject, Injectable } from '@nestjs/common';
+import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
+import { NotFoundException } from '@shared/domain/exceptions/domain.exception';
+import {
+  VIDEO_QUERY_SERVICE,
+  type IVideoQueryService,
+} from '../../../videos/application/interfaces/video-query.service.interface';
+import type { ChannelDetailResponse } from '../dtos/channel-detail.response';
+import {
+  CHANNEL_REPOSITORY,
+  type IChannelRepository,
+} from '../../domain/repositories/channel.repository';
+import {
+  MEMBERSHIP_TIER_REPOSITORY,
+  type IMembershipTierRepository,
+} from '../../domain/repositories/membership-tier.repository';
+
+@Injectable()
+export class GetChannelDetailUseCase extends BaseUseCase<
+  { channelId: string },
+  ChannelDetailResponse
+> {
+  constructor(
+    @Inject(CHANNEL_REPOSITORY)
+    private readonly channelRepository: IChannelRepository,
+    @Inject(MEMBERSHIP_TIER_REPOSITORY)
+    private readonly membershipTierRepository: IMembershipTierRepository,
+    @Inject(VIDEO_QUERY_SERVICE)
+    private readonly videoQueryService: IVideoQueryService,
+  ) {
+    super();
+  }
+
+  async execute(command: { channelId: string }): Promise<ChannelDetailResponse> {
+    const channel = await this.channelRepository.findById(command.channelId);
+
+    if (!channel) {
+      throw new NotFoundException('Channel not found');
+    }
+
+    const membershipTiers = (
+      await this.membershipTierRepository.findByChannelId(command.channelId)
+    ).filter((tier) => tier.isAcceptingNew);
+
+    const publicVideos =
+      await this.videoQueryService.getPublicVideoSummariesByChannel(
+        command.channelId,
+      );
+
+    return {
+      channel: {
+        id: channel.id,
+        userId: channel.userId,
+        name: channel.name,
+        bio: channel.bio,
+        isEligibleForMembership: channel.isEligibleForMembership,
+        avatarUrl: channel.avatarUrl,
+        bannerUrl: channel.bannerUrl,
+        status: channel.status,
+        createdAt: channel.createdAt,
+        updatedAt: channel.updatedAt,
+      },
+      membershipTiers: membershipTiers.map((tier) => ({
+        id: tier.id,
+        channelId: tier.channelId,
+        name: tier.name,
+        level: tier.level,
+        priceCoin: tier.priceCoin,
+        isAcceptingNew: tier.isAcceptingNew,
+        createdAt: tier.createdAt,
+        updatedAt: tier.updatedAt,
+      })),
+      publicVideos,
+    };
+  }
+}

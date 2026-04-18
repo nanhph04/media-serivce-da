@@ -1,6 +1,15 @@
 import { forwardRef, Module } from '@nestjs/common';
-import { ChannelApplicationService } from './application/channel.application.service';
 import { ChannelAccessService } from './application/channel-access.service';
+import { CreateChannelUseCase } from './application/use-cases/create-channel.use-case';
+import { UpdateChannelUseCase } from './application/use-cases/update-channel.use-case';
+import { GetChannelDetailUseCase } from './application/use-cases/get-channel-detail.use-case';
+import { GetMembershipStatusUseCase } from './application/use-cases/get-membership-status.use-case';
+import { CreateMembershipTierUseCase } from './application/use-cases/create-membership-tier.use-case';
+import { GetMembershipTiersUseCase } from './application/use-cases/get-membership-tiers.use-case';
+import { GetMembershipTierUseCase } from './application/use-cases/get-membership-tier.use-case';
+import { UpdateMembershipTierUseCase } from './application/use-cases/update-membership-tier.use-case';
+import { DisableMembershipTierUseCase } from './application/use-cases/disable-membership-tier.use-case';
+import { HandleMembershipPaymentSuccessUseCase } from './application/use-cases/handle-membership-payment-success.use-case';
 import { ChannelController } from './presentation/controllers/channel.controller';
 import { MembershipTierController } from './presentation/controllers/membership-tier.controller';
 import { ChannelRepositoryImpl } from './infrastructure/persistence/channel.repository.impl';
@@ -33,12 +42,21 @@ import { MEMBERSHIP_TIER_REPOSITORY } from './domain/repositories/membership-tie
   ],
   controllers: [ChannelController, MembershipTierController],
   providers: [
-    ChannelApplicationService,
     ChannelRepositoryImpl,
     ChannelMembershipRepositoryImpl,
     MembershipTierRepositoryImpl,
     ChannelAccessService,
     ChannelMembershipMapper,
+    CreateChannelUseCase,
+    UpdateChannelUseCase,
+    GetChannelDetailUseCase,
+    GetMembershipStatusUseCase,
+    CreateMembershipTierUseCase,
+    GetMembershipTiersUseCase,
+    GetMembershipTierUseCase,
+    UpdateMembershipTierUseCase,
+    DisableMembershipTierUseCase,
+    HandleMembershipPaymentSuccessUseCase,
     MembershipPaymentConsumer,
     {
       provide: CHANNEL_REPOSITORY,
@@ -62,7 +80,6 @@ import { MEMBERSHIP_TIER_REPOSITORY } from './domain/repositories/membership-tie
     },
   ],
   exports: [
-    ChannelApplicationService,
     CHANNEL_ACCESS_SERVICE,
     CHANNEL_REPOSITORY,
     CHANNEL_MEMBERSHIP_REPOSITORY,

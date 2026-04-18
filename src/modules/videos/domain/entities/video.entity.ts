@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
 } from '@shared/domain/exceptions/domain.exception';
+import { Category } from '../../../categories/domain/entities/category.entity';
 
 export enum VideoStatus {
   DRAFT = 'draft',
@@ -21,7 +22,7 @@ export interface VideoProps {
   ownerId: string;
   title: string;
   description: string;
-  category: string;
+  category: Category[];
   visibility: VideoVisibility;
   status: VideoStatus;
   price: number;
@@ -61,7 +62,7 @@ export class VideoEntity {
     return this.props.description;
   }
 
-  get category(): string {
+  get category(): Category[] {
     return this.props.category;
   }
 
@@ -126,7 +127,7 @@ export class VideoEntity {
     ownerId: string;
     title: string;
     description: string;
-    category: string;
+    category: Category[];
     visibility: VideoVisibility;
     price: number;
     requiredTierLevel: number | null;

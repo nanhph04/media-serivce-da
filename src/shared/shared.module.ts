@@ -10,6 +10,7 @@ import { StorageModule } from './infrastructure/storage/storage.module';
 import { HttpExceptionFilter } from './presentation/filters/http-exception.filter';
 import { LoggerService } from './infrastructure/logger/logger.service';
 import { LoggerInterceptor } from './presentation/interceptors/logger.interceptor';
+import { SuccessResponseInterceptor } from './presentation/interceptors/success-response.interceptor';
 import { InternalGatewayGuard } from './presentation/guards/internal-gateway.guard';
 
 @Global()
@@ -26,6 +27,7 @@ import { InternalGatewayGuard } from './presentation/guards/internal-gateway.gua
   ],
   providers: [
     LoggerInterceptor,
+    SuccessResponseInterceptor,
     InternalGatewayGuard,
     {
       provide: HttpExceptionFilter,
@@ -41,6 +43,7 @@ import { InternalGatewayGuard } from './presentation/guards/internal-gateway.gua
     HttpExceptionFilter,
     InternalGatewayGuard,
     LoggerInterceptor,
+    SuccessResponseInterceptor,
     QueueModule,
     SecurityModule,
     StorageModule,

@@ -11,7 +11,10 @@ import { ApiHeader, ApiTags } from '@nestjs/swagger';
 import { CurrentUserId } from '@shared/presentation/decorators/user-id.decorator';
 import { SkipInternalGatewayGuard } from '@shared/presentation/decorators/skip-internal-gateway.decorator';
 import { InternalGatewayGuard } from '@shared/presentation/guards/internal-gateway.guard';
-import { ChannelApplicationService } from '../../application/channel.application.service';
+import { CreateChannelUseCase } from '../../application/use-cases/create-channel.use-case';
+import { GetChannelDetailUseCase } from '../../application/use-cases/get-channel-detail.use-case';
+import { GetMembershipStatusUseCase } from '../../application/use-cases/get-membership-status.use-case';
+import { UpdateChannelUseCase } from '../../application/use-cases/update-channel.use-case';
 import type { CreateChannelRequestDto } from '../dtos/create-channel.request';
 import type { UpdateChannelRequestDto } from '../dtos/update-channel.request';
 import type { ChannelResponseDto } from '../dtos/channel.response';
@@ -26,7 +29,10 @@ import type {
 @Controller('channels')
 export class ChannelController {
   constructor(
-    private readonly channelApplicationService: ChannelApplicationService,
+    private readonly createChannelUseCase: CreateChannelUseCase,
+    private readonly updateChannelUseCase: UpdateChannelUseCase,
+    private readonly getChannelDetailUseCase: GetChannelDetailUseCase,
+    private readonly getMembershipStatusUseCase: GetMembershipStatusUseCase,
   ) {}
 
   @Post()
@@ -34,7 +40,7 @@ export class ChannelController {
     @CurrentUserId() userId: string,
     @Body() dto: CreateChannelRequestDto,
   ): Promise<ChannelResponseDto> {
-    const channel = await this.channelApplicationService.createChannel({
+    const channel = await this.createChannelUseCase.execute({
       userId,
       name: dto.name,
       bio: dto.bio,
@@ -48,7 +54,7 @@ export class ChannelController {
     @Param('id') channelId: string,
     @Body() dto: UpdateChannelRequestDto,
   ): Promise<ChannelResponseDto> {
-    const channel = await this.channelApplicationService.updateChannel({
+    const channel = await this.updateChannelUseCase.execute({
       channelId,
       userId,
       name: dto.name,
@@ -64,8 +70,7 @@ export class ChannelController {
   async getChannelDetail(
     @Param('id') channelId: string,
   ): Promise<ChannelDetailResponseDto> {
-    const result =
-      await this.channelApplicationService.getChannelDetail(channelId);
+    const result = await this.getChannelDetailUseCase.execute({ channelId });
     return {
       id: result.channel.id,
       userId: result.channel.userId,
@@ -87,7 +92,7 @@ export class ChannelController {
       publicVideos: result.publicVideos.map((video) => ({
         id: video.id,
         title: video.title,
-        category: video.category,
+        categories: video.categories,
         status: video.status,
         thumbnailUrl: video.thumbnailUrl,
         publishedAt: video.publishedAt?.toISOString() ?? null,
@@ -100,7 +105,7 @@ export class ChannelController {
     @CurrentUserId() userId: string,
     @Param('id') channelId: string,
   ): Promise<ChannelMembershipStatusResponseDto> {
-    const status = await this.channelApplicationService.getMembershipStatus({
+    const status = await this.getMembershipStatusUseCase.execute({
       channelId,
       userId,
     });

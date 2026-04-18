@@ -13,8 +13,8 @@ export class VideosByCategoryResponseDto {
   @ApiProperty()
   description!: string;
 
-  @ApiProperty()
-  category!: string;
+  @ApiProperty({ type: [String] })
+  categories!: string[];
 
   @ApiProperty()
   status!: string;

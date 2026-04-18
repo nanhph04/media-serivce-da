@@ -1,17 +1,26 @@
-import { IChannelRepository } from '../../domain/repositories/channel.repository';
-import { UpdateChannelCommand } from '../dtos/update-channel.command';
-import { ChannelResponse } from '../dtos/channel.response';
+import { Inject, Injectable } from '@nestjs/common';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import {
-  NotFoundException,
   ForbiddenException,
+  NotFoundException,
 } from '@shared/domain/exceptions/domain.exception';
+import { ChannelStatus } from '../../domain/entities/channel.entity';
+import {
+  CHANNEL_REPOSITORY,
+  type IChannelRepository,
+} from '../../domain/repositories/channel.repository';
+import type { ChannelResponse } from '../dtos/channel.response';
+import type { UpdateChannelCommand } from '../dtos/update-channel.command';
 
+@Injectable()
 export class UpdateChannelUseCase extends BaseUseCase<
   UpdateChannelCommand,
   ChannelResponse
 > {
-  constructor(private readonly channelRepository: IChannelRepository) {
+  constructor(
+    @Inject(CHANNEL_REPOSITORY)
+    private readonly channelRepository: IChannelRepository,
+  ) {
     super();
   }
 
@@ -24,6 +33,10 @@ export class UpdateChannelUseCase extends BaseUseCase<
 
     if (channel.userId !== command.userId) {
       throw new ForbiddenException('You do not own this channel');
+    }
+
+    if (channel.status !== ChannelStatus.ACTIVE) {
+      throw new ForbiddenException('Channel is not active');
     }
 
     channel.update({

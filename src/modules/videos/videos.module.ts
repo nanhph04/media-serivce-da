@@ -1,5 +1,6 @@
 import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { CategoriesModule } from '../categories/categories.module';
 import { ChannelsModule } from '../channels/channels.module';
 import { EngagementModule } from '../engagement/engagement.module';
 import { VideoQueryService } from './application/video-query.service';
@@ -14,6 +15,7 @@ import { PlayVideoUseCase } from './application/use-cases/play-video.use-case';
 import { UnlockVideoUseCase } from './application/use-cases/unlock-video.use-case';
 import { VideoProcessingConsumer } from './infrastructure/consumers/video-processing.consumer';
 import { VideoPurchaseUnlockOrmEntity } from './infrastructure/persistence/video-purchase-unlock.orm-entity';
+import { VideoCategoryOrmEntity } from './infrastructure/persistence/video-category.orm-entity';
 import { VideoPurchaseUnlockRepository } from './infrastructure/persistence/video-purchase-unlock.repository';
 import { VideoOrmEntity } from './infrastructure/persistence/video.orm-entity';
 import { VideoRepository } from './infrastructure/persistence/video.repository';
@@ -24,7 +26,12 @@ import { VIDEO_REPOSITORY } from './domain/repositories/video.repository';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([VideoOrmEntity, VideoPurchaseUnlockOrmEntity]),
+    TypeOrmModule.forFeature([
+      VideoOrmEntity,
+      VideoCategoryOrmEntity,
+      VideoPurchaseUnlockOrmEntity,
+    ]),
+    CategoriesModule,
     forwardRef(() => ChannelsModule),
     EngagementModule,
   ],

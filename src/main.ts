@@ -6,6 +6,7 @@ import { AppModule } from './app.module';
 import { LoggerService } from './shared/infrastructure/logger/logger.service';
 import { HttpExceptionFilter } from './shared/presentation/filters/http-exception.filter';
 import { LoggerInterceptor } from './shared/presentation/interceptors/logger.interceptor';
+import { SuccessResponseInterceptor } from './shared/presentation/interceptors/success-response.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -17,9 +18,12 @@ async function bootstrap() {
   app.useLogger(logger);
 
   const loggerInterceptor = await app.resolve(LoggerInterceptor);
+  const successResponseInterceptor = await app.resolve(
+    SuccessResponseInterceptor,
+  );
 
   app.useGlobalFilters(app.get(HttpExceptionFilter));
-  app.useGlobalInterceptors(loggerInterceptor);
+  app.useGlobalInterceptors(loggerInterceptor, successResponseInterceptor);
 
   app.useGlobalPipes(
     new ValidationPipe({

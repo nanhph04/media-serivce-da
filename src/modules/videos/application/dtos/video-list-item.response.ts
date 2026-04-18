@@ -5,7 +5,7 @@ export interface VideoListItemResponse {
   channelId: string;
   title: string;
   description: string;
-  category: string;
+  categories: string[];
   status: string;
   price: number;
   requiredTierLevel: number | null;
@@ -26,7 +26,7 @@ export function mapVideoEntityToListItem(
     channelId: video.channelId,
     title: video.title,
     description: video.description,
-    category: video.category,
+    categories: video.category.map((category) => category.slug),
     status: video.status,
     price: video.price,
     requiredTierLevel: video.requiredTierLevel,

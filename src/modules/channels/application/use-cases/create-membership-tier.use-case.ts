@@ -1,25 +1,40 @@
-import { IMembershipTierRepository } from '../../domain/repositories/membership-tier.repository';
-import { IChannelRepository } from '../../domain/repositories/channel.repository';
-import { MembershipTierEntity } from '../../domain/entities/membership-tier.entity';
-import { CreateMembershipTierCommand } from '../dtos/create-membership-tier.command';
-import { MembershipTierResponse } from '../dtos/membership-tier.response';
+import { Inject, Injectable } from '@nestjs/common';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
+import { MembershipTierEntity } from '../../domain/entities/membership-tier.entity';
 import {
-  NotFoundException,
-  ForbiddenException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
+  NotFoundException,
 } from '@shared/domain/exceptions/domain.exception';
-import { ConfigService } from '@shared/infrastructure/config/config.service';
+import {
+  MEMBERSHIP_CONFIG,
+  type IMembershipConfig,
+} from '@shared/application/interfaces/membership-config.interface';
+import { ChannelStatus } from '../../domain/entities/channel.entity';
+import {
+  CHANNEL_REPOSITORY,
+  type IChannelRepository,
+} from '../../domain/repositories/channel.repository';
+import {
+  MEMBERSHIP_TIER_REPOSITORY,
+  type IMembershipTierRepository,
+} from '../../domain/repositories/membership-tier.repository';
+import type { CreateMembershipTierCommand } from '../dtos/create-membership-tier.command';
+import type { MembershipTierResponse } from '../dtos/membership-tier.response';
 
+@Injectable()
 export class CreateMembershipTierUseCase extends BaseUseCase<
   CreateMembershipTierCommand,
   MembershipTierResponse
 > {
   constructor(
+    @Inject(MEMBERSHIP_TIER_REPOSITORY)
     private readonly membershipTierRepository: IMembershipTierRepository,
+    @Inject(CHANNEL_REPOSITORY)
     private readonly channelRepository: IChannelRepository,
-    private readonly configService: ConfigService,
+    @Inject(MEMBERSHIP_CONFIG)
+    private readonly membershipConfig: IMembershipConfig,
   ) {
     super();
   }
@@ -37,6 +52,10 @@ export class CreateMembershipTierUseCase extends BaseUseCase<
       throw new ForbiddenException('You do not own this channel');
     }
 
+    if (channel.status !== ChannelStatus.ACTIVE) {
+      throw new ForbiddenException('Channel is not active');
+    }
+
     if (![1, 2, 3].includes(command.level)) {
       throw new BadRequestException('Level must be 1, 2, or 3');
     }
@@ -44,22 +63,13 @@ export class CreateMembershipTierUseCase extends BaseUseCase<
     const existingTiers = await this.membershipTierRepository.findByChannelId(
       command.channelId,
     );
-    const existingTier = existingTiers.find(
-      (tier) => tier.level === command.level,
-    );
+    const existingTier = existingTiers.find((tier) => tier.level === command.level);
 
     if (existingTier) {
-      if (existingTier.isAcceptingNew) {
-        existingTier.hide();
-        await this.membershipTierRepository.update(existingTier);
-      } else {
-        throw new ConflictException(
-          'Tier is hidden, please update existing tier instead',
-        );
-      }
+      throw new ConflictException('Membership tier level already exists');
     }
 
-    const minPrice = this.configService.getMinPriceForLevel(command.level);
+    const minPrice = this.membershipConfig.getMinPriceForLevel(command.level);
 
     if (command.priceCoin < minPrice) {
       throw new BadRequestException(

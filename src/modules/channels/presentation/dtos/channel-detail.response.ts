@@ -8,8 +8,8 @@ class PublicVideoDto {
   @ApiProperty()
   title!: string;
 
-  @ApiProperty()
-  category!: string;
+  @ApiProperty({ type: [String] })
+  categories!: string[];
 
   @ApiProperty()
   status!: string;

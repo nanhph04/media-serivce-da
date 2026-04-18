@@ -1,17 +1,26 @@
-import { IChannelRepository } from '../../domain/repositories/channel.repository';
-import { CreateChannelCommand } from '../dtos/create-channel.command';
+import { Inject, Injectable } from '@nestjs/common';
 import { ChannelEntity } from '../../domain/entities/channel.entity';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
-import { ChannelResponse } from '../dtos/channel.response';
 import { BadRequestException } from '@shared/domain/exceptions/domain.exception';
+import {
+  CHANNEL_REPOSITORY,
+  type IChannelRepository,
+} from '../../domain/repositories/channel.repository';
+import type { CreateChannelCommand } from '../dtos/create-channel.command';
+import type { ChannelResponse } from '../dtos/channel.response';
 
+@Injectable()
 export class CreateChannelUseCase extends BaseUseCase<
   CreateChannelCommand,
   ChannelResponse
 > {
-  constructor(private readonly channelRepository: IChannelRepository) {
+  constructor(
+    @Inject(CHANNEL_REPOSITORY)
+    private readonly channelRepository: IChannelRepository,
+  ) {
     super();
   }
+
   async execute(command: CreateChannelCommand): Promise<ChannelResponse> {
     const existingChannel = await this.channelRepository.findByUserId(
       command.userId,

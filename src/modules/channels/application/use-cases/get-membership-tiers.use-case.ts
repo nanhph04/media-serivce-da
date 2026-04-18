@@ -1,16 +1,19 @@
-import { IMembershipTierRepository } from '../../domain/repositories/membership-tier.repository';
-import { IChannelRepository } from '../../domain/repositories/channel.repository';
-import { MembershipTierResponse } from '../dtos/membership-tier.response';
+import { Inject, Injectable } from '@nestjs/common';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
-import { NotFoundException } from '@shared/domain/exceptions/domain.exception';
+import {
+  MEMBERSHIP_TIER_REPOSITORY,
+  type IMembershipTierRepository,
+} from '../../domain/repositories/membership-tier.repository';
+import type { MembershipTierResponse } from '../dtos/membership-tier.response';
 
+@Injectable()
 export class GetMembershipTiersUseCase extends BaseUseCase<
   { channelId: string },
   MembershipTierResponse[]
 > {
   constructor(
+    @Inject(MEMBERSHIP_TIER_REPOSITORY)
     private readonly membershipTierRepository: IMembershipTierRepository,
-    private readonly channelRepository: IChannelRepository,
   ) {
     super();
   }
@@ -18,12 +21,6 @@ export class GetMembershipTiersUseCase extends BaseUseCase<
   async execute(command: {
     channelId: string;
   }): Promise<MembershipTierResponse[]> {
-    const channel = await this.channelRepository.findById(command.channelId);
-
-    if (!channel) {
-      throw new NotFoundException('Channel not found');
-    }
-
     const tiers = await this.membershipTierRepository.findByChannelId(
       command.channelId,
     );

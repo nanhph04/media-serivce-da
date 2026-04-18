@@ -5,7 +5,7 @@ export interface InitVideoUploadCommand {
   channelId: string;
   title: string;
   description: string;
-  category: string;
+  categories: string[];
   visibility: VideoVisibility;
   price: number;
   requiredTierLevel: number | null;
