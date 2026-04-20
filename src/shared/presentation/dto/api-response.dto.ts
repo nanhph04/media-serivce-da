@@ -78,3 +78,8 @@ export class ApiError {
     return new ApiError(code, mess, errors, requestId, path);
   }
 }
+
+// Controllers return the inner DTO; the global interceptor wraps it at runtime.
+export function apiResponseContract<T>(data: T): ApiResponse<T> {
+  return data as unknown as ApiResponse<T>;
+}

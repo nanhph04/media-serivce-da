@@ -1,9 +1,13 @@
-import { Controller, Get, Param, Query, Res } from '@nestjs/common';
+import { Controller, Get, Param, Query, Res, UseGuards } from '@nestjs/common';
 import { ApiQuery, ApiTags } from '@nestjs/swagger';
+import { SkipInternalGatewayGuard } from '@shared/presentation/decorators/skip-internal-gateway.decorator';
+import { InternalGatewayGuard } from '@shared/presentation/guards/internal-gateway.guard';
 import type { Response } from 'express';
 import { StreamingApplicationService } from '../../application/streaming.application.service';
 
 @ApiTags('streaming')
+@SkipInternalGatewayGuard()
+@UseGuards(InternalGatewayGuard)
 @Controller('stream')
 export class StreamingController {
   constructor(

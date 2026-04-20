@@ -13,6 +13,7 @@ import { HandleVideoProcessedSuccessUseCase } from './application/use-cases/hand
 import { InitVideoUploadUseCase } from './application/use-cases/init-video-upload.use-case';
 import { PlayVideoUseCase } from './application/use-cases/play-video.use-case';
 import { UnlockVideoUseCase } from './application/use-cases/unlock-video.use-case';
+import { VideoWatchAccessService } from './application/services/video-watch-access.service';
 import { VideoProcessingConsumer } from './infrastructure/consumers/video-processing.consumer';
 import { VideoPurchaseUnlockOrmEntity } from './infrastructure/persistence/video-purchase-unlock.orm-entity';
 import { VideoCategoryOrmEntity } from './infrastructure/persistence/video-category.orm-entity';
@@ -40,6 +41,7 @@ import { VIDEO_REPOSITORY } from './domain/repositories/video.repository';
     VideoRepository,
     VideoPurchaseUnlockRepository,
     VideoQueryService,
+    VideoWatchAccessService,
     InitVideoUploadUseCase,
     ConfirmVideoUploadUseCase,
     PlayVideoUseCase,

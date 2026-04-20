@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-export class VideosByCategoryResponseDto {
+export class VideoListItemResponseDto {
   @ApiProperty()
   id!: string;
 

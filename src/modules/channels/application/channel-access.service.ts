@@ -16,6 +16,7 @@ import {
   MEMBERSHIP_TIER_REPOSITORY,
   type IMembershipTierRepository,
 } from '../domain/repositories/membership-tier.repository';
+import type { ChannelEntity } from '../domain/entities/channel.entity';
 import type {
   ChannelViewerAccessContext,
   IChannelAccessService,
@@ -36,10 +37,7 @@ export class ChannelAccessService implements IChannelAccessService {
     channelId: string,
     userId: string,
   ): Promise<void> {
-    const channel = await this.channelRepository.findById(channelId);
-    if (!channel) {
-      throw new NotFoundException('Channel not found');
-    }
+    const channel = await this.loadChannelOrThrow(channelId);
     if (channel.userId !== userId) {
       throw new ForbiddenException('You do not own this channel');
     }
@@ -52,10 +50,7 @@ export class ChannelAccessService implements IChannelAccessService {
     channelId: string,
     userId: string,
   ): Promise<ChannelViewerAccessContext> {
-    const channel = await this.channelRepository.findById(channelId);
-    if (!channel) {
-      throw new NotFoundException('Channel not found');
-    }
+    const channel = await this.loadChannelOrThrow(channelId);
 
     const membership =
       await this.membershipRepository.findByUserIdAndChannelIdActive(
@@ -66,6 +61,7 @@ export class ChannelAccessService implements IChannelAccessService {
     if (!membership) {
       return {
         channelOwnerId: channel.userId,
+        channelStatus: channel.status,
         activeMembershipTierLevel: null,
       };
     }
@@ -76,6 +72,7 @@ export class ChannelAccessService implements IChannelAccessService {
 
     return {
       channelOwnerId: channel.userId,
+      channelStatus: channel.status,
       activeMembershipTierLevel: tier?.level ?? null,
     };
   }
@@ -86,5 +83,14 @@ export class ChannelAccessService implements IChannelAccessService {
     return memberships
       .filter((membership) => membership.isCurrentlyActive())
       .map((membership) => membership.channelId);
+  }
+
+  private async loadChannelOrThrow(channelId: string): Promise<ChannelEntity> {
+    const channel = await this.channelRepository.findById(channelId);
+    if (!channel) {
+      throw new NotFoundException('Channel not found');
+    }
+
+    return channel;
   }
 }

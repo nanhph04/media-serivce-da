@@ -1,7 +1,10 @@
+import type { ChannelStatus } from '../../domain/entities/channel.entity';
+
 export const CHANNEL_ACCESS_SERVICE = Symbol('CHANNEL_ACCESS_SERVICE');
 
 export interface ChannelViewerAccessContext {
   channelOwnerId: string;
+  channelStatus: ChannelStatus;
   activeMembershipTierLevel: number | null;
 }
 

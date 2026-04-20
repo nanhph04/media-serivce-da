@@ -8,8 +8,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiHeader, ApiTags } from '@nestjs/swagger';
+import { ApiCreatedSuccessResponse } from '@shared/presentation/decorators/api-success-response.decorator';
+import { ApiSuccessResponse } from '@shared/presentation/decorators/api-success-response.decorator';
 import { CurrentUserId } from '@shared/presentation/decorators/user-id.decorator';
 import { SkipInternalGatewayGuard } from '@shared/presentation/decorators/skip-internal-gateway.decorator';
+import {
+  ApiResponse,
+  apiResponseContract,
+} from '@shared/presentation/dto/api-response.dto';
 import { InternalGatewayGuard } from '@shared/presentation/guards/internal-gateway.guard';
 import { CreateChannelUseCase } from '../../application/use-cases/create-channel.use-case';
 import { GetChannelDetailUseCase } from '../../application/use-cases/get-channel-detail.use-case';
@@ -17,11 +23,16 @@ import { GetMembershipStatusUseCase } from '../../application/use-cases/get-memb
 import { UpdateChannelUseCase } from '../../application/use-cases/update-channel.use-case';
 import type { CreateChannelRequestDto } from '../dtos/create-channel.request';
 import type { UpdateChannelRequestDto } from '../dtos/update-channel.request';
-import type { ChannelResponseDto } from '../dtos/channel.response';
-import type {
+import { ChannelResponseDto } from '../dtos/channel.response';
+import {
   ChannelDetailResponseDto,
   ChannelMembershipStatusResponseDto,
 } from '../dtos/channel-detail.response';
+import {
+  toChannelDetailResponseDto,
+  toChannelMembershipStatusResponseDto,
+  toChannelResponseDto,
+} from '../mappers/channel-response.mapper';
 
 @ApiTags('channels')
 @ApiHeader({ name: 'x-user-id', required: true })
@@ -36,24 +47,26 @@ export class ChannelController {
   ) {}
 
   @Post()
+  @ApiCreatedSuccessResponse(ChannelResponseDto)
   async createChannel(
     @CurrentUserId() userId: string,
     @Body() dto: CreateChannelRequestDto,
-  ): Promise<ChannelResponseDto> {
+  ): Promise<ApiResponse<ChannelResponseDto>> {
     const channel = await this.createChannelUseCase.execute({
       userId,
       name: dto.name,
       bio: dto.bio,
     });
-    return this.mapToResponseDto(channel);
+    return apiResponseContract(toChannelResponseDto(channel));
   }
 
   @Patch(':id')
+  @ApiSuccessResponse(ChannelResponseDto)
   async updateChannel(
     @CurrentUserId() userId: string,
     @Param('id') channelId: string,
     @Body() dto: UpdateChannelRequestDto,
-  ): Promise<ChannelResponseDto> {
+  ): Promise<ApiResponse<ChannelResponseDto>> {
     const channel = await this.updateChannelUseCase.execute({
       channelId,
       userId,
@@ -62,83 +75,29 @@ export class ChannelController {
       avatarUrl: dto.avatarUrl,
       bannerUrl: dto.bannerUrl,
     });
-    return this.mapToResponseDto(channel);
+    return apiResponseContract(toChannelResponseDto(channel));
   }
 
   @Get(':id')
   @SkipInternalGatewayGuard()
+  @ApiSuccessResponse(ChannelDetailResponseDto)
   async getChannelDetail(
     @Param('id') channelId: string,
-  ): Promise<ChannelDetailResponseDto> {
+  ): Promise<ApiResponse<ChannelDetailResponseDto>> {
     const result = await this.getChannelDetailUseCase.execute({ channelId });
-    return {
-      id: result.channel.id,
-      userId: result.channel.userId,
-      name: result.channel.name,
-      bio: result.channel.bio,
-      avatarUrl: result.channel.avatarUrl,
-      bannerUrl: result.channel.bannerUrl,
-      status: result.channel.status,
-      membershipTiers: result.membershipTiers.map((tier) => ({
-        id: tier.id,
-        channelId: tier.channelId,
-        name: tier.name,
-        level: tier.level,
-        priceCoin: tier.priceCoin,
-        isAcceptingNew: tier.isAcceptingNew,
-        createdAt: tier.createdAt.toISOString(),
-        updatedAt: tier.updatedAt.toISOString(),
-      })),
-      publicVideos: result.publicVideos.map((video) => ({
-        id: video.id,
-        title: video.title,
-        categories: video.categories,
-        status: video.status,
-        thumbnailUrl: video.thumbnailUrl,
-        publishedAt: video.publishedAt?.toISOString() ?? null,
-      })),
-    };
+    return apiResponseContract(toChannelDetailResponseDto(result));
   }
 
   @Get(':id/membership-status')
+  @ApiSuccessResponse(ChannelMembershipStatusResponseDto)
   async getMembershipStatus(
     @CurrentUserId() userId: string,
     @Param('id') channelId: string,
-  ): Promise<ChannelMembershipStatusResponseDto> {
+  ): Promise<ApiResponse<ChannelMembershipStatusResponseDto>> {
     const status = await this.getMembershipStatusUseCase.execute({
       channelId,
       userId,
     });
-    return {
-      isActive: status.isActive,
-      membershipId: status.membershipId,
-      expiryDate: status.expiryDate?.toISOString() ?? null,
-    };
-  }
-
-  private mapToResponseDto(app: {
-    id: string;
-    userId: string;
-    name: string;
-    bio: string;
-    isEligibleForMembership: boolean;
-    avatarUrl: string;
-    bannerUrl: string;
-    status: string;
-    createdAt: Date;
-    updatedAt: Date;
-  }): ChannelResponseDto {
-    return {
-      id: app.id,
-      userId: app.userId,
-      name: app.name,
-      bio: app.bio,
-      isEligibleForMembership: app.isEligibleForMembership,
-      avatarUrl: app.avatarUrl,
-      bannerUrl: app.bannerUrl,
-      status: app.status,
-      createdAt: app.createdAt.toISOString(),
-      updatedAt: app.updatedAt.toISOString(),
-    };
+    return apiResponseContract(toChannelMembershipStatusResponseDto(status));
   }
 }

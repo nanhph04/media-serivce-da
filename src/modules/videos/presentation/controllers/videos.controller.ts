@@ -8,8 +8,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiHeader, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiCreatedSuccessResponse } from '@shared/presentation/decorators/api-success-response.decorator';
+import { ApiSuccessResponse } from '@shared/presentation/decorators/api-success-response.decorator';
 import { CurrentUserId } from '@shared/presentation/decorators/user-id.decorator';
 import { SkipInternalGatewayGuard } from '@shared/presentation/decorators/skip-internal-gateway.decorator';
+import {
+  ApiResponse,
+  apiResponseContract,
+} from '@shared/presentation/dto/api-response.dto';
 import { InternalGatewayGuard } from '@shared/presentation/guards/internal-gateway.guard';
 import { VideoVisibility } from '../../domain/entities/video.entity';
 import type { VideoListItemResponse } from '../../application/dtos/video-list-item.response';
@@ -20,13 +26,11 @@ import { GetVideosByCategoryUseCase } from '../../application/use-cases/get-vide
 import { InitVideoUploadUseCase } from '../../application/use-cases/init-video-upload.use-case';
 import { PlayVideoUseCase } from '../../application/use-cases/play-video.use-case';
 import { ConfirmVideoUploadRequestDto } from '../dtos/confirm-video-upload.request';
-import type { ConfirmVideoUploadResponseDto } from '../dtos/confirm-video-upload.response';
+import { ConfirmVideoUploadResponseDto } from '../dtos/confirm-video-upload.response';
 import { InitVideoUploadRequestDto } from '../dtos/init-video-upload.request';
-import type { InitVideoUploadResponseDto } from '../dtos/init-video-upload.response';
-import type { LatestVideosResponseDto } from '../dtos/latest-videos.response';
-import type { PlayVideoResponseDto } from '../dtos/play-video.response';
-import type { SubscribedVideosResponseDto } from '../dtos/subscribed-videos.response';
-import type { VideosByCategoryResponseDto } from '../dtos/videos-by-category.response';
+import { InitVideoUploadResponseDto } from '../dtos/init-video-upload.response';
+import { PlayVideoResponseDto } from '../dtos/play-video.response';
+import { VideoListItemResponseDto } from '../dtos/video-list-item.response';
 
 @ApiTags('videos')
 @ApiHeader({ name: 'x-user-id', required: true })
@@ -46,131 +50,101 @@ export class VideosController {
   @ApiOperation({
     summary: 'Create a draft video and return a presigned upload URL',
   })
+  @ApiCreatedSuccessResponse(InitVideoUploadResponseDto)
   async initUpload(
     @CurrentUserId() userId: string,
     @Body() dto: InitVideoUploadRequestDto,
-  ): Promise<InitVideoUploadResponseDto> {
-    return this.initVideoUploadUseCase.execute({
-      userId,
-      channelId: dto.channelId,
-      title: dto.title,
-      description: dto.description,
-      categories: dto.categories,
-      visibility: dto.visibility as VideoVisibility,
-      price: dto.price,
-      requiredTierLevel: dto.requiredTierLevel ?? null,
-    });
+  ): Promise<ApiResponse<InitVideoUploadResponseDto>> {
+    return apiResponseContract(
+      await this.initVideoUploadUseCase.execute({
+        userId,
+        channelId: dto.channelId,
+        title: dto.title,
+        description: dto.description,
+        categories: dto.categories,
+        visibility: dto.visibility as VideoVisibility,
+        price: dto.price,
+        requiredTierLevel: dto.requiredTierLevel ?? null,
+      }),
+    );
   }
 
   @Post(':id/confirm-upload')
+  @ApiCreatedSuccessResponse(ConfirmVideoUploadResponseDto)
   async confirmUpload(
     @CurrentUserId() userId: string,
     @Param('id') videoId: string,
     @Body() dto: ConfirmVideoUploadRequestDto,
-  ): Promise<ConfirmVideoUploadResponseDto> {
-    return this.confirmVideoUploadUseCase.execute({
-      userId,
-      videoId,
-      resolutions: dto.resolutions,
-    });
+  ): Promise<ApiResponse<ConfirmVideoUploadResponseDto>> {
+    return apiResponseContract(
+      await this.confirmVideoUploadUseCase.execute({
+        userId,
+        videoId,
+        resolutions: dto.resolutions,
+      }),
+    );
   }
 
   @Get(':id/play')
+  @ApiSuccessResponse(PlayVideoResponseDto)
   async playVideo(
     @CurrentUserId() userId: string,
     @Param('id') videoId: string,
-  ): Promise<PlayVideoResponseDto> {
-    return this.playVideoUseCase.execute({
-      userId,
-      videoId,
-    });
+  ): Promise<ApiResponse<PlayVideoResponseDto>> {
+    return apiResponseContract(
+      await this.playVideoUseCase.execute({
+        userId,
+        videoId,
+      }),
+    );
   }
 
   @Get('discovery/latest')
   @SkipInternalGatewayGuard()
   @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiSuccessResponse(VideoListItemResponseDto, { isArray: true })
   async latest(
     @Query('limit') limit?: string,
-  ): Promise<LatestVideosResponseDto[]> {
+  ): Promise<ApiResponse<VideoListItemResponseDto[]>> {
     const rows = await this.getLatestVideosUseCase.execute({
       limit: Number(limit) || 20,
     });
-    return rows.map((row) => this.toLatestDto(row));
+    return apiResponseContract(rows.map((row) => this.toVideoListItemDto(row)));
   }
 
   @Get('discovery/by-category')
   @SkipInternalGatewayGuard()
   @ApiQuery({ name: 'category', required: true })
   @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiSuccessResponse(VideoListItemResponseDto, { isArray: true })
   async byCategory(
     @Query('category') category: string,
     @Query('limit') limit?: string,
-  ): Promise<VideosByCategoryResponseDto[]> {
+  ): Promise<ApiResponse<VideoListItemResponseDto[]>> {
     const rows = await this.getVideosByCategoryUseCase.execute({
       category,
       limit: Number(limit) || 20,
     });
-    return rows.map((row) => this.toByCategoryDto(row));
+    return apiResponseContract(rows.map((row) => this.toVideoListItemDto(row)));
   }
 
   @Get('discovery/subscribed')
   @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiSuccessResponse(VideoListItemResponseDto, { isArray: true })
   async subscribed(
     @CurrentUserId() userId: string,
     @Query('limit') limit?: string,
-  ): Promise<SubscribedVideosResponseDto[]> {
+  ): Promise<ApiResponse<VideoListItemResponseDto[]>> {
     const rows = await this.getSubscribedVideosUseCase.execute({
       userId,
       limit: Number(limit) || 20,
     });
-    return rows.map((row) => this.toSubscribedDto(row));
+    return apiResponseContract(rows.map((row) => this.toVideoListItemDto(row)));
   }
 
-  private toLatestDto(video: VideoListItemResponse): LatestVideosResponseDto {
-    return {
-      id: video.id,
-      channelId: video.channelId,
-      title: video.title,
-      description: video.description,
-      categories: video.categories,
-      status: video.status,
-      price: video.price,
-      requiredTierLevel: video.requiredTierLevel,
-      thumbnailUrl: video.thumbnailUrl,
-      durationSeconds: video.durationSeconds,
-      resolutions: video.resolutions,
-      viewCount: video.viewCount,
-      publishedAt: video.publishedAt?.toISOString() ?? null,
-      createdAt: video.createdAt.toISOString(),
-      updatedAt: video.updatedAt.toISOString(),
-    };
-  }
-
-  private toByCategoryDto(
+  private toVideoListItemDto(
     video: VideoListItemResponse,
-  ): VideosByCategoryResponseDto {
-    return {
-      id: video.id,
-      channelId: video.channelId,
-      title: video.title,
-      description: video.description,
-      categories: video.categories,
-      status: video.status,
-      price: video.price,
-      requiredTierLevel: video.requiredTierLevel,
-      thumbnailUrl: video.thumbnailUrl,
-      durationSeconds: video.durationSeconds,
-      resolutions: video.resolutions,
-      viewCount: video.viewCount,
-      publishedAt: video.publishedAt?.toISOString() ?? null,
-      createdAt: video.createdAt.toISOString(),
-      updatedAt: video.updatedAt.toISOString(),
-    };
-  }
-
-  private toSubscribedDto(
-    video: VideoListItemResponse,
-  ): SubscribedVideosResponseDto {
+  ): VideoListItemResponseDto {
     return {
       id: video.id,
       channelId: video.channelId,

@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { MembershipTierResponseDto } from './membership-tier.response';
 
-class PublicVideoDto {
+export class PublicVideoDto {
   @ApiProperty()
   id!: string;
 

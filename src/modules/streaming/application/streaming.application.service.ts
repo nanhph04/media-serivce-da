@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@shared/domain/exceptions/domain.exception';
 import type { Response } from 'express';
+import { RecordVideoViewUseCase } from '../../engagement/application/use-cases/record-video-view.use-case';
 import {
   type IVideoRepository,
   VIDEO_REPOSITORY,
@@ -16,12 +17,13 @@ export class StreamingApplicationService {
   constructor(
     private readonly playbackTokenService: PlaybackTokenService,
     private readonly minioService: MinioService,
+    private readonly recordVideoViewUseCase: RecordVideoViewUseCase,
     @Inject(VIDEO_REPOSITORY)
     private readonly videoRepository: IVideoRepository,
   ) {}
 
   async streamMasterPlaylist(videoId: string, token: string): Promise<string> {
-    this.playbackTokenService.verifyToken(token, videoId);
+    const payload = this.playbackTokenService.verifyToken(token, videoId);
     const video = await this.videoRepository.findById(videoId);
     if (!video || !video.masterPlaylistKey) {
       throw new NotFoundException('Video master playlist not found');
@@ -31,6 +33,11 @@ export class StreamingApplicationService {
       this.minioService.getProcessedBucket(),
       video.masterPlaylistKey,
     );
+
+    await this.recordVideoViewUseCase.execute({
+      userId: payload.userId,
+      videoId: payload.videoId,
+    });
 
     return this.rewritePlaylist(videoId, token, playlist);
   }

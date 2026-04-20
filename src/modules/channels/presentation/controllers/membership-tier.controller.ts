@@ -9,7 +9,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiHeader, ApiTags } from '@nestjs/swagger';
+import { ApiCreatedSuccessResponse } from '@shared/presentation/decorators/api-success-response.decorator';
+import { ApiSuccessResponse } from '@shared/presentation/decorators/api-success-response.decorator';
 import { CurrentUserId } from '@shared/presentation/decorators/user-id.decorator';
+import {
+  ApiResponse,
+  apiResponseContract,
+} from '@shared/presentation/dto/api-response.dto';
 import { InternalGatewayGuard } from '@shared/presentation/guards/internal-gateway.guard';
 import { CreateMembershipTierUseCase } from '../../application/use-cases/create-membership-tier.use-case';
 import { DisableMembershipTierUseCase } from '../../application/use-cases/disable-membership-tier.use-case';
@@ -17,8 +23,9 @@ import { GetMembershipTierUseCase } from '../../application/use-cases/get-member
 import { GetMembershipTiersUseCase } from '../../application/use-cases/get-membership-tiers.use-case';
 import { UpdateMembershipTierUseCase } from '../../application/use-cases/update-membership-tier.use-case';
 import type { CreateMembershipTierRequestDto } from '../dtos/create-membership-tier.request';
-import type { MembershipTierResponseDto } from '../dtos/membership-tier.response';
+import { MembershipTierResponseDto } from '../dtos/membership-tier.response';
 import type { UpdateMembershipTierRequestDto } from '../dtos/update-membership-tier.request';
+import { toMembershipTierResponseDto } from '../mappers/channel-response.mapper';
 
 @ApiTags('membership-tiers')
 @ApiHeader({ name: 'x-user-id', required: true })
@@ -34,33 +41,36 @@ export class MembershipTierController {
   ) {}
 
   @Get()
+  @ApiSuccessResponse(MembershipTierResponseDto, { isArray: true })
   async getMembershipTiers(
     @Param('channelId') channelId: string,
-  ): Promise<MembershipTierResponseDto[]> {
+  ): Promise<ApiResponse<MembershipTierResponseDto[]>> {
     const appResult = await this.getMembershipTiersUseCase.execute({
       channelId,
     });
-    return appResult.map((tier) => this.mapToResponseDto(tier));
+    return apiResponseContract(appResult.map(toMembershipTierResponseDto));
   }
 
   @Get(':tierId')
+  @ApiSuccessResponse(MembershipTierResponseDto)
   async getMembershipTier(
     @Param('channelId') channelId: string,
     @Param('tierId') tierId: string,
-  ): Promise<MembershipTierResponseDto> {
+  ): Promise<ApiResponse<MembershipTierResponseDto>> {
     const appResult = await this.getMembershipTierUseCase.execute({
       channelId,
       tierId,
     });
-    return this.mapToResponseDto(appResult);
+    return apiResponseContract(toMembershipTierResponseDto(appResult));
   }
 
   @Post()
+  @ApiCreatedSuccessResponse(MembershipTierResponseDto)
   async createMembershipTier(
     @CurrentUserId() userId: string,
     @Param('channelId') channelId: string,
     @Body() dto: CreateMembershipTierRequestDto,
-  ): Promise<MembershipTierResponseDto> {
+  ): Promise<ApiResponse<MembershipTierResponseDto>> {
     const appResult = await this.createMembershipTierUseCase.execute({
       channelId,
       userId,
@@ -68,16 +78,17 @@ export class MembershipTierController {
       level: dto.level,
       priceCoin: dto.priceCoin,
     });
-    return this.mapToResponseDto(appResult);
+    return apiResponseContract(toMembershipTierResponseDto(appResult));
   }
 
   @Patch(':tierId')
+  @ApiSuccessResponse(MembershipTierResponseDto)
   async updateMembershipTier(
     @CurrentUserId() userId: string,
     @Param('channelId') channelId: string,
     @Param('tierId') tierId: string,
     @Body() dto: UpdateMembershipTierRequestDto,
-  ): Promise<MembershipTierResponseDto> {
+  ): Promise<ApiResponse<MembershipTierResponseDto>> {
     const appResult = await this.updateMembershipTierUseCase.execute({
       channelId,
       tierId,
@@ -86,42 +97,21 @@ export class MembershipTierController {
       priceCoin: dto.priceCoin,
       isAcceptingNew: dto.isAcceptingNew,
     });
-    return this.mapToResponseDto(appResult);
+    return apiResponseContract(toMembershipTierResponseDto(appResult));
   }
 
   @Delete(':tierId')
+  @ApiSuccessResponse(MembershipTierResponseDto)
   async deleteMembershipTier(
     @CurrentUserId() userId: string,
     @Param('channelId') channelId: string,
     @Param('tierId') tierId: string,
-  ): Promise<MembershipTierResponseDto> {
+  ): Promise<ApiResponse<MembershipTierResponseDto>> {
     const appResult = await this.disableMembershipTierUseCase.execute({
       channelId,
       tierId,
       userId,
     });
-    return this.mapToResponseDto(appResult);
+    return apiResponseContract(toMembershipTierResponseDto(appResult));
   }
-
-  private mapToResponseDto = (app: {
-    id: string;
-    channelId: string;
-    name: string;
-    level: number;
-    priceCoin: number;
-    isAcceptingNew: boolean;
-    createdAt: Date;
-    updatedAt: Date;
-  }): MembershipTierResponseDto => {
-    return {
-      id: app.id,
-      channelId: app.channelId,
-      name: app.name,
-      level: app.level,
-      priceCoin: app.priceCoin,
-      isAcceptingNew: app.isAcceptingNew,
-      createdAt: app.createdAt.toISOString(),
-      updatedAt: app.updatedAt.toISOString(),
-    };
-  };
 }
