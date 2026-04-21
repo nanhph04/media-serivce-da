@@ -22,9 +22,9 @@ import { DisableMembershipTierUseCase } from '../../application/use-cases/disabl
 import { GetMembershipTierUseCase } from '../../application/use-cases/get-membership-tier.use-case';
 import { GetMembershipTiersUseCase } from '../../application/use-cases/get-membership-tiers.use-case';
 import { UpdateMembershipTierUseCase } from '../../application/use-cases/update-membership-tier.use-case';
-import type { CreateMembershipTierRequestDto } from '../dtos/create-membership-tier.request';
+import { CreateMembershipTierRequestDto } from '../dtos/create-membership-tier.request';
 import { MembershipTierResponseDto } from '../dtos/membership-tier.response';
-import type { UpdateMembershipTierRequestDto } from '../dtos/update-membership-tier.request';
+import { UpdateMembershipTierRequestDto } from '../dtos/update-membership-tier.request';
 import { toMembershipTierResponseDto } from '../mappers/channel-response.mapper';
 
 @ApiTags('membership-tiers')

@@ -1,15 +1,20 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { Client } from 'minio';
 import type { Readable } from 'stream';
 import { ConfigService } from '../config/config.service';
+import { LoggerService } from '../logger/logger.service';
 
 @Injectable()
-export class MinioService {
+export class MinioService implements OnModuleInit {
   private readonly client: Client;
   private readonly rawBucket: string;
   private readonly processedBucket: string;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly logger: LoggerService,
+  ) {
+    this.logger.setContext(MinioService.name);
     this.rawBucket = this.configService.get<string>(
       'MINIO_RAW_BUCKET',
       'media-raw',
@@ -25,6 +30,11 @@ export class MinioService {
       accessKey: this.configService.get<string>('MINIO_ACCESS_KEY', 'minio'),
       secretKey: this.configService.get<string>('MINIO_SECRET_KEY', 'minio123'),
     });
+  }
+
+  async onModuleInit(): Promise<void> {
+    await this.ensureBucketExists(this.rawBucket);
+    await this.ensureBucketExists(this.processedBucket);
   }
 
   getRawBucket(): string {
@@ -72,5 +82,16 @@ export class MinioService {
       });
       stream.on('error', reject);
     });
+  }
+
+  private async ensureBucketExists(bucket: string): Promise<void> {
+    const exists = await this.client.bucketExists(bucket);
+
+    if (exists) {
+      return;
+    }
+
+    await this.client.makeBucket(bucket);
+    this.logger.logInfo('Created MinIO bucket', { bucket });
   }
 }

@@ -46,7 +46,9 @@ export class CreateCategoryUseCase extends BaseUseCase<
     return {
       id: category.id,
       name: category.name,
+      slug: category.slug,
       description: category.description ?? undefined,
+      status: category.status,
       createdAt: category.createdAt,
       updatedAt: category.updatedAt,
     };

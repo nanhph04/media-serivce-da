@@ -21,8 +21,8 @@ import { CreateChannelUseCase } from '../../application/use-cases/create-channel
 import { GetChannelDetailUseCase } from '../../application/use-cases/get-channel-detail.use-case';
 import { GetMembershipStatusUseCase } from '../../application/use-cases/get-membership-status.use-case';
 import { UpdateChannelUseCase } from '../../application/use-cases/update-channel.use-case';
-import type { CreateChannelRequestDto } from '../dtos/create-channel.request';
-import type { UpdateChannelRequestDto } from '../dtos/update-channel.request';
+import { CreateChannelRequestDto } from '../dtos/create-channel.request';
+import { UpdateChannelRequestDto } from '../dtos/update-channel.request';
 import { ChannelResponseDto } from '../dtos/channel.response';
 import {
   ChannelDetailResponseDto,
