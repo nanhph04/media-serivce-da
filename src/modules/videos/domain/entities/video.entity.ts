@@ -185,6 +185,27 @@ export class VideoEntity {
     this.touch();
   }
 
+  updateMetadata(input: {
+    title?: string;
+    description?: string;
+    thumbnailUrl?: string | null;
+  }): void {
+    if (input.title !== undefined) {
+      VideoEntity.validateTitle(input.title);
+      this.props.title = input.title;
+    }
+
+    if (input.description !== undefined) {
+      this.props.description = input.description;
+    }
+
+    if (input.thumbnailUrl !== undefined) {
+      this.props.thumbnailUrl = input.thumbnailUrl;
+    }
+
+    this.touch();
+  }
+
   markFailed(errorMessage: string): void {
     this.props.status = VideoStatus.FAILED;
     this.props.errorMessage = errorMessage;
@@ -205,11 +226,8 @@ export class VideoEntity {
     price: number,
     requiredTierLevel: number | null,
   ): void {
-    if (!title || title.length > 200) {
-      throw new BadRequestException(
-        'Video title is required and must be <= 200 characters',
-      );
-    }
+    VideoEntity.validateTitle(title);
+
     if (price < 0) {
       throw new BadRequestException('Video price cannot be negative');
     }
@@ -219,6 +237,14 @@ export class VideoEntity {
     ) {
       throw new BadRequestException(
         'Required tier level must be between 1 and 3',
+      );
+    }
+  }
+
+  private static validateTitle(title: string): void {
+    if (!title || title.length > 200) {
+      throw new BadRequestException(
+        'Video title is required and must be <= 200 characters',
       );
     }
   }

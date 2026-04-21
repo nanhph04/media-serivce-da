@@ -43,7 +43,9 @@ describe('StreamingApplicationService', () => {
 
     await expect(
       service.streamMasterPlaylist('video-1', 'playback-token'),
-    ).resolves.toContain('/api/media/stream/video-1/segments/segment.ts?token=playback-token');
+    ).resolves.toContain(
+      '/api/media/stream/video-1/segments/segments%2Fsegment.ts?token=playback-token',
+    );
 
     expect(recordVideoViewUseCase.execute).toHaveBeenCalledWith({
       userId: 'viewer-1',
@@ -96,6 +98,105 @@ describe('StreamingApplicationService', () => {
 
     expect(recordVideoViewUseCase.execute).not.toHaveBeenCalled();
   });
+
+  it('rewrites variant playlist segment urls with the playback token', async () => {
+    playbackTokenService.verifyToken.mockReturnValue({
+      videoId: 'video-1',
+      userId: 'viewer-1',
+      channelId: 'channel-1',
+    });
+    videoRepository.findById.mockResolvedValue(buildVideo());
+    minioService.getObjectText.mockResolvedValue('#EXTM3U\n720p_000.ts');
+
+    const response = createResponse();
+
+    await service.pipeSegment(
+      {
+        videoId: 'video-1',
+        token: 'playback-token',
+        segmentName: '720p.m3u8',
+      },
+      response,
+    );
+
+    expect(response.setHeader).toHaveBeenCalledWith(
+      'Content-Type',
+      'application/vnd.apple.mpegurl',
+    );
+    expect(response.send).toHaveBeenCalledWith(
+      '#EXTM3U\n/api/media/stream/video-1/segments/segments%2F720p_000.ts?token=playback-token',
+    );
+    expect(minioService.getObjectStream).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the shared segments directory for root-level segment urls', async () => {
+    const missingObjectError = new Error('The specified key does not exist.');
+    const segmentStream = {
+      on: jest.fn(),
+      pipe: (destination: Response) => {
+        setImmediate(() => {
+          destination.emit('close');
+        });
+        return destination;
+      },
+    };
+
+    playbackTokenService.verifyToken.mockReturnValue({
+      videoId: 'video-1',
+      userId: 'viewer-1',
+      channelId: 'channel-1',
+    });
+    videoRepository.findById.mockResolvedValue(buildVideo());
+    minioService.getObjectStream
+      .mockRejectedValueOnce(missingObjectError)
+      .mockResolvedValueOnce(segmentStream);
+
+    const response = createResponse();
+    await service.pipeSegment(
+      {
+        videoId: 'video-1',
+        token: 'playback-token',
+        segmentName: '720p_000.ts',
+      },
+      response,
+    );
+
+    expect(minioService.getObjectStream).toHaveBeenNthCalledWith(
+      1,
+      'processed',
+      'processed/720p_000.ts',
+    );
+    expect(minioService.getObjectStream).toHaveBeenNthCalledWith(
+      2,
+      'processed',
+      'processed/segments/720p_000.ts',
+    );
+  });
+
+  it('keeps nested variant playlist paths when rewriting segment urls', async () => {
+    playbackTokenService.verifyToken.mockReturnValue({
+      videoId: 'video-1',
+      userId: 'viewer-1',
+      channelId: 'channel-1',
+    });
+    videoRepository.findById.mockResolvedValue(buildVideo());
+    minioService.getObjectText.mockResolvedValue('#EXTM3U\n720p_000.ts');
+
+    const response = createResponse();
+
+    await service.pipeSegment(
+      {
+        videoId: 'video-1',
+        token: 'playback-token',
+        segmentName: '720p/index.m3u8',
+      },
+      response,
+    );
+
+    expect(response.send).toHaveBeenCalledWith(
+      '#EXTM3U\n/api/media/stream/video-1/segments/720p%2F720p_000.ts?token=playback-token',
+    );
+  });
 });
 
 function buildVideo(): VideoEntity {
@@ -125,12 +226,16 @@ function buildVideo(): VideoEntity {
 
 function createResponse(): {
   setHeader: jest.Mock;
+  send: jest.Mock;
 } & Response {
   const response = new PassThrough() as PassThrough & {
     setHeader: jest.Mock;
+    send: jest.Mock;
   };
   response.setHeader = jest.fn();
+  response.send = jest.fn();
   return response as Response & {
     setHeader: jest.Mock;
+    send: jest.Mock;
   };
 }

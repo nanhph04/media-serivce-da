@@ -1,14 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
-import {
-  mapVideoEntityToListItem,
-  type VideoListItemResponse,
-} from '../dtos/video-list-item.response';
+import type { VideoListItemResponse } from '../dtos/video-list-item.response';
 import type { GetVideosByCategoryQuery } from '../dtos/videos-by-category.query';
 import {
-  type IVideoRepository,
-  VIDEO_REPOSITORY,
-} from '../../domain/repositories/video.repository';
+  type IVideoQueryService,
+  VIDEO_QUERY_SERVICE,
+} from '../interfaces/video-query.service.interface';
 
 @Injectable()
 export class GetVideosByCategoryUseCase extends BaseUseCase<
@@ -16,8 +13,8 @@ export class GetVideosByCategoryUseCase extends BaseUseCase<
   VideoListItemResponse[]
 > {
   constructor(
-    @Inject(VIDEO_REPOSITORY)
-    private readonly videoRepository: IVideoRepository,
+    @Inject(VIDEO_QUERY_SERVICE)
+    private readonly videoQueryService: IVideoQueryService,
   ) {
     super();
   }
@@ -25,10 +22,9 @@ export class GetVideosByCategoryUseCase extends BaseUseCase<
   async execute(
     query: GetVideosByCategoryQuery,
   ): Promise<VideoListItemResponse[]> {
-    const videos = await this.videoRepository.findByCategory(
+    return this.videoQueryService.getVideosByCategory(
       query.category,
       query.limit,
     );
-    return videos.map(mapVideoEntityToListItem);
   }
 }

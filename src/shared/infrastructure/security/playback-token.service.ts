@@ -37,17 +37,23 @@ export class PlaybackTokenService {
     return `${encodedPayload}.${signature}`;
   }
 
-  verifyToken(token: string, videoId: string): PlaybackTokenPayload {
-    const [encodedPayload, signature] = token.split('.');
+  verifyToken(
+    token: string | undefined,
+    videoId: string,
+  ): PlaybackTokenPayload {
+    const [encodedPayload, signature] = token?.split('.') ?? [];
 
     if (!encodedPayload || !signature) {
       throw new UnauthorizedException('Invalid playback token');
     }
 
     const expectedSignature = this.sign(encodedPayload);
+    const signatureBuffer = Buffer.from(signature);
+    const expectedSignatureBuffer = Buffer.from(expectedSignature);
 
     if (
-      !timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))
+      signatureBuffer.length !== expectedSignatureBuffer.length ||
+      !timingSafeEqual(signatureBuffer, expectedSignatureBuffer)
     ) {
       throw new UnauthorizedException('Invalid playback token');
     }

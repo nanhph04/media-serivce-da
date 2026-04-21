@@ -7,7 +7,7 @@ import {
 import type { CategoryResponse } from '../dto/category.response';
 
 @Injectable()
-export class GetCategoriesUseCase extends BaseUseCase<
+export class GetAllCategoriesUseCase extends BaseUseCase<
   void,
   CategoryResponse[]
 > {
@@ -19,7 +19,7 @@ export class GetCategoriesUseCase extends BaseUseCase<
   }
 
   async execute(): Promise<CategoryResponse[]> {
-    const categories = await this.categoryRepository.findActive();
+    const categories = await this.categoryRepository.findAll();
 
     return categories.map(
       (category): CategoryResponse => ({

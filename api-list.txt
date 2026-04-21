@@ -361,6 +361,51 @@ Ghi chú chung
   - `createdAt` (string ISO)
   - `updatedAt` (string ISO)
 
+4.7) GET /api/media/videos/:id/metadata
+- Muc dich: lay metadata public cua video.
+- Public API: khong can `x-internal-secret`.
+- Path param:
+  - `id` (string): Video id
+- Ghi chu:
+  - Chi tra video co `status = public` va `visibility = public`.
+  - Neu video khong ton tai hoac khong public thi tra `NOT_FOUND` / HTTP 404.
+  - Cache key: `video:{id}:metadata`, TTL 600s.
+- Response 200:
+  - `id` (string)
+  - `title` (string)
+  - `description` (string)
+  - `thumbnailUrl` (string | null)
+  - `status` (string)
+  - `visibility` (string)
+  - `publishedAt` (string ISO | null)
+  - `updatedAt` (string ISO)
+
+4.8) PATCH /api/media/videos/:id/metadata
+- Muc dich: creator cap nhat metadata cua video.
+- Header:
+  - `x-user-id`: Gateway verify JWT roi tu set
+  - `x-internal-secret`: Gateway/service noi bo tu set, client khong tu gui
+- Path param:
+  - `id` (string): Video id
+- Body:
+  - `title` (string, optional, max 200): Nguoi dung nhap
+  - `description` (string, optional): Nguoi dung nhap
+  - `thumbnailUrl` (string | null, optional, max 500): Nguoi dung nhap hoac client set tu
+    upload result
+- Ghi chu:
+  - Chi owner duoc sua; non-owner tra `FORBIDDEN` / HTTP 403.
+  - Sau khi save chi xoa cache key `video:{id}:metadata`.
+  - Khong xoa discovery list cache; latest/by-category tu refresh theo TTL 600s.
+- Response 200:
+  - `id` (string)
+  - `title` (string)
+  - `description` (string)
+  - `thumbnailUrl` (string | null)
+  - `status` (string)
+  - `visibility` (string)
+  - `publishedAt` (string ISO | null)
+  - `updatedAt` (string ISO)
+
 ==================================================
 5. STREAMING APIs
 ==================================================
@@ -392,7 +437,92 @@ Ghi chú chung
   - Body: binary stream của segment
 
 ==================================================
-6. ERROR RESPONSE CHUNG
+6. CATEGORY APIs
+==================================================
+
+6.1) GET /api/media/categories
+- Muc dich: lay danh sach category public dang ACTIVE.
+- Public API: khong can `x-internal-secret`.
+- Request:
+  - Khong co body/query/path param.
+- Ghi chu:
+  - Endpoint nay chi tra category co `status = active`.
+  - Endpoint nay co the dung cache active list hien tai.
+- Response 200:
+  - Mang object, moi object gom:
+  - `id` (string)
+  - `name` (string)
+  - `slug` (string)
+  - `description` (string | undefined)
+  - `status` (`active`)
+  - `createdAt` (string ISO)
+  - `updatedAt` (string ISO)
+
+6.2) GET /api/media/categories/admin/all
+- Muc dich: admin lay tat ca category, gom ACTIVE, INACTIVE, DELETED.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-user-role`: Bat buoc la `admin`
+  - `x-internal-secret`: He thong tu set
+- Request:
+  - Khong co body/query/path param.
+- Ghi chu:
+  - Endpoint nay khong dung cache trong v1.
+  - Neu thieu role hoac role khac `admin` thi tra loi `FORBIDDEN` / HTTP 403 voi message `Admin role is required`.
+- Response 200:
+  - Mang object, moi object gom:
+  - `id` (string)
+  - `name` (string)
+  - `slug` (string)
+  - `description` (string | undefined)
+  - `status` (`active` | `inactive` | `deleted`)
+  - `createdAt` (string ISO)
+  - `updatedAt` (string ISO)
+
+6.3) POST /api/media/categories
+- Muc dich: admin tao category moi.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-user-role`: Bat buoc la `admin`
+  - `x-internal-secret`: He thong tu set
+- Body:
+  - `name` (string, bat buoc, max 100): Nguoi dung nhap
+  - `description` (string, optional): Nguoi dung nhap
+- He thong tu set them khi xu ly:
+  - `userId`: lay tu header `x-user-id`
+- Response 201:
+  - `id` (string)
+  - `name` (string)
+  - `slug` (string)
+  - `description` (string | undefined)
+  - `status` (string)
+  - `createdAt` (string ISO)
+  - `updatedAt` (string ISO)
+
+6.4) PATCH /api/media/categories/:id
+- Muc dich: admin cap nhat category.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-user-role`: Bat buoc la `admin`
+  - `x-internal-secret`: He thong tu set
+- Path param:
+  - `id` (string): Category id
+- Body:
+  - `name` (string, optional, max 100): Nguoi dung nhap
+  - `description` (string, optional): Nguoi dung nhap
+- He thong tu set them khi xu ly:
+  - `userId`: lay tu header `x-user-id`
+- Response 200:
+  - `id` (string)
+  - `name` (string)
+  - `slug` (string)
+  - `description` (string | undefined)
+  - `status` (string)
+  - `createdAt` (string ISO)
+  - `updatedAt` (string ISO)
+
+==================================================
+7. ERROR RESPONSE CHUNG
 ==================================================
 
 Khi lỗi, service dùng format:
