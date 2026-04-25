@@ -8,6 +8,7 @@ export interface VideoMetadataResponse {
   title: string;
   description: string;
   thumbnailUrl: string | null;
+  viewCount: number;
   status: VideoStatus;
   visibility: VideoVisibility;
   publishedAt: Date | null;

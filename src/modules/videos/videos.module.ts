@@ -4,31 +4,38 @@ import { CategoriesModule } from '../categories/categories.module';
 import { ChannelsModule } from '../channels/channels.module';
 import { EngagementModule } from '../engagement/engagement.module';
 import { ConfirmVideoUploadUseCase } from './application/use-cases/confirm-video-upload.use-case';
+import { GetContinueWatchingUseCase } from './application/use-cases/get-continue-watching.use-case';
 import { GetLatestVideosUseCase } from './application/use-cases/get-latest-videos.use-case';
 import { GetSubscribedVideosUseCase } from './application/use-cases/get-subscribed-videos.use-case';
 import { GetVideoMetadataUseCase } from './application/use-cases/get-video-metadata.use-case';
 import { GetVideosByCategoryUseCase } from './application/use-cases/get-videos-by-category.use-case';
 import { HandleVideoProcessedFailedUseCase } from './application/use-cases/handle-video-processed-failed.use-case';
 import { HandleVideoProcessedSuccessUseCase } from './application/use-cases/handle-video-processed-success.use-case';
+import { HandleVideoViewedUseCase } from './application/use-cases/handle-video-viewed.use-case';
 import { InitVideoUploadUseCase } from './application/use-cases/init-video-upload.use-case';
 import { PlayVideoUseCase } from './application/use-cases/play-video.use-case';
 import { RefreshPlaybackTokenUseCase } from './application/use-cases/refresh-playback-token.use-case';
+import { UpdateVideoProgressUseCase } from './application/use-cases/update-video-progress.use-case';
 import { UpdateVideoMetadataUseCase } from './application/use-cases/update-video-metadata.use-case';
 import { UnlockVideoUseCase } from './application/use-cases/unlock-video.use-case';
 import { VideoWatchAccessService } from './application/services/video-watch-access.service';
 import { VideoProcessingConsumer } from './infrastructure/consumers/video-processing.consumer';
+import { VideoViewedConsumer } from './infrastructure/consumers/video-viewed.consumer';
 import { VideoCacheInvalidator } from './infrastructure/cache/video-cache-invalidator.service';
 import { VideoPurchaseUnlockOrmEntity } from './infrastructure/persistence/video-purchase-unlock.orm-entity';
 import { VideoCategoryOrmEntity } from './infrastructure/persistence/video-category.orm-entity';
 import { VideoPurchaseUnlockRepository } from './infrastructure/persistence/video-purchase-unlock.repository';
 import { VideoOrmEntity } from './infrastructure/persistence/video.orm-entity';
 import { VideoRepository } from './infrastructure/persistence/video.repository';
+import { VideoWatchProgressOrmEntity } from './infrastructure/persistence/video-watch-progress.orm-entity';
+import { VideoWatchProgressRepository } from './infrastructure/persistence/video-watch-progress.repository';
 import { VideoQueryService } from './infrastructure/query/video-query.service';
 import { VideosController } from './presentation/controllers/videos.controller';
 import { VIDEO_CACHE_INVALIDATOR } from './application/interfaces/video-cache-invalidator.interface';
 import { VIDEO_QUERY_SERVICE } from './application/interfaces/video-query.service.interface';
 import { VIDEO_PURCHASE_UNLOCK_REPOSITORY } from './domain/repositories/video-purchase-unlock.repository';
 import { VIDEO_REPOSITORY } from './domain/repositories/video.repository';
+import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-watch-progress.repository';
 
 @Module({
   imports: [
@@ -36,6 +43,7 @@ import { VIDEO_REPOSITORY } from './domain/repositories/video.repository';
       VideoOrmEntity,
       VideoCategoryOrmEntity,
       VideoPurchaseUnlockOrmEntity,
+      VideoWatchProgressOrmEntity,
     ]),
     CategoriesModule,
     forwardRef(() => ChannelsModule),
@@ -45,14 +53,17 @@ import { VIDEO_REPOSITORY } from './domain/repositories/video.repository';
   providers: [
     VideoRepository,
     VideoPurchaseUnlockRepository,
+    VideoWatchProgressRepository,
     VideoQueryService,
     VideoCacheInvalidator,
     VideoWatchAccessService,
     InitVideoUploadUseCase,
     ConfirmVideoUploadUseCase,
     PlayVideoUseCase,
+    UpdateVideoProgressUseCase,
     RefreshPlaybackTokenUseCase,
     UnlockVideoUseCase,
+    GetContinueWatchingUseCase,
     GetVideoMetadataUseCase,
     UpdateVideoMetadataUseCase,
     GetLatestVideosUseCase,
@@ -60,7 +71,9 @@ import { VIDEO_REPOSITORY } from './domain/repositories/video.repository';
     GetSubscribedVideosUseCase,
     HandleVideoProcessedSuccessUseCase,
     HandleVideoProcessedFailedUseCase,
+    HandleVideoViewedUseCase,
     VideoProcessingConsumer,
+    VideoViewedConsumer,
     {
       provide: VIDEO_REPOSITORY,
       useExisting: VideoRepository,
@@ -68,6 +81,10 @@ import { VIDEO_REPOSITORY } from './domain/repositories/video.repository';
     {
       provide: VIDEO_PURCHASE_UNLOCK_REPOSITORY,
       useExisting: VideoPurchaseUnlockRepository,
+    },
+    {
+      provide: VIDEO_WATCH_PROGRESS_REPOSITORY,
+      useExisting: VideoWatchProgressRepository,
     },
     {
       provide: VIDEO_QUERY_SERVICE,
@@ -78,6 +95,10 @@ import { VIDEO_REPOSITORY } from './domain/repositories/video.repository';
       useExisting: VideoCacheInvalidator,
     },
   ],
-  exports: [VIDEO_REPOSITORY, VIDEO_QUERY_SERVICE],
+  exports: [
+    VIDEO_REPOSITORY,
+    VIDEO_QUERY_SERVICE,
+    VIDEO_WATCH_PROGRESS_REPOSITORY,
+  ],
 })
 export class VideosModule {}

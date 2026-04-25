@@ -8,6 +8,7 @@ import { MembershipTierOrmEntity } from '../../../modules/channels/infrastructur
 import { VideoCategoryOrmEntity } from '../../../modules/videos/infrastructure/persistence/video-category.orm-entity';
 import { VideoPurchaseUnlockOrmEntity } from '../../../modules/videos/infrastructure/persistence/video-purchase-unlock.orm-entity';
 import { VideoOrmEntity } from '../../../modules/videos/infrastructure/persistence/video.orm-entity';
+import { VideoWatchProgressOrmEntity } from '../../../modules/videos/infrastructure/persistence/video-watch-progress.orm-entity';
 
 const loadEnvironmentFile = (): void => {
   const envFilePath = join(process.cwd(), '.env');
@@ -64,6 +65,7 @@ export default new DataSource({
     VideoOrmEntity,
     VideoPurchaseUnlockOrmEntity,
     VideoCategoryOrmEntity,
+    VideoWatchProgressOrmEntity,
   ],
   migrations: [join(__dirname, 'migrations', '*.{ts,js}')],
 });

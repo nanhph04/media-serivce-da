@@ -7,7 +7,7 @@ import { Category } from '../../../categories/domain/entities/category.entity';
 export enum VideoStatus {
   DRAFT = 'draft',
   PROCESSING = 'processing',
-  PUBLIC = 'public',
+  READY = 'ready',
   FAILED = 'failed',
 }
 
@@ -168,13 +168,13 @@ export class VideoEntity {
     this.touch();
   }
 
-  markPublic(input: {
+  markReady(input: {
     masterPlaylistKey: string;
     thumbnailUrl?: string | null;
     durationSeconds?: number | null;
     resolutions?: string[];
   }): void {
-    this.props.status = VideoStatus.PUBLIC;
+    this.props.status = VideoStatus.READY;
     this.props.masterPlaylistKey = input.masterPlaylistKey;
     this.props.thumbnailUrl = input.thumbnailUrl ?? this.props.thumbnailUrl;
     this.props.durationSeconds =

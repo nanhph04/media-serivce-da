@@ -5,7 +5,10 @@ import { NotFoundException } from '@shared/domain/exceptions/domain.exception';
 
 describe('PlayVideoUseCase', () => {
   const videoRepository = {
-    findById: jest.fn(),
+    findBasicById: jest.fn(),
+  };
+  const watchProgressRepository = {
+    findByUserIdAndVideoId: jest.fn(),
   };
   const videoWatchAccessService = {
     assertCanWatch: jest.fn(),
@@ -16,6 +19,7 @@ describe('PlayVideoUseCase', () => {
 
   const useCase = new PlayVideoUseCase(
     videoRepository as never,
+    watchProgressRepository as never,
     videoWatchAccessService as never,
     playbackTokenService as PlaybackTokenService,
   );
@@ -26,7 +30,8 @@ describe('PlayVideoUseCase', () => {
 
   it('returns playback token and url after access succeeds', async () => {
     const video = buildVideo();
-    videoRepository.findById.mockResolvedValue(video);
+    videoRepository.findBasicById.mockResolvedValue(video);
+    watchProgressRepository.findByUserIdAndVideoId.mockResolvedValue(null);
     videoWatchAccessService.assertCanWatch.mockResolvedValue(undefined);
     playbackTokenService.issueToken.mockReturnValue('playback-token');
 
@@ -41,6 +46,8 @@ describe('PlayVideoUseCase', () => {
       description: 'Description',
       playbackToken: 'playback-token',
       playbackUrl: '/api/media/stream/video-1/master.m3u8?token=playback-token',
+      resumePositionSeconds: 0,
+      isResumeAvailable: false,
     });
 
     expect(videoWatchAccessService.assertCanWatch).toHaveBeenCalledWith(
@@ -50,7 +57,7 @@ describe('PlayVideoUseCase', () => {
   });
 
   it('throws not found when video does not exist', async () => {
-    videoRepository.findById.mockResolvedValue(null);
+    videoRepository.findBasicById.mockResolvedValue(null);
 
     await expect(
       useCase.execute({
@@ -58,6 +65,27 @@ describe('PlayVideoUseCase', () => {
         userId: 'viewer-1',
       }),
     ).rejects.toThrow(NotFoundException);
+  });
+
+  it('returns resume position when unfinished progress exists', async () => {
+    const video = buildVideo();
+    videoRepository.findBasicById.mockResolvedValue(video);
+    watchProgressRepository.findByUserIdAndVideoId.mockResolvedValue({
+      lastPositionSeconds: 42,
+      isCompleted: (): boolean => false,
+    });
+    videoWatchAccessService.assertCanWatch.mockResolvedValue(undefined);
+    playbackTokenService.issueToken.mockReturnValue('playback-token');
+
+    await expect(
+      useCase.execute({
+        videoId: 'video-1',
+        userId: 'viewer-1',
+      }),
+    ).resolves.toMatchObject({
+      resumePositionSeconds: 42,
+      isResumeAvailable: true,
+    });
   });
 });
 
@@ -70,7 +98,7 @@ function buildVideo(): VideoEntity {
     description: 'Description',
     category: [],
     visibility: VideoVisibility.PUBLIC,
-    status: VideoStatus.PUBLIC,
+    status: VideoStatus.READY,
     price: 0,
     requiredTierLevel: null,
     rawFileKey: 'raw/video.mp4',

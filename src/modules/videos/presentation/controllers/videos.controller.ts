@@ -23,6 +23,7 @@ import type { VideoListItemResponse } from '../../application/dtos/video-list-it
 import {
   ConfirmVideoUploadUseCase,
 } from '../../application/use-cases/confirm-video-upload.use-case';
+import { GetContinueWatchingUseCase } from '../../application/use-cases/get-continue-watching.use-case';
 import { GetLatestVideosUseCase } from '../../application/use-cases/get-latest-videos.use-case';
 import {
   GetSubscribedVideosUseCase,
@@ -36,19 +37,25 @@ import { PlayVideoUseCase } from '../../application/use-cases/play-video.use-cas
 import {
   RefreshPlaybackTokenUseCase,
 } from '../../application/use-cases/refresh-playback-token.use-case';
+import { UpdateVideoProgressUseCase } from '../../application/use-cases/update-video-progress.use-case';
 import {
   UpdateVideoMetadataUseCase,
 } from '../../application/use-cases/update-video-metadata.use-case';
+import type { ContinueWatchingItemResponse } from '../../application/dtos/continue-watching-item.response';
 import { ConfirmVideoUploadRequestDto } from '../dtos/confirm-video-upload.request';
 import { ConfirmVideoUploadResponseDto } from '../dtos/confirm-video-upload.response';
+import { ContinueWatchingItemResponseDto } from '../dtos/continue-watching-item.response';
 import { InitVideoUploadRequestDto } from '../dtos/init-video-upload.request';
 import { InitVideoUploadResponseDto } from '../dtos/init-video-upload.response';
 import { PlayVideoResponseDto } from '../dtos/play-video.response';
 import { RefreshPlaybackTokenResponseDto } from '../dtos/refresh-playback-token.response';
 import { UpdateVideoMetadataRequestDto } from '../dtos/update-video-metadata.request';
+import { UpdateVideoProgressRequestDto } from '../dtos/update-video-progress.request';
+import { UpdateVideoProgressResponseDto } from '../dtos/update-video-progress.response';
 import { VideoListItemResponseDto } from '../dtos/video-list-item.response';
 import { VideoMetadataResponseDto } from '../dtos/video-metadata.response';
 import type { VideoMetadataResponse } from '../../application/dtos/video-metadata.response';
+import type { UpdateVideoProgressResponse } from '../../application/dtos/update-video-progress.response';
 
 @ApiTags('videos')
 @ApiHeader({ name: 'x-user-id', required: true })
@@ -59,7 +66,9 @@ export class VideosController {
     private readonly initVideoUploadUseCase: InitVideoUploadUseCase,
     private readonly confirmVideoUploadUseCase: ConfirmVideoUploadUseCase,
     private readonly playVideoUseCase: PlayVideoUseCase,
+    private readonly updateVideoProgressUseCase: UpdateVideoProgressUseCase,
     private readonly refreshPlaybackTokenUseCase: RefreshPlaybackTokenUseCase,
+    private readonly getContinueWatchingUseCase: GetContinueWatchingUseCase,
     private readonly getLatestVideosUseCase: GetLatestVideosUseCase,
     private readonly getVideosByCategoryUseCase: GetVideosByCategoryUseCase,
     private readonly getSubscribedVideosUseCase: GetSubscribedVideosUseCase,
@@ -117,6 +126,24 @@ export class VideosController {
         videoId,
       }),
     );
+  }
+
+  @Post(':id/progress')
+  @ApiSuccessResponse(UpdateVideoProgressResponseDto)
+  async updateProgress(
+    @CurrentUserId() userId: string,
+    @Param('id') videoId: string,
+    @Body() dto: UpdateVideoProgressRequestDto,
+  ): Promise<ApiResponse<UpdateVideoProgressResponseDto>> {
+    const response = await this.updateVideoProgressUseCase.execute({
+      userId,
+      videoId,
+      positionSeconds: dto.positionSeconds,
+      durationSeconds: dto.durationSeconds,
+      state: dto.state,
+    });
+
+    return apiResponseContract(this.toUpdateVideoProgressDto(response));
   }
 
   @Post(':id/playback-token/refresh')
@@ -205,6 +232,22 @@ export class VideosController {
     return apiResponseContract(rows.map((row) => this.toVideoListItemDto(row)));
   }
 
+  @Get('continue-watching')
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiSuccessResponse(ContinueWatchingItemResponseDto, { isArray: true })
+  async continueWatching(
+    @CurrentUserId() userId: string,
+    @Query('limit') limit?: string,
+  ): Promise<ApiResponse<ContinueWatchingItemResponseDto[]>> {
+    const rows = await this.getContinueWatchingUseCase.execute({
+      userId,
+      limit: Number(limit) || 20,
+    });
+    return apiResponseContract(
+      rows.map((row) => this.toContinueWatchingItemDto(row)),
+    );
+  }
+
   private toVideoListItemDto(
     video: VideoListItemResponse,
   ): VideoListItemResponseDto {
@@ -235,10 +278,37 @@ export class VideosController {
       title: metadata.title,
       description: metadata.description,
       thumbnailUrl: metadata.thumbnailUrl,
+      viewCount: metadata.viewCount,
       status: metadata.status,
       visibility: metadata.visibility,
       publishedAt: metadata.publishedAt?.toISOString() ?? null,
       updatedAt: metadata.updatedAt.toISOString(),
+    };
+  }
+
+  private toUpdateVideoProgressDto(
+    response: UpdateVideoProgressResponse,
+  ): UpdateVideoProgressResponseDto {
+    return {
+      videoId: response.videoId,
+      positionSeconds: response.positionSeconds,
+      completed: response.completed,
+    };
+  }
+
+  private toContinueWatchingItemDto(
+    item: ContinueWatchingItemResponse,
+  ): ContinueWatchingItemResponseDto {
+    return {
+      videoId: item.videoId,
+      channelId: item.channelId,
+      title: item.title,
+      thumbnailUrl: item.thumbnailUrl,
+      durationSeconds: item.durationSeconds,
+      resumePositionSeconds: item.resumePositionSeconds,
+      remainingSeconds: item.remainingSeconds,
+      lastWatchedAt: item.lastWatchedAt.toISOString(),
+      viewCount: item.viewCount,
     };
   }
 }

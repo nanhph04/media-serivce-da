@@ -169,7 +169,7 @@ function buildVideo(
     description: 'Description',
     category: [],
     visibility: VideoVisibility.PUBLIC,
-    status: VideoStatus.PUBLIC,
+    status: VideoStatus.READY,
     price: 0,
     requiredTierLevel: null,
     rawFileKey: 'raw/video.mp4',

@@ -5,6 +5,8 @@ export const VIDEO_REPOSITORY = Symbol('VIDEO_REPOSITORY');
 export interface IVideoRepository {
   save(video: VideoEntity): Promise<void>;
   findById(id: string): Promise<VideoEntity | null>;
+  findBasicById(id: string): Promise<VideoEntity | null>;
+  incrementViewCount(videoId: string): Promise<void>;
   findPublicByChannelId(channelId: string): Promise<VideoEntity[]>;
   findLatestPublic(limit: number): Promise<VideoEntity[]>;
   findByCategory(category: string, limit: number): Promise<VideoEntity[]>;

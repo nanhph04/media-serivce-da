@@ -9,6 +9,10 @@ import {
   type IVideoRepository,
   VIDEO_REPOSITORY,
 } from '../../domain/repositories/video.repository';
+import {
+  type IVideoWatchProgressRepository,
+  VIDEO_WATCH_PROGRESS_REPOSITORY,
+} from '../../domain/repositories/video-watch-progress.repository';
 import type { PlayVideoCommand } from '../dtos/play-video.command';
 import type { PlayVideoResponse } from '../dtos/play-video.response';
 
@@ -20,6 +24,8 @@ export class PlayVideoUseCase extends BaseUseCase<
   constructor(
     @Inject(VIDEO_REPOSITORY)
     private readonly videoRepository: IVideoRepository,
+    @Inject(VIDEO_WATCH_PROGRESS_REPOSITORY)
+    private readonly watchProgressRepository: IVideoWatchProgressRepository,
     private readonly videoWatchAccessService: VideoWatchAccessService,
     private readonly playbackTokenService: PlaybackTokenService,
   ) {
@@ -27,12 +33,18 @@ export class PlayVideoUseCase extends BaseUseCase<
   }
 
   async execute(command: PlayVideoCommand): Promise<PlayVideoResponse> {
-    const video = await this.videoRepository.findById(command.videoId);
+    const video = await this.videoRepository.findBasicById(command.videoId);
     if (!video) {
       throw new NotFoundException('Video not found');
     }
 
     await this.videoWatchAccessService.assertCanWatch(video, command.userId);
+    const progress = await this.watchProgressRepository.findByUserIdAndVideoId(
+      command.userId,
+      video.id,
+    );
+    const resumePositionSeconds =
+      progress && !progress.isCompleted() ? progress.lastPositionSeconds : 0;
 
     const playbackToken = this.playbackTokenService.issueToken({
       videoId: video.id,
@@ -46,6 +58,8 @@ export class PlayVideoUseCase extends BaseUseCase<
       description: video.description,
       playbackToken,
       playbackUrl: `/api/media/stream/${video.id}/master.m3u8?token=${playbackToken}`,
+      resumePositionSeconds,
+      isResumeAvailable: resumePositionSeconds > 0,
     };
   }
 }

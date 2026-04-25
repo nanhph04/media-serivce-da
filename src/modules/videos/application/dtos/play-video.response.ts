@@ -4,4 +4,6 @@ export interface PlayVideoResponse {
   description: string;
   playbackToken: string;
   playbackUrl: string;
+  resumePositionSeconds: number;
+  isResumeAvailable: boolean;
 }

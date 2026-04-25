@@ -1,6 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PlaybackTokenService } from '@shared/infrastructure/security/playback-token.service';
 import { MinioService } from '@shared/infrastructure/storage/minio.service';
+import { CacheService } from '@shared/infrastructure/cache/cache.service';
+import { ConfigService } from '@shared/infrastructure/config/config.service';
 import {
   ForbiddenException,
   NotFoundException,
@@ -14,36 +16,46 @@ import {
 
 @Injectable()
 export class StreamingApplicationService {
+  private readonly masterPlaylistKeyTtlSeconds: number;
+  private readonly playlistCacheTtlSeconds: number;
+
   constructor(
     private readonly playbackTokenService: PlaybackTokenService,
     private readonly minioService: MinioService,
+    private readonly cacheService: CacheService,
+    private readonly configService: ConfigService,
     private readonly recordVideoViewUseCase: RecordVideoViewUseCase,
     @Inject(VIDEO_REPOSITORY)
     private readonly videoRepository: IVideoRepository,
-  ) {}
+  ) {
+    this.masterPlaylistKeyTtlSeconds = this.configService.getNumber(
+      'STREAM_MASTER_PLAYLIST_KEY_CACHE_TTL_SECONDS',
+      30,
+    );
+    this.playlistCacheTtlSeconds = this.configService.getNumber(
+      'STREAM_REWRITTEN_PLAYLIST_CACHE_TTL_SECONDS',
+      10,
+    );
+  }
 
   async streamMasterPlaylist(
     videoId: string,
     token: string | undefined,
   ): Promise<string> {
     const payload = this.playbackTokenService.verifyToken(token, videoId);
-    const video = await this.videoRepository.findById(videoId);
-    if (!video || !video.masterPlaylistKey) {
-      throw new NotFoundException('Video master playlist not found');
-    }
-
-    const playlist = await this.getObjectTextOrThrow(video.masterPlaylistKey);
+    const masterPlaylistKey = await this.getMasterPlaylistKeyOrThrow(videoId);
+    const rewrittenPlaylist = await this.getRewrittenPlaylist({
+      videoId,
+      token: token ?? '',
+      objectKey: masterPlaylistKey,
+    });
 
     await this.recordVideoViewUseCase.execute({
       userId: payload.userId,
       videoId: payload.videoId,
     });
 
-    return this.rewritePlaylist({
-      videoId,
-      token: token ?? '',
-      playlist,
-    });
+    return rewrittenPlaylist;
   }
 
   async pipeSegment(
@@ -55,12 +67,10 @@ export class StreamingApplicationService {
     response: Response,
   ): Promise<void> {
     this.playbackTokenService.verifyToken(input.token, input.videoId);
-    const video = await this.videoRepository.findById(input.videoId);
-    if (!video || !video.masterPlaylistKey) {
-      throw new NotFoundException('Video master playlist not found');
-    }
-
-    const playlistDir = this.getPlaylistDirectory(video.masterPlaylistKey);
+    const masterPlaylistKey = await this.getMasterPlaylistKeyOrThrow(
+      input.videoId,
+    );
+    const playlistDir = this.getPlaylistDirectory(masterPlaylistKey);
     const objectKey = this.buildMediaObjectKey(playlistDir, input.segmentName);
 
     const contentType = input.segmentName.endsWith('.m3u8')
@@ -70,12 +80,11 @@ export class StreamingApplicationService {
     response.setHeader('Content-Type', contentType);
 
     if (input.segmentName.endsWith('.m3u8')) {
-      const playlist = await this.getObjectTextOrThrow(objectKey);
       response.send(
-        this.rewritePlaylist({
+        await this.getRewrittenPlaylist({
           videoId: input.videoId,
           token: input.token ?? '',
-          playlist,
+          objectKey,
           currentPlaylistPath: input.segmentName,
         }),
       );
@@ -93,6 +102,60 @@ export class StreamingApplicationService {
       response.on('close', resolve);
       stream.pipe(response);
     });
+  }
+
+  private async getMasterPlaylistKeyOrThrow(videoId: string): Promise<string> {
+    const cacheKey = this.getMasterPlaylistCacheKey(videoId);
+    const cachedMasterPlaylistKey = await this.getCachedString(cacheKey);
+    if (cachedMasterPlaylistKey) {
+      return cachedMasterPlaylistKey;
+    }
+
+    const video = await this.videoRepository.findBasicById(videoId);
+    if (!video || !video.masterPlaylistKey) {
+      throw new NotFoundException('Video master playlist not found');
+    }
+
+    await this.setCachedString(
+      cacheKey,
+      video.masterPlaylistKey,
+      this.masterPlaylistKeyTtlSeconds,
+    );
+
+    return video.masterPlaylistKey;
+  }
+
+  private async getRewrittenPlaylist(input: {
+    videoId: string;
+    token: string;
+    objectKey: string;
+    currentPlaylistPath?: string;
+  }): Promise<string> {
+    const cacheKey = this.getPlaylistCacheKey(
+      input.videoId,
+      input.token,
+      input.objectKey,
+    );
+    const cachedPlaylist = await this.getCachedString(cacheKey);
+    if (cachedPlaylist) {
+      return cachedPlaylist;
+    }
+
+    const playlist = await this.getObjectTextOrThrow(input.objectKey);
+    const rewrittenPlaylist = this.rewritePlaylist({
+      videoId: input.videoId,
+      token: input.token,
+      playlist,
+      currentPlaylistPath: input.currentPlaylistPath,
+    });
+
+    await this.setCachedString(
+      cacheKey,
+      rewrittenPlaylist,
+      this.playlistCacheTtlSeconds,
+    );
+
+    return rewrittenPlaylist;
   }
 
   private rewritePlaylist(input: {
@@ -199,6 +262,39 @@ export class StreamingApplicationService {
     } catch (error: unknown) {
       this.throwIfMissingObject(error, objectKey);
       throw error;
+    }
+  }
+
+  private getMasterPlaylistCacheKey(videoId: string): string {
+    return `media_service:stream:video:${videoId}:master-playlist-key`;
+  }
+
+  private getPlaylistCacheKey(
+    videoId: string,
+    token: string,
+    objectKey: string,
+  ): string {
+    return `media_service:stream:video:${videoId}:playlist:${encodeURIComponent(objectKey)}:token:${encodeURIComponent(token)}`;
+  }
+
+  private async getCachedString(key: string): Promise<string | null> {
+    try {
+      const value = await this.cacheService.get<string>(key);
+      return typeof value === 'string' && value.length > 0 ? value : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private async setCachedString(
+    key: string,
+    value: string,
+    ttlSeconds: number,
+  ): Promise<void> {
+    try {
+      await this.cacheService.set(key, value, ttlSeconds);
+    } catch {
+      // Cache write failure must not fail streaming.
     }
   }
 

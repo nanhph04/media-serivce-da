@@ -1,5 +1,6 @@
 import type { VideoListItemResponse } from '../dtos/video-list-item.response';
 import type { VideoMetadataResponse } from '../dtos/video-metadata.response';
+import type { ContinueWatchingItemResponse } from '../dtos/continue-watching-item.response';
 
 export const VIDEO_QUERY_SERVICE = Symbol('VIDEO_QUERY_SERVICE');
 
@@ -22,4 +23,8 @@ export interface IVideoQueryService {
     category: string,
     limit: number,
   ): Promise<VideoListItemResponse[]>;
+  getContinueWatching(
+    userId: string,
+    limit: number,
+  ): Promise<ContinueWatchingItemResponse[]>;
 }

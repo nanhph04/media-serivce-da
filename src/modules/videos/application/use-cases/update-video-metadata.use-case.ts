@@ -55,6 +55,7 @@ export class UpdateVideoMetadataUseCase extends BaseUseCase<
       title: video.title,
       description: video.description,
       thumbnailUrl: video.thumbnailUrl,
+      viewCount: video.viewCount,
       status: video.status,
       visibility: video.visibility,
       publishedAt: video.publishedAt,

@@ -16,4 +16,15 @@ export class VideoCacheInvalidator implements IVideoCacheInvalidator {
       // Cache invalidation failure must not fail writes.
     }
   }
+
+  async invalidateDiscoveryLists(): Promise<void> {
+    try {
+      await Promise.all([
+        this.cacheService.increment(VIDEO_CACHE_KEYS.latestVersion()),
+        this.cacheService.increment(VIDEO_CACHE_KEYS.categoryLatestVersion()),
+      ]);
+    } catch {
+      // Cache invalidation failure must not fail writes.
+    }
+  }
 }

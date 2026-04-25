@@ -73,7 +73,7 @@ export class VideoWatchAccessService {
 
   private assertViewerAvailability(video: VideoEntity): void {
     if (
-      video.status !== VideoStatus.PUBLIC ||
+      video.status !== VideoStatus.READY ||
       video.visibility !== VideoVisibility.PUBLIC ||
       !video.masterPlaylistKey
     ) {

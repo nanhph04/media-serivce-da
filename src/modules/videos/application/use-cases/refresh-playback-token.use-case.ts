@@ -27,7 +27,7 @@ export class RefreshPlaybackTokenUseCase extends BaseUseCase<
   async execute(
     command: RefreshPlaybackTokenCommand,
   ): Promise<RefreshPlaybackTokenResponse> {
-    const video = await this.videoRepository.findById(command.videoId);
+    const video = await this.videoRepository.findBasicById(command.videoId);
     if (!video) {
       throw new NotFoundException('Video not found');
     }

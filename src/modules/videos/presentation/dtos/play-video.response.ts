@@ -15,4 +15,10 @@ export class PlayVideoResponseDto {
 
   @ApiProperty()
   playbackUrl!: string;
+
+  @ApiProperty()
+  resumePositionSeconds!: number;
+
+  @ApiProperty()
+  isResumeAvailable!: boolean;
 }

@@ -92,7 +92,6 @@ export class VideoOrmEntity {
     (videoCategory) => videoCategory.video,
     {
       cascade: true,
-      eager: true,
     },
   )
   videoCategories!: VideoCategoryOrmEntity[];

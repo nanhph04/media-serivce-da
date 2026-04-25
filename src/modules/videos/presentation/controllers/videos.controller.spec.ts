@@ -11,7 +11,13 @@ describe('VideosController', () => {
   const playVideoUseCase = {
     execute: jest.fn(),
   };
+  const updateVideoProgressUseCase = {
+    execute: jest.fn(),
+  };
   const refreshPlaybackTokenUseCase = {
+    execute: jest.fn(),
+  };
+  const getContinueWatchingUseCase = {
     execute: jest.fn(),
   };
   const getLatestVideosUseCase = {
@@ -33,7 +39,9 @@ describe('VideosController', () => {
     initVideoUploadUseCase as never,
     confirmVideoUploadUseCase as never,
     playVideoUseCase as never,
+    updateVideoProgressUseCase as never,
     refreshPlaybackTokenUseCase as never,
+    getContinueWatchingUseCase as never,
     getLatestVideosUseCase as never,
     getVideosByCategoryUseCase as never,
     getSubscribedVideosUseCase as never,
@@ -56,7 +64,8 @@ describe('VideosController', () => {
       title: 'Video',
       description: 'Description',
       thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
-      status: VideoStatus.PUBLIC,
+      viewCount: 10,
+      status: VideoStatus.READY,
       visibility: VideoVisibility.PUBLIC,
       publishedAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-02T00:00:00.000Z',
@@ -168,6 +177,42 @@ describe('VideosController', () => {
       limit: 20,
     });
   });
+
+  it('maps continue watching rows to DTO shape', async () => {
+    getContinueWatchingUseCase.execute.mockResolvedValue([
+      {
+        videoId: 'video-1',
+        channelId: 'channel-1',
+        title: 'Video',
+        thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
+        durationSeconds: 120,
+        resumePositionSeconds: 45,
+        remainingSeconds: 75,
+        lastWatchedAt: new Date('2026-01-03T00:00:00.000Z'),
+        viewCount: 10,
+      },
+    ]);
+
+    const result = await controller.continueWatching('viewer-1', '20');
+
+    expect(getContinueWatchingUseCase.execute).toHaveBeenCalledWith({
+      userId: 'viewer-1',
+      limit: 20,
+    });
+    expect(result).toEqual([
+      {
+        videoId: 'video-1',
+        channelId: 'channel-1',
+        title: 'Video',
+        thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
+        durationSeconds: 120,
+        resumePositionSeconds: 45,
+        remainingSeconds: 75,
+        lastWatchedAt: '2026-01-03T00:00:00.000Z',
+        viewCount: 10,
+      },
+    ]);
+  });
 });
 
 function buildMetadata(): {
@@ -175,6 +220,7 @@ function buildMetadata(): {
   title: string;
   description: string;
   thumbnailUrl: string;
+  viewCount: number;
   status: VideoStatus;
   visibility: VideoVisibility;
   publishedAt: Date;
@@ -185,7 +231,8 @@ function buildMetadata(): {
     title: 'Video',
     description: 'Description',
     thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
-    status: VideoStatus.PUBLIC,
+    viewCount: 10,
+    status: VideoStatus.READY,
     visibility: VideoVisibility.PUBLIC,
     publishedAt: new Date('2026-01-01T00:00:00.000Z'),
     updatedAt: new Date('2026-01-02T00:00:00.000Z'),

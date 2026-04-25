@@ -59,31 +59,64 @@ export class VideoRepository implements IVideoRepository {
   }
 
   async findById(id: string): Promise<VideoEntity | null> {
+    const row = await this.ormRepository
+      .createQueryBuilder('video')
+      .leftJoinAndSelect('video.videoCategories', 'videoCategory')
+      .leftJoinAndSelect('videoCategory.category', 'category')
+      .where('video.id = :id', { id })
+      .getOne();
+
+    return row ? this.toDomain(row) : null;
+  }
+
+  async findBasicById(id: string): Promise<VideoEntity | null> {
     const row = await this.ormRepository.findOne({ where: { id } });
     return row ? this.toDomain(row) : null;
   }
 
+  async incrementViewCount(videoId: string): Promise<void> {
+    await this.ormRepository
+      .createQueryBuilder()
+      .update(VideoOrmEntity)
+      .set({
+        viewCount: () => '"view_count" + 1',
+        updatedAt: () => 'CURRENT_TIMESTAMP',
+      })
+      .where('id = :videoId', { videoId })
+      .execute();
+  }
+
   async findPublicByChannelId(channelId: string): Promise<VideoEntity[]> {
-    const rows = await this.ormRepository.find({
-      where: {
-        channelId,
-        status: VideoStatus.PUBLIC,
+    const rows = await this.ormRepository
+      .createQueryBuilder('video')
+      .leftJoinAndSelect('video.videoCategories', 'videoCategory')
+      .leftJoinAndSelect('videoCategory.category', 'category')
+      .where('video.channelId = :channelId', { channelId })
+      .andWhere('video.status = :status', { status: VideoStatus.READY })
+      .andWhere('video.visibility = :visibility', {
         visibility: VideoVisibility.PUBLIC,
-      },
-      order: { publishedAt: 'DESC', createdAt: 'DESC' },
-    });
+      })
+      .orderBy('video.publishedAt', 'DESC')
+      .addOrderBy('video.createdAt', 'DESC')
+      .getMany();
+
     return rows.map((row) => this.toDomain(row));
   }
 
   async findLatestPublic(limit: number): Promise<VideoEntity[]> {
-    const rows = await this.ormRepository.find({
-      where: {
-        status: VideoStatus.PUBLIC,
+    const rows = await this.ormRepository
+      .createQueryBuilder('video')
+      .leftJoinAndSelect('video.videoCategories', 'videoCategory')
+      .leftJoinAndSelect('videoCategory.category', 'category')
+      .where('video.status = :status', { status: VideoStatus.READY })
+      .andWhere('video.visibility = :visibility', {
         visibility: VideoVisibility.PUBLIC,
-      },
-      order: { publishedAt: 'DESC', createdAt: 'DESC' },
-      take: limit,
-    });
+      })
+      .orderBy('video.publishedAt', 'DESC')
+      .addOrderBy('video.createdAt', 'DESC')
+      .take(limit)
+      .getMany();
+
     return rows.map((row) => this.toDomain(row));
   }
 
@@ -95,7 +128,7 @@ export class VideoRepository implements IVideoRepository {
       .createQueryBuilder('video')
       .leftJoinAndSelect('video.videoCategories', 'videoCategory')
       .leftJoinAndSelect('videoCategory.category', 'category')
-      .where('video.status = :status', { status: VideoStatus.PUBLIC })
+      .where('video.status = :status', { status: VideoStatus.READY })
       .andWhere('video.visibility = :visibility', {
         visibility: VideoVisibility.PUBLIC,
       })
@@ -118,8 +151,13 @@ export class VideoRepository implements IVideoRepository {
     const rows = await this.ormRepository.find({
       where: {
         channelId: In(channelIds),
-        status: VideoStatus.PUBLIC,
+        status: VideoStatus.READY,
         visibility: VideoVisibility.PUBLIC,
+      },
+      relations: {
+        videoCategories: {
+          category: true,
+        },
       },
       order: { publishedAt: 'DESC', createdAt: 'DESC' },
       take: limit,
@@ -128,13 +166,15 @@ export class VideoRepository implements IVideoRepository {
   }
 
   private toDomain(row: VideoOrmEntity): VideoEntity {
+    const videoCategories = row.videoCategories ?? [];
+
     return new VideoEntity({
       id: row.id,
       channelId: row.channelId,
       ownerId: row.ownerId,
       title: row.title,
       description: row.description,
-      category: row.videoCategories.map(
+      category: videoCategories.map(
         (item) =>
           new Category({
             id: item.category.id,

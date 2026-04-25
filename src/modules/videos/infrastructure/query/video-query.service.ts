@@ -1,6 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import { NotFoundException } from '@shared/domain/exceptions/domain.exception';
 import { CacheService } from '@shared/infrastructure/cache/cache.service';
+import { Repository } from 'typeorm';
+import type { ContinueWatchingItemResponse } from '../../application/dtos/continue-watching-item.response';
 import {
   mapVideoEntityToListItem,
   type VideoListItemResponse,
@@ -22,6 +25,8 @@ import {
   VIDEO_CACHE_KEYS,
   VIDEO_CACHE_TTL_SECONDS,
 } from '../cache.constants';
+import { VideoWatchProgressOrmEntity } from '../persistence/video-watch-progress.orm-entity';
+import { VideoOrmEntity } from '../persistence/video.orm-entity';
 
 type CachedVideoListItem = Omit<
   VideoListItemResponse,
@@ -45,6 +50,8 @@ export class VideoQueryService implements IVideoQueryService {
   constructor(
     @Inject(VIDEO_REPOSITORY)
     private readonly videoRepository: IVideoRepository,
+    @InjectRepository(VideoWatchProgressOrmEntity)
+    private readonly watchProgressOrmRepository: Repository<VideoWatchProgressOrmEntity>,
     private readonly cacheService: CacheService,
   ) {}
 
@@ -71,10 +78,10 @@ export class VideoQueryService implements IVideoQueryService {
       return this.cachedMetadataToResponse(cached);
     }
 
-    const video = await this.videoRepository.findById(videoId);
+    const video = await this.videoRepository.findBasicById(videoId);
     if (
       !video ||
-      video.status !== VideoStatus.PUBLIC ||
+      video.status !== VideoStatus.READY ||
       video.visibility !== VideoVisibility.PUBLIC
     ) {
       throw new NotFoundException('Video not found');
@@ -85,6 +92,7 @@ export class VideoQueryService implements IVideoQueryService {
       title: video.title,
       description: video.description,
       thumbnailUrl: video.thumbnailUrl,
+      viewCount: video.viewCount,
       status: video.status,
       visibility: video.visibility,
       publishedAt: video.publishedAt,
@@ -101,7 +109,8 @@ export class VideoQueryService implements IVideoQueryService {
   }
 
   async getLatestVideos(limit: number): Promise<VideoListItemResponse[]> {
-    const cacheKey = VIDEO_CACHE_KEYS.latest(limit);
+    const version = await this.getCacheVersion(VIDEO_CACHE_KEYS.latestVersion());
+    const cacheKey = VIDEO_CACHE_KEYS.latest(version, limit);
     const cached = await this.getCachedValue<CachedVideoListItem[]>(cacheKey);
 
     if (cached) {
@@ -124,7 +133,10 @@ export class VideoQueryService implements IVideoQueryService {
     category: string,
     limit: number,
   ): Promise<VideoListItemResponse[]> {
-    const cacheKey = VIDEO_CACHE_KEYS.categoryLatest(category, limit);
+    const version = await this.getCacheVersion(
+      VIDEO_CACHE_KEYS.categoryLatestVersion(),
+    );
+    const cacheKey = VIDEO_CACHE_KEYS.categoryLatest(version, category, limit);
     const cached = await this.getCachedValue<CachedVideoListItem[]>(cacheKey);
 
     if (cached) {
@@ -143,12 +155,84 @@ export class VideoQueryService implements IVideoQueryService {
     return response;
   }
 
+  async getContinueWatching(
+    userId: string,
+    limit: number,
+  ): Promise<ContinueWatchingItemResponse[]> {
+    const rows = await this.watchProgressOrmRepository
+      .createQueryBuilder('progress')
+      .innerJoin(VideoOrmEntity, 'video', 'video.id = progress.video_id')
+      .where('progress.user_id = :userId', { userId })
+      .andWhere('progress.completed_at IS NULL')
+      .andWhere('progress.last_position_seconds > 0')
+      .andWhere('video.status = :status', { status: VideoStatus.READY })
+      .andWhere('video.visibility = :visibility', {
+        visibility: VideoVisibility.PUBLIC,
+      })
+      .orderBy('progress.last_watched_at', 'DESC')
+      .take(limit)
+      .select([
+        'progress.videoId AS "videoId"',
+        'progress.channelId AS "channelId"',
+        'progress.lastPositionSeconds AS "resumePositionSeconds"',
+        'progress.durationSeconds AS "progressDurationSeconds"',
+        'progress.lastWatchedAt AS "lastWatchedAt"',
+        'video.title AS "title"',
+        'video.thumbnailUrl AS "thumbnailUrl"',
+        'video.durationSeconds AS "videoDurationSeconds"',
+        'video.viewCount AS "viewCount"',
+      ])
+      .getRawMany<{
+        videoId: string;
+        channelId: string;
+        resumePositionSeconds: number | string;
+        progressDurationSeconds: number | string | null;
+        lastWatchedAt: Date | string;
+        title: string;
+        thumbnailUrl: string | null;
+        videoDurationSeconds: number | string | null;
+        viewCount: number | string;
+      }>();
+
+    return rows.map((row) => {
+      const durationSeconds =
+        row.videoDurationSeconds !== null
+          ? Number(row.videoDurationSeconds)
+          : row.progressDurationSeconds !== null
+            ? Number(row.progressDurationSeconds)
+            : null;
+      const resumePositionSeconds = Number(row.resumePositionSeconds);
+
+      return {
+        videoId: row.videoId,
+        channelId: row.channelId,
+        title: row.title,
+        thumbnailUrl: row.thumbnailUrl,
+        durationSeconds,
+        resumePositionSeconds,
+        remainingSeconds:
+          durationSeconds !== null
+            ? Math.max(durationSeconds - resumePositionSeconds, 0)
+            : null,
+        lastWatchedAt: new Date(row.lastWatchedAt),
+        viewCount: Number(row.viewCount),
+      };
+    });
+  }
+
   private async getCachedValue<T>(key: string): Promise<T | null> {
     try {
       return await this.cacheService.get<T>(key);
     } catch {
       return null;
     }
+  }
+
+  private async getCacheVersion(key: string): Promise<number> {
+    const version = await this.getCachedValue<number>(key);
+    return typeof version === 'number' && Number.isFinite(version)
+      ? version
+      : 0;
   }
 
   private async setCachedValue(

@@ -13,6 +13,9 @@ interface RequestWithId extends Request {
   requestId?: string;
 }
 
+const BODY_LOG_METHODS = new Set(['POST', 'PATCH']);
+const MAX_LOGGED_BODY_LENGTH = 2048;
+
 @Injectable()
 export class LoggerInterceptor implements NestInterceptor {
   constructor(private readonly logger: LoggerService) {}
@@ -27,14 +30,14 @@ export class LoggerInterceptor implements NestInterceptor {
 
     request.requestId = requestId;
 
-    const safeBody = this.maskSensitiveData(body);
+    const safeBody = this.buildSafeBody(body, method, url);
 
-    this.logger.logInfo(`Incoming request`, {
+    this.logger.logInfo('Incoming request', {
       requestId,
       method,
       url,
       ip,
-      body: safeBody,
+      ...(safeBody ? { body: safeBody } : {}),
     });
 
     return next.handle().pipe(
@@ -89,5 +92,35 @@ export class LoggerInterceptor implements NestInterceptor {
     if (masked.password) masked.password = '***';
     if (masked.refreshToken) masked.refreshToken = '***';
     return masked;
+  }
+
+  private buildSafeBody(
+    body: Record<string, unknown> | undefined,
+    method: string,
+    url: string,
+  ): Record<string, unknown> | undefined {
+    if (!body || !this.shouldLogBody(method, url)) {
+      return undefined;
+    }
+
+    const masked = this.maskSensitiveData(body);
+    if (!masked) {
+      return undefined;
+    }
+
+    const serialized = JSON.stringify(masked);
+    if (serialized.length <= MAX_LOGGED_BODY_LENGTH) {
+      return masked;
+    }
+
+    return {
+      truncated: true,
+      preview: serialized.slice(0, MAX_LOGGED_BODY_LENGTH),
+      originalSize: serialized.length,
+    };
+  }
+
+  private shouldLogBody(method: string, url: string): boolean {
+    return BODY_LOG_METHODS.has(method.toUpperCase()) && !url.includes('/stream/');
   }
 }

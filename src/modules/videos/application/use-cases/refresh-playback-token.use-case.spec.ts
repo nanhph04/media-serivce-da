@@ -12,7 +12,7 @@ import {
 
 describe('RefreshPlaybackTokenUseCase', () => {
   const videoRepository = {
-    findById: jest.fn(),
+    findBasicById: jest.fn(),
   };
   const videoWatchAccessService = {
     assertCanWatch: jest.fn(),
@@ -33,7 +33,7 @@ describe('RefreshPlaybackTokenUseCase', () => {
 
   it('returns a refreshed playback token and url after access succeeds', async () => {
     const video = buildVideo();
-    videoRepository.findById.mockResolvedValue(video);
+    videoRepository.findBasicById.mockResolvedValue(video);
     videoWatchAccessService.assertCanWatch.mockResolvedValue(undefined);
     playbackTokenService.issueToken.mockReturnValue('refreshed-token');
 
@@ -62,7 +62,7 @@ describe('RefreshPlaybackTokenUseCase', () => {
   });
 
   it('throws not found when video does not exist', async () => {
-    videoRepository.findById.mockResolvedValue(null);
+    videoRepository.findBasicById.mockResolvedValue(null);
 
     await expect(
       useCase.execute({
@@ -77,7 +77,7 @@ describe('RefreshPlaybackTokenUseCase', () => {
 
   it('does not issue a token when access validation fails', async () => {
     const video = buildVideo();
-    videoRepository.findById.mockResolvedValue(video);
+    videoRepository.findBasicById.mockResolvedValue(video);
     videoWatchAccessService.assertCanWatch.mockRejectedValue(
       new ForbiddenException('You do not have permission to watch this video'),
     );
@@ -102,7 +102,7 @@ function buildVideo(): VideoEntity {
     description: 'Description',
     category: [],
     visibility: VideoVisibility.PUBLIC,
-    status: VideoStatus.PUBLIC,
+    status: VideoStatus.READY,
     price: 0,
     requiredTierLevel: null,
     rawFileKey: 'raw/video.mp4',
