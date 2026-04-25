@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { join } from 'path';
 import { ConfigModule } from '../config/config.module';
 import { ConfigService } from '../config/config.service';
 
@@ -17,6 +18,8 @@ import { ConfigService } from '../config/config.service';
         database: configService.get('DB_NAME', 'media_service_db'),
         autoLoadEntities: true,
         synchronize: configService.getBoolean('DB_SYNCHRONIZE', false),
+        migrationsRun: configService.getBoolean('DB_MIGRATIONS_RUN', false),
+        migrations: [join(__dirname, 'migrations', '*.{ts,js}')],
       }),
     }),
   ],
