@@ -46,6 +46,20 @@ export class ChannelAccessService implements IChannelAccessService {
     }
   }
 
+  async getOwnedActiveChannelId(userId: string): Promise<string> {
+    const channel = await this.channelRepository.findByUserId(userId);
+
+    if (!channel) {
+      throw new NotFoundException('Channel not found');
+    }
+
+    if (channel.status !== ChannelStatus.ACTIVE) {
+      throw new ForbiddenException('Channel is not active');
+    }
+
+    return channel.id;
+  }
+
   async getViewerAccessContext(
     channelId: string,
     userId: string,

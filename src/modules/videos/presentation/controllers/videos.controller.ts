@@ -79,7 +79,6 @@ export class VideosController {
     return apiResponseContract(
       await this.initVideoUploadUseCase.execute({
         userId,
-        channelId: dto.channelId,
         title: dto.title,
         description: dto.description,
         categories: dto.categories,

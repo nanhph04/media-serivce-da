@@ -10,6 +10,7 @@ import { MembershipTierEntity } from '../domain/entities/membership-tier.entity'
 describe('ChannelAccessService', () => {
   const channelRepository = {
     findById: jest.fn(),
+    findByUserId: jest.fn(),
   };
   const membershipRepository = {
     findByUserIdAndChannelIdActive: jest.fn(),
@@ -76,6 +77,22 @@ describe('ChannelAccessService', () => {
     await expect(
       service.assertOwnedActiveChannel('channel-1', 'owner-1'),
     ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('returns owned active channel id for the current user', async () => {
+    channelRepository.findByUserId.mockResolvedValue(buildChannel());
+
+    await expect(service.getOwnedActiveChannelId('owner-1')).resolves.toBe(
+      'channel-1',
+    );
+  });
+
+  it('throws not found when user does not have a channel', async () => {
+    channelRepository.findByUserId.mockResolvedValue(null);
+
+    await expect(service.getOwnedActiveChannelId('owner-1')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 });
 

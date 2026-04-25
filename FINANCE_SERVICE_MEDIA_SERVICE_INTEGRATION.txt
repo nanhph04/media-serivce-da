@@ -1,0 +1,466 @@
+FINANCE SERVICE <-> MEDIA SERVICE INTEGRATION GUIDE
+===================================================
+
+Muc dich
+--------
+Tai lieu nay huong dan finance-service lam viec voi media-service trong he thong
+microservice. Finance-service khong truy cap database cua media-service. Tat ca
+tich hop phai di qua HTTP API hoac Kafka event.
+
+Media-service hien dang quan ly:
+- Channel
+- Membership tier cua channel
+- Trang thai membership cua user trong channel
+- Video metadata, gia video, tier yeu cau de xem video
+- Quyen xem video sau khi user da co membership hoac da unlock video
+
+
+1. Base URL va auth noi bo
+--------------------------
+Mac dinh media-service chay o port:
+
+  http://localhost:4002
+
+Global API prefix:
+
+  /api/media
+
+Vi du full URL:
+
+  http://localhost:4002/api/media/channels/{channelId}
+
+Nhung endpoint co InternalGatewayGuard bat buoc finance-service/gateway gui:
+
+  x-internal-secret: <INTERNAL_GATEWAY_SECRET>
+
+Nhung endpoint can ngu canh user gui them:
+
+  x-user-id: <userId>
+
+Gia tri secret phai khop bien moi truong cua media-service:
+
+  INTERNAL_GATEWAY_SECRET=gateway-secret
+
+Khong goi truc tiep repository, database, Redis, MinIO cua media-service.
+
+
+2. Response format HTTP
+-----------------------
+Media-service boc response thanh dang:
+
+Success:
+
+  {
+    "success": true,
+    "code": 200,
+    "data": { ... },
+    "mess": null
+  }
+
+Created:
+
+  {
+    "success": true,
+    "code": 201,
+    "data": { ... }
+  }
+
+Error:
+
+  {
+    "success": false,
+    "code": 403,
+    "mess": "You do not have permission to watch this video",
+    "data": null,
+    "errors": ["You do not have permission to watch this video"],
+    "requestId": "1744712345-abc1234",
+    "timestamp": "2026-04-15T10:19:05.123Z",
+    "path": "/api/media/videos/..."
+  }
+
+Finance-service chi nen doc field data khi success = true.
+
+
+3. Cac HTTP API finance-service co the dung
+-------------------------------------------
+
+3.1. Lay chi tiet channel va danh sach membership tier
+
+  GET /api/media/channels/{channelId}
+
+Endpoint nay public trong media-service, khong can x-internal-secret.
+
+Muc dich:
+- Hien thi channel cho man hinh thanh toan
+- Lay danh sach membershipTiers de user chon goi
+- Kiem tra channel.status truoc khi tao payment
+
+Response data:
+
+  {
+    "id": "channel-id",
+    "userId": "owner-user-id",
+    "name": "Channel name",
+    "bio": "...",
+    "avatarUrl": "...",
+    "bannerUrl": "...",
+    "status": "active",
+    "membershipTiers": [
+      {
+        "id": "tier-id",
+        "channelId": "channel-id",
+        "name": "Gold",
+        "level": 2,
+        "priceCoin": 100,
+        "isAcceptingNew": true,
+        "createdAt": "2026-04-15T10:19:05.123Z",
+        "updatedAt": "2026-04-15T10:19:05.123Z"
+      }
+    ],
+    "publicVideos": [
+      {
+        "id": "video-id",
+        "title": "Video title",
+        "categories": ["music"],
+        "status": "public",
+        "thumbnailUrl": null,
+        "publishedAt": "2026-04-15T10:19:05.123Z"
+      }
+    ]
+  }
+
+Finance-service nen validate:
+- channel.status phai la active
+- tier.id phai ton tai trong membershipTiers
+- tier.isAcceptingNew phai la true
+- amount thanh toan phai bang tier.priceCoin
+
+
+3.2. Lay danh sach tier cua channel
+
+  GET /api/media/channels/{channelId}/membership-tiers
+
+Headers:
+
+  x-internal-secret: <INTERNAL_GATEWAY_SECRET>
+  x-user-id: <userId>
+
+Muc dich:
+- Lay rieng danh sach goi membership neu khong can channel detail
+
+Response data:
+
+  [
+    {
+      "id": "tier-id",
+      "channelId": "channel-id",
+      "name": "Gold",
+      "level": 2,
+      "priceCoin": 100,
+      "isAcceptingNew": true,
+      "createdAt": "2026-04-15T10:19:05.123Z",
+      "updatedAt": "2026-04-15T10:19:05.123Z"
+    }
+  ]
+
+
+3.3. Lay chi tiet mot tier
+
+  GET /api/media/channels/{channelId}/membership-tiers/{tierId}
+
+Headers:
+
+  x-internal-secret: <INTERNAL_GATEWAY_SECRET>
+  x-user-id: <userId>
+
+Muc dich:
+- Validate tierId, gia tien, level truoc khi tao payment
+
+
+3.4. Kiem tra membership status cua user trong channel
+
+  GET /api/media/channels/{channelId}/membership-status
+
+Headers:
+
+  x-internal-secret: <INTERNAL_GATEWAY_SECRET>
+  x-user-id: <userId>
+
+Response data:
+
+  {
+    "isActive": true,
+    "membershipId": "tier-id",
+    "expiryDate": "2026-05-15T10:19:05.123Z"
+  }
+
+Muc dich:
+- Finance-service co the chan tao payment trung neu user da co membership active
+- Neu expiryDate = null thi membership active vo thoi han
+
+
+3.5. Lay danh sach video moi nhat co price va requiredTierLevel
+
+  GET /api/media/videos/discovery/latest?limit=20
+
+Endpoint nay public trong media-service, khong can x-internal-secret.
+
+Response data item:
+
+  {
+    "id": "video-id",
+    "channelId": "channel-id",
+    "title": "Video title",
+    "description": "...",
+    "categories": ["music"],
+    "status": "public",
+    "price": 50,
+    "requiredTierLevel": 2,
+    "thumbnailUrl": null,
+    "durationSeconds": 120,
+    "resolutions": ["720p", "1080p"],
+    "viewCount": 10,
+    "publishedAt": "2026-04-15T10:19:05.123Z",
+    "createdAt": "2026-04-15T10:19:05.123Z",
+    "updatedAt": "2026-04-15T10:19:05.123Z"
+  }
+
+
+3.6. Lay video theo category co price va requiredTierLevel
+
+  GET /api/media/videos/discovery/by-category?category={category}&limit=20
+
+Endpoint nay public trong media-service, khong can x-internal-secret.
+
+Muc dich:
+- Neu finance-service can hien thi danh sach video co gia theo category
+
+
+3.7. Lay video metadata theo id
+
+  GET /api/media/videos/{videoId}/metadata
+
+Endpoint nay public trong media-service, khong can x-internal-secret.
+
+Response data:
+
+  {
+    "id": "video-id",
+    "title": "Video title",
+    "description": "...",
+    "thumbnailUrl": null,
+    "status": "public",
+    "visibility": "public",
+    "publishedAt": "2026-04-15T10:19:05.123Z",
+    "updatedAt": "2026-04-15T10:19:05.123Z"
+  }
+
+Luu y quan trong:
+- Endpoint nay hien CHUA tra ve price, channelId, requiredTierLevel.
+- Khong nen dung endpoint nay de validate gia mua video le.
+- Neu finance-service can mua video le theo videoId, media-service can bo sung
+  endpoint detail noi bo co price hoac consumer event unlock video.
+
+
+4. Kafka event finance-service phai publish khi thanh toan membership thanh cong
+-------------------------------------------------------------------------------
+
+Media-service dang consume topic:
+
+  membership.payment.success
+
+Co the override bang bien moi truong media-service:
+
+  KAFKA_MEMBERSHIP_PAYMENT_SUCCESS_TOPIC
+
+Finance-service publish message dang JSON theo envelope chuan:
+
+  {
+    "eventId": "uuid-v4",
+    "eventType": "membership.payment.success",
+    "aggregateId": "channel-id",
+    "timestamp": "2026-04-22T10:00:00.000Z",
+    "version": 1,
+    "traceId": "trace-id",
+    "spanId": "optional-span-id",
+    "sourceService": "finance-service",
+    "data": {
+      "userId": "user-id",
+      "channelId": "channel-id",
+      "membershipTierId": "tier-id",
+      "expiryDate": "2026-05-22T10:00:00.000Z"
+    }
+  }
+
+Kafka message key khuyen nghi:
+
+  userId:channelId
+
+Y nghia data:
+- userId: user da thanh toan
+- channelId: channel user mua membership
+- membershipTierId: id cua tier da mua
+- expiryDate: ISO string hoac null
+
+Neu expiryDate = null, media-service xem membership la active vo thoi han.
+
+Idempotency:
+- eventId bat buoc la duy nhat cho moi giao dich thanh cong.
+- Media-service luu key Redis media:event:{eventId} trong 24 gio.
+- Neu finance-service retry publish cung eventId, media-service se bo qua.
+- Neu cung mot payment bi publish voi eventId moi, media-service se xu ly nhu
+  event moi. Vi vay finance-service phai dam bao eventId on dinh theo payment
+  success record.
+
+Ket qua ben media-service:
+- Neu user chua co membership trong channel, media-service tao membership moi.
+- Neu user da co membership, media-service cap nhat membershipTierId va expiryDate.
+- Membership status duoc set active.
+
+
+5. Flow de xay dung thanh toan membership
+-----------------------------------------
+
+Buoc 1: Finance-service nhan yeu cau mua membership:
+
+  userId, channelId, membershipTierId
+
+Buoc 2: Finance-service goi media-service de validate tier:
+
+  GET /api/media/channels/{channelId}/membership-tiers/{membershipTierId}
+
+Headers:
+
+  x-internal-secret: <INTERNAL_GATEWAY_SECRET>
+  x-user-id: <userId>
+
+Buoc 3: Validate response:
+
+  data.channelId == channelId
+  data.id == membershipTierId
+  data.isAcceptingNew == true
+  amount == data.priceCoin
+
+Buoc 4: Tao payment/transaction trong finance-service.
+
+Buoc 5: Khi payment thanh cong, finance-service publish Kafka event:
+
+  topic: membership.payment.success
+  eventType: membership.payment.success
+
+Buoc 6: Media-service consume event va cap nhat membership.
+
+Buoc 7: Neu can xac minh sau khi publish:
+
+  GET /api/media/channels/{channelId}/membership-status
+
+Headers:
+
+  x-internal-secret: <INTERNAL_GATEWAY_SECRET>
+  x-user-id: <userId>
+
+
+6. Mua video le: trang thai hien tai va viec can bo sung
+--------------------------------------------------------
+
+Trong code media-service hien co:
+- Co entity/repository video_purchase_unlocks
+- Co UnlockVideoUseCase voi input:
+
+  {
+    "userId": "user-id",
+    "videoId": "video-id"
+  }
+
+- VideoWatchAccessService cho phep xem video neu unlockRepository.exists(videoId, userId)
+
+Nhung hien tai chua thay:
+- HTTP endpoint de finance-service unlock video sau thanh toan
+- Kafka consumer cho event video purchase success
+- Endpoint detail theo videoId tra ve day du price/channelId/requiredTierLevel
+
+Vi vay finance-service CHUA nen tu y xu ly mua video le voi media-service hien
+tai neu chua bo sung contract.
+
+De hoan thien mua video le, khuyen nghi bo sung event:
+
+  topic: video.purchase.success
+  eventType: video.purchase.success
+
+Payload de xuat:
+
+  {
+    "eventId": "uuid-v4",
+    "eventType": "video.purchase.success",
+    "aggregateId": "video-id",
+    "timestamp": "2026-04-22T10:00:00.000Z",
+    "version": 1,
+    "traceId": "trace-id",
+    "sourceService": "finance-service",
+    "data": {
+      "userId": "user-id",
+      "videoId": "video-id",
+      "paymentId": "payment-id",
+      "amount": 50
+    }
+  }
+
+Media-service consumer se goi UnlockVideoUseCase de luu unlock.
+
+
+7. Cac nguyen tac bat buoc cho finance-service
+----------------------------------------------
+
+- Khong doc/ghi database media-service truc tiep.
+- Khong goi MinIO/Redis cua media-service.
+- Khong tu tao membership trong media-service bang SQL.
+- Validate gia membership tu media-service truoc khi charge user.
+- Sau khi charge thanh cong, publish Kafka event dung envelope.
+- Dung eventId on dinh va duy nhat theo payment success record.
+- Implement retry publish Kafka, nhung retry phai giu nguyen eventId.
+- Luu payment status o finance-service de tranh double charge.
+- Treat media-service event consumer la eventually consistent.
+- Khi can doc lai quyen, goi membership-status sau mot khoang retry ngan.
+
+
+8. Cau hinh Kafka can dong bo
+-----------------------------
+
+Media-service .env hien co:
+
+  KAFKA_ENABLE=true
+  KAFKA_CLIENT_ID=media-service
+  KAFKA_BROKERS=localhost:9092
+  KAFKA_CONSUMER_GROUP_ID=media-service-group
+  KAFKA_AUTO_CREATE_TOPICS=true
+  KAFKA_TOPICS_TO_CREATE=membership.payment.success,video.processed.success,video.processed.failed,video.viewed
+  KAFKA_MEMBERSHIP_PAYMENT_SUCCESS_TOPIC=membership.payment.success
+
+Finance-service can publish vao cung broker:
+
+  KAFKA_BROKERS=localhost:9092
+
+Va cung topic:
+
+  membership.payment.success
+
+
+9. Checklist nhanh cho finance-service
+--------------------------------------
+
+Membership payment:
+
+  [ ] Call media-service lay tier
+  [ ] Validate tier ton tai va isAcceptingNew = true
+  [ ] Validate amount = priceCoin
+  [ ] Charge user / tru coin trong finance-service
+  [ ] Mark payment success trong DB finance-service
+  [ ] Publish membership.payment.success voi eventId on dinh
+  [ ] Retry publish neu Kafka loi, khong doi eventId
+  [ ] Optional: poll membership-status de xac minh eventual consistency
+
+Video purchase:
+
+  [ ] Chua dung production neu media-service chua co consumer/endpoint unlock
+  [ ] Can thong nhat contract video.purchase.success truoc khi implement
+

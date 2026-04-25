@@ -41,15 +41,14 @@ export class InitVideoUploadUseCase extends BaseUseCase<
   async execute(
     command: InitVideoUploadCommand,
   ): Promise<InitVideoUploadResponse> {
-    await this.channelAccessService.assertOwnedActiveChannel(
-      command.channelId,
+    const channelId = await this.channelAccessService.getOwnedActiveChannelId(
       command.userId,
     );
 
-    const rawFileKey = `uploads/raw/${command.channelId}/${Date.now()}-${crypto.randomUUID()}.mp4`;
+    const rawFileKey = `uploads/raw/${channelId}/${Date.now()}-${crypto.randomUUID()}.mp4`;
     const categories = await this.resolveCategories(command.categories);
     const video = VideoEntity.create({
-      channelId: command.channelId,
+      channelId,
       ownerId: command.userId,
       title: command.title,
       description: command.description,

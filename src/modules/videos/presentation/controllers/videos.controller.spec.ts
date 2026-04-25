@@ -63,6 +63,79 @@ describe('VideosController', () => {
     });
   });
 
+  it('initializes upload using current user channel context', async () => {
+    initVideoUploadUseCase.execute.mockResolvedValue({
+      videoId: 'video-1',
+      status: VideoStatus.DRAFT,
+      rawFileKey: 'uploads/raw/channel-1/file.mp4',
+      bucket: 'raw-videos',
+      uploadUrl: 'https://upload.example.com',
+    });
+
+    const result = await controller.initUpload('owner-1', {
+      channelId: 'legacy-channel-1',
+      title: 'Video',
+      description: 'Description',
+      categories: ['music'],
+      visibility: 'public',
+      price: 0,
+      requiredTierLevel: null,
+    });
+
+    expect(initVideoUploadUseCase.execute).toHaveBeenCalledWith({
+      userId: 'owner-1',
+      title: 'Video',
+      description: 'Description',
+      categories: ['music'],
+      visibility: 'public',
+      price: 0,
+      requiredTierLevel: null,
+    });
+    expect(result).toEqual({
+      videoId: 'video-1',
+      status: VideoStatus.DRAFT,
+      rawFileKey: 'uploads/raw/channel-1/file.mp4',
+      bucket: 'raw-videos',
+      uploadUrl: 'https://upload.example.com',
+    });
+  });
+
+  it('initializes upload without legacy channel id', async () => {
+    initVideoUploadUseCase.execute.mockResolvedValue({
+      videoId: 'video-2',
+      status: VideoStatus.DRAFT,
+      rawFileKey: 'uploads/raw/channel-1/file-2.mp4',
+      bucket: 'raw-videos',
+      uploadUrl: 'https://upload.example.com/2',
+    });
+
+    const result = await controller.initUpload('owner-1', {
+      title: 'Video 2',
+      description: '',
+      categories: [],
+      visibility: 'public',
+      price: 0,
+      requiredTierLevel: null,
+    });
+
+    expect(initVideoUploadUseCase.execute).toHaveBeenCalledWith({
+      userId: 'owner-1',
+      title: 'Video 2',
+      description: '',
+      categories: [],
+      visibility: 'public',
+      price: 0,
+      requiredTierLevel: null,
+    });
+    expect(result).toEqual({
+      videoId: 'video-2',
+      status: VideoStatus.DRAFT,
+      rawFileKey: 'uploads/raw/channel-1/file-2.mp4',
+      bucket: 'raw-videos',
+      uploadUrl: 'https://upload.example.com/2',
+    });
+  });
+
   it('updates metadata using current user id', async () => {
     updateVideoMetadataUseCase.execute.mockResolvedValue({
       ...buildMetadata(),

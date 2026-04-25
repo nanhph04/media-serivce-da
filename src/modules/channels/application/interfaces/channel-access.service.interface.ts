@@ -10,6 +10,7 @@ export interface ChannelViewerAccessContext {
 
 export interface IChannelAccessService {
   assertOwnedActiveChannel(channelId: string, userId: string): Promise<void>;
+  getOwnedActiveChannelId(userId: string): Promise<string>;
   getViewerAccessContext(
     channelId: string,
     userId: string,

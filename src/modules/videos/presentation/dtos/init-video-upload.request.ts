@@ -11,9 +11,14 @@ import {
 } from 'class-validator';
 
 export class InitVideoUploadRequestDto {
-  @ApiProperty()
+  @ApiPropertyOptional({
+    deprecated: true,
+    description:
+      'Deprecated: ignored by backend; channel is resolved from x-user-id.',
+  })
   @IsString()
-  channelId!: string;
+  @IsOptional()
+  channelId?: string;
 
   @ApiProperty()
   @IsString()
