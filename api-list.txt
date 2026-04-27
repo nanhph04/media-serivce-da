@@ -1,3 +1,5 @@
+date 27/04/2026
+
 MEDIA SERVICE API LIST
 Base URL: /api/media
 
@@ -311,8 +313,29 @@ Ghi chu chung
     - `description` (string)
     - `playbackToken` (string)
     - `playbackUrl` (string)
+    - `resumePositionSeconds` (number): vi tri tiep tuc xem, `0` neu chua co tien do
+    - `isResumeAvailable` (boolean): `true` neu co the xem tiep tu tien do da luu
 
-4.4) POST /api/media/videos/:id/playback-token/refresh
+4.4) POST /api/media/videos/:id/progress
+- Muc dich: luu tien do xem video cua user hien tai.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-internal-secret`: He thong tu set
+- Path param:
+  - `id` (string): videoId
+- Body:
+  - `positionSeconds` (number, bat buoc, min 0): vi tri hien tai cua video
+  - `durationSeconds` (number | null, optional, min 0): tong thoi luong video neu client/co player biet
+  - `state` (`watching` | `paused` | `completed`, optional): trang thai xem hien tai
+- He thong tu set them khi xu ly:
+  - `userId`: lay tu header `x-user-id`
+- Response HTTP 200:
+  - Envelope `data`:
+    - `videoId` (string)
+    - `positionSeconds` (number)
+    - `completed` (boolean)
+
+4.5) POST /api/media/videos/:id/playback-token/refresh
 - Muc dich: cap moi playback token cho video dang xem.
 - Header:
   - `x-user-id`: He thong tu set
@@ -327,7 +350,32 @@ Ghi chu chung
     - `playbackToken` (string)
     - `playbackUrl` (string)
 
-4.5) GET /api/media/videos/:id/metadata
+4.6) GET /api/media/videos/continue-watching?limit=20
+- Muc dich: lay danh sach video user dang xem do de hien thi muc xem tiep.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-internal-secret`: He thong tu set
+- Query:
+  - `limit` (number, optional, default 20)
+- He thong tu set them khi xu ly:
+  - `userId`: lay tu header `x-user-id`
+  - Neu thieu `limit` thi he thong dung `20`
+- Ghi chu:
+  - Chi lay cac ban ghi co progress chua hoan tat.
+  - Chi lay video co `status = ready` va `visibility = public`.
+- Response HTTP 200:
+  - Envelope `data`: array, moi object gom:
+    - `videoId` (string)
+    - `channelId` (string)
+    - `title` (string)
+    - `thumbnailUrl` (string | null)
+    - `durationSeconds` (number | null)
+    - `resumePositionSeconds` (number)
+    - `remainingSeconds` (number | null)
+    - `lastWatchedAt` (string ISO)
+    - `viewCount` (number)
+
+4.7) GET /api/media/videos/:id/metadata
 - Muc dich: lay metadata public cua video.
 - Public API: khong can `x-internal-secret`.
 - Path param:
@@ -347,7 +395,7 @@ Ghi chu chung
     - `publishedAt` (string ISO | null)
     - `updatedAt` (string ISO)
 
-4.6) PATCH /api/media/videos/:id/metadata
+4.8) PATCH /api/media/videos/:id/metadata
 - Muc dich: creator cap nhat metadata cua video.
 - Header:
   - `x-user-id`: Gateway verify JWT roi tu set
@@ -373,7 +421,7 @@ Ghi chu chung
     - `publishedAt` (string ISO | null)
     - `updatedAt` (string ISO)
 
-4.7) GET /api/media/videos/discovery/latest?limit=20
+4.9) GET /api/media/videos/discovery/latest?limit=20
 - Cache:
   - Key: `media_service:videos:latest:{limit}`
   - TTL: 600s
@@ -402,7 +450,7 @@ Ghi chu chung
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
 
-4.8) GET /api/media/videos/discovery/by-category?category=...&limit=20
+4.10) GET /api/media/videos/discovery/by-category?category=...&limit=20
 - Cache:
   - Key: `media_service:videos:category:{category}:latest:{limit}`
   - TTL: 600s
@@ -432,7 +480,7 @@ Ghi chu chung
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
 
-4.9) GET /api/media/videos/discovery/subscribed?limit=20
+4.11) GET /api/media/videos/discovery/subscribed?limit=20
 - Muc dich: lay video tu cac channel user dang subscribe.
 - Header:
   - `x-user-id`: He thong tu set
