@@ -11,6 +11,7 @@ import { GetVideoMetadataUseCase } from './application/use-cases/get-video-metad
 import { GetVideosByCategoryUseCase } from './application/use-cases/get-videos-by-category.use-case';
 import { HandleVideoProcessedFailedUseCase } from './application/use-cases/handle-video-processed-failed.use-case';
 import { HandleVideoProcessedSuccessUseCase } from './application/use-cases/handle-video-processed-success.use-case';
+import { HandleVideoPaymentSuccessUseCase } from './application/use-cases/handle-video-payment-success.use-case';
 import { HandleVideoViewedUseCase } from './application/use-cases/handle-video-viewed.use-case';
 import { InitVideoUploadUseCase } from './application/use-cases/init-video-upload.use-case';
 import { PlayVideoUseCase } from './application/use-cases/play-video.use-case';
@@ -20,6 +21,7 @@ import { UpdateVideoMetadataUseCase } from './application/use-cases/update-video
 import { UnlockVideoUseCase } from './application/use-cases/unlock-video.use-case';
 import { VideoWatchAccessService } from './application/services/video-watch-access.service';
 import { VideoProcessingConsumer } from './infrastructure/consumers/video-processing.consumer';
+import { VideoPaymentConsumer } from './infrastructure/consumers/video-payment.consumer';
 import { VideoViewedConsumer } from './infrastructure/consumers/video-viewed.consumer';
 import { VideoCacheInvalidator } from './infrastructure/cache/video-cache-invalidator.service';
 import { VideoPurchaseUnlockOrmEntity } from './infrastructure/persistence/video-purchase-unlock.orm-entity';
@@ -71,8 +73,10 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
     GetSubscribedVideosUseCase,
     HandleVideoProcessedSuccessUseCase,
     HandleVideoProcessedFailedUseCase,
+    HandleVideoPaymentSuccessUseCase,
     HandleVideoViewedUseCase,
     VideoProcessingConsumer,
+    VideoPaymentConsumer,
     VideoViewedConsumer,
     {
       provide: VIDEO_REPOSITORY,

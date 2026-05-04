@@ -36,9 +36,10 @@ export class HandleMembershipPaymentSuccessUseCase extends BaseUseCase<
     if (existing) {
       existing.syncMembership({
         membershipId: command.data.membershipTierId,
-        expiryDate: command.data.expiryDate
-          ? new Date(command.data.expiryDate)
-          : null,
+        expiryDate: this.resolveExpiryDate(
+          command.data.expiryDate,
+          existing.expiryDate,
+        ),
       });
       await this.membershipRepository.upsert(existing);
       return;
@@ -48,9 +49,7 @@ export class HandleMembershipPaymentSuccessUseCase extends BaseUseCase<
       userId: command.data.userId,
       channelId: command.data.channelId,
       membershipId: command.data.membershipTierId,
-      expiryDate: command.data.expiryDate
-        ? new Date(command.data.expiryDate)
-        : null,
+      expiryDate: this.resolveExpiryDate(command.data.expiryDate),
     });
     await this.membershipRepository.upsert(membership);
   }
@@ -61,5 +60,24 @@ export class HandleMembershipPaymentSuccessUseCase extends BaseUseCase<
       '1',
       60 * 60 * 24,
     );
+  }
+
+  private resolveExpiryDate(
+    expiryDate: string | null | undefined,
+    currentExpiryDate?: Date | null,
+  ): Date {
+    if (expiryDate) {
+      return new Date(expiryDate);
+    }
+
+    const now = Date.now();
+    const baseTime =
+      currentExpiryDate && currentExpiryDate.getTime() > now
+        ? currentExpiryDate.getTime()
+        : now;
+    const nextExpiryDate = new Date(baseTime);
+    nextExpiryDate.setMonth(nextExpiryDate.getMonth() + 1);
+
+    return nextExpiryDate;
   }
 }
