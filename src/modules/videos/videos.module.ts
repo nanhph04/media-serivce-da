@@ -11,6 +11,7 @@ import { GetVideoMetadataUseCase } from './application/use-cases/get-video-metad
 import { GetVideosByCategoryUseCase } from './application/use-cases/get-videos-by-category.use-case';
 import { HandleVideoProcessedFailedUseCase } from './application/use-cases/handle-video-processed-failed.use-case';
 import { HandleVideoProcessedSuccessUseCase } from './application/use-cases/handle-video-processed-success.use-case';
+import { HandleVideoModerationCompletedUseCase } from './application/use-cases/handle-video-moderation-completed.use-case';
 import { HandleVideoPaymentSuccessUseCase } from './application/use-cases/handle-video-payment-success.use-case';
 import { HandleVideoViewedUseCase } from './application/use-cases/handle-video-viewed.use-case';
 import { InitVideoUploadUseCase } from './application/use-cases/init-video-upload.use-case';
@@ -21,8 +22,11 @@ import { UpdateVideoMetadataUseCase } from './application/use-cases/update-video
 import { UnlockVideoUseCase } from './application/use-cases/unlock-video.use-case';
 import { VideoWatchAccessService } from './application/services/video-watch-access.service';
 import { VideoProcessingConsumer } from './infrastructure/consumers/video-processing.consumer';
+import { VideoModerationConsumer } from './infrastructure/consumers/video-moderation.consumer';
 import { VideoPaymentConsumer } from './infrastructure/consumers/video-payment.consumer';
 import { VideoViewedConsumer } from './infrastructure/consumers/video-viewed.consumer';
+import { VideoModerationRequestPublisher } from './infrastructure/messaging/video-moderation-request.publisher';
+import { VideoModerationOutcomePublisher } from './infrastructure/messaging/video-moderation-outcome.publisher';
 import { VideoCacheInvalidator } from './infrastructure/cache/video-cache-invalidator.service';
 import { VideoPurchaseUnlockOrmEntity } from './infrastructure/persistence/video-purchase-unlock.orm-entity';
 import { VideoCategoryOrmEntity } from './infrastructure/persistence/video-category.orm-entity';
@@ -34,6 +38,8 @@ import { VideoWatchProgressRepository } from './infrastructure/persistence/video
 import { VideoQueryService } from './infrastructure/query/video-query.service';
 import { VideosController } from './presentation/controllers/videos.controller';
 import { VIDEO_CACHE_INVALIDATOR } from './application/interfaces/video-cache-invalidator.interface';
+import { VIDEO_MODERATION_REQUEST_PUBLISHER } from './application/interfaces/video-moderation-request-publisher.interface';
+import { VIDEO_MODERATION_OUTCOME_PUBLISHER } from './application/interfaces/video-moderation-outcome-publisher.interface';
 import { VIDEO_QUERY_SERVICE } from './application/interfaces/video-query.service.interface';
 import { VIDEO_PURCHASE_UNLOCK_REPOSITORY } from './domain/repositories/video-purchase-unlock.repository';
 import { VIDEO_REPOSITORY } from './domain/repositories/video.repository';
@@ -73,11 +79,15 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
     GetSubscribedVideosUseCase,
     HandleVideoProcessedSuccessUseCase,
     HandleVideoProcessedFailedUseCase,
+    HandleVideoModerationCompletedUseCase,
     HandleVideoPaymentSuccessUseCase,
     HandleVideoViewedUseCase,
     VideoProcessingConsumer,
+    VideoModerationConsumer,
     VideoPaymentConsumer,
     VideoViewedConsumer,
+    VideoModerationRequestPublisher,
+    VideoModerationOutcomePublisher,
     {
       provide: VIDEO_REPOSITORY,
       useExisting: VideoRepository,
@@ -97,6 +107,14 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
     {
       provide: VIDEO_CACHE_INVALIDATOR,
       useExisting: VideoCacheInvalidator,
+    },
+    {
+      provide: VIDEO_MODERATION_REQUEST_PUBLISHER,
+      useExisting: VideoModerationRequestPublisher,
+    },
+    {
+      provide: VIDEO_MODERATION_OUTCOME_PUBLISHER,
+      useExisting: VideoModerationOutcomePublisher,
     },
   ],
   exports: [

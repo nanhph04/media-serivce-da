@@ -6,7 +6,10 @@ import { Category } from '../../../categories/domain/entities/category.entity';
 
 export enum VideoStatus {
   DRAFT = 'draft',
+  PENDING_MODERATION = 'pending_moderation',
   PROCESSING = 'processing',
+  PENDING_MANUAL_REVIEW = 'pending_manual_review',
+  REJECTED = 'rejected',
   READY = 'ready',
   FAILED = 'failed',
 }
@@ -161,10 +164,34 @@ export class VideoEntity {
   }
 
   markProcessing(): void {
+    if (
+      this.props.status !== VideoStatus.DRAFT &&
+      this.props.status !== VideoStatus.PENDING_MODERATION
+    ) {
+      throw new ConflictException('Video cannot be marked as processing');
+    }
+    this.props.status = VideoStatus.PROCESSING;
+    this.touch();
+  }
+
+  markPendingModeration(): void {
     if (this.props.status !== VideoStatus.DRAFT) {
       throw new ConflictException('Video is not in draft status');
     }
-    this.props.status = VideoStatus.PROCESSING;
+    this.props.status = VideoStatus.PENDING_MODERATION;
+    this.props.errorMessage = null;
+    this.touch();
+  }
+
+  markPendingManualReview(reason: string): void {
+    this.props.status = VideoStatus.PENDING_MANUAL_REVIEW;
+    this.props.errorMessage = reason;
+    this.touch();
+  }
+
+  markRejected(reason: string): void {
+    this.props.status = VideoStatus.REJECTED;
+    this.props.errorMessage = reason;
     this.touch();
   }
 

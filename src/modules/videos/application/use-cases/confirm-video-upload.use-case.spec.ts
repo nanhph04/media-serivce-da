@@ -18,9 +18,13 @@ describe('ConfirmVideoUploadUseCase', () => {
   const objectStorageService = {
     objectExists: jest.fn(),
     getObjectMetadata: jest.fn(),
+    getBucketName: jest.fn(),
   };
   const videoProcessingJobDispatcher = {
     enqueueTranscodeJob: jest.fn(),
+  };
+  const videoModerationRequestPublisher = {
+    publishModerationRequested: jest.fn(),
   };
   const videoUploadConfig = {
     getMaxVideoUploadSizeBytes: jest.fn(),
@@ -29,7 +33,7 @@ describe('ConfirmVideoUploadUseCase', () => {
   const useCase = new ConfirmVideoUploadUseCase(
     videoRepository as never,
     objectStorageService as never,
-    videoProcessingJobDispatcher as never,
+    videoModerationRequestPublisher as never,
     videoUploadConfig as never,
   );
 
@@ -38,6 +42,7 @@ describe('ConfirmVideoUploadUseCase', () => {
     videoUploadConfig.getMaxVideoUploadSizeBytes.mockReturnValue(
       2 * 1024 * 1024 * 1024,
     );
+    objectStorageService.getBucketName.mockReturnValue('media-raw');
   });
 
   it('rejects when uploaded file exceeds maximum size', async () => {
@@ -75,14 +80,14 @@ describe('ConfirmVideoUploadUseCase', () => {
     ).rejects.toThrow('Uploaded video file is empty or invalid');
   });
 
-  it('normalizes resolution order before enqueuing job', async () => {
+  it('normalizes resolution order before requesting moderation', async () => {
     videoRepository.findById.mockResolvedValue(buildDraftVideo());
     videoRepository.save.mockResolvedValue(undefined);
     objectStorageService.objectExists.mockResolvedValue(true);
     objectStorageService.getObjectMetadata.mockResolvedValue({
       sizeBytes: 1024,
     });
-    videoProcessingJobDispatcher.enqueueTranscodeJob.mockResolvedValue(
+    videoModerationRequestPublisher.publishModerationRequested.mockResolvedValue(
       undefined,
     );
 
@@ -93,15 +98,15 @@ describe('ConfirmVideoUploadUseCase', () => {
     });
 
     expect(videoRepository.save).toHaveBeenCalledTimes(1);
-    expect(
-      videoProcessingJobDispatcher.enqueueTranscodeJob,
-    ).toHaveBeenCalledWith({
+    expect(videoModerationRequestPublisher.publishModerationRequested).toHaveBeenCalledWith({
       videoId: 'video-1',
       rawFileKey: 'uploads/raw/channel-1/video.mp4',
+      rawBucket: 'media-raw',
       resolution: ['480p', '720p', '1080p'],
       userId: 'owner-1',
     });
-    expect(result.status).toBe(VideoStatus.PROCESSING);
+    expect(videoProcessingJobDispatcher.enqueueTranscodeJob).not.toHaveBeenCalled();
+    expect(result.status).toBe(VideoStatus.PENDING_MODERATION);
   });
 
   it('throws not found when video does not exist', async () => {

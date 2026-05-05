@@ -9,10 +9,6 @@ import {
 } from '@shared/application/interfaces/video-upload-config.interface';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import {
-  VIDEO_PROCESSING_JOB_DISPATCHER,
-  type IVideoProcessingJobDispatcher,
-} from '@shared/application/interfaces/video-processing-job-dispatcher.interface';
-import {
   BadRequestException,
   ForbiddenException,
   NotFoundException,
@@ -21,6 +17,10 @@ import {
   type IVideoRepository,
   VIDEO_REPOSITORY,
 } from '../../domain/repositories/video.repository';
+import {
+  VIDEO_MODERATION_REQUEST_PUBLISHER,
+  type IVideoModerationRequestPublisher,
+} from '../interfaces/video-moderation-request-publisher.interface';
 import { VIDEO_UPLOAD_RESOLUTIONS } from '../../presentation/dtos/confirm-video-upload.request';
 import type { ConfirmVideoUploadCommand } from '../dtos/confirm-video-upload.command';
 import type { ConfirmVideoUploadResponse } from '../dtos/confirm-video-upload.response';
@@ -39,8 +39,8 @@ export class ConfirmVideoUploadUseCase extends BaseUseCase<
     private readonly videoRepository: IVideoRepository,
     @Inject(OBJECT_STORAGE_SERVICE)
     private readonly objectStorageService: IObjectStorageService,
-    @Inject(VIDEO_PROCESSING_JOB_DISPATCHER)
-    private readonly videoProcessingJobDispatcher: IVideoProcessingJobDispatcher,
+    @Inject(VIDEO_MODERATION_REQUEST_PUBLISHER)
+    private readonly videoModerationRequestPublisher: IVideoModerationRequestPublisher,
     @Inject(VIDEO_UPLOAD_CONFIG)
     private readonly videoUploadConfig: IVideoUploadConfig,
   ) {
@@ -91,11 +91,12 @@ export class ConfirmVideoUploadUseCase extends BaseUseCase<
       },
     );
 
-    video.markProcessing();
+    video.markPendingModeration();
     await this.videoRepository.save(video);
-    await this.videoProcessingJobDispatcher.enqueueTranscodeJob({
+    await this.videoModerationRequestPublisher.publishModerationRequested({
       videoId: video.id,
       rawFileKey: video.rawFileKey,
+      rawBucket: this.objectStorageService.getBucketName('raw'),
       resolution: normalizedResolutions,
       userId: command.userId,
     });

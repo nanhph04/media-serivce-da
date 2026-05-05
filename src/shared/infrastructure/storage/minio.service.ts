@@ -20,20 +20,16 @@ export class MinioService implements OnModuleInit, IObjectStorageService {
     private readonly logger: LoggerService,
   ) {
     this.logger.setContext(MinioService.name);
-    this.rawBucket = this.configService.get<string>(
-      'MINIO_RAW_BUCKET',
-      'media-raw',
-    );
-    this.processedBucket = this.configService.get<string>(
+    this.rawBucket = this.configService.getOrThrow<string>('MINIO_RAW_BUCKET');
+    this.processedBucket = this.configService.getOrThrow<string>(
       'MINIO_PROCESSED_BUCKET',
-      'media-processed',
     );
     this.client = new Client({
-      endPoint: this.configService.get<string>('MINIO_ENDPOINT', 'localhost'),
-      port: this.configService.getNumber('MINIO_PORT', 9000),
-      useSSL: this.configService.getBoolean('MINIO_USE_SSL', false),
-      accessKey: this.configService.get<string>('MINIO_ACCESS_KEY', 'minio'),
-      secretKey: this.configService.get<string>('MINIO_SECRET_KEY', 'minio123'),
+      endPoint: this.configService.getOrThrow<string>('MINIO_ENDPOINT'),
+      port: this.configService.getNumberOrThrow('MINIO_PORT'),
+      useSSL: this.configService.getBooleanOrThrow('MINIO_USE_SSL'),
+      accessKey: this.configService.getOrThrow<string>('MINIO_ACCESS_KEY'),
+      secretKey: this.configService.getOrThrow<string>('MINIO_SECRET_KEY'),
     });
   }
 
@@ -79,9 +75,12 @@ export class MinioService implements OnModuleInit, IObjectStorageService {
     );
   }
 
-  async objectExists(bucket: string, objectKey: string): Promise<boolean> {
+  async objectExists(
+    bucket: StorageBucket,
+    objectKey: string,
+  ): Promise<boolean> {
     try {
-      await this.client.statObject(bucket, objectKey);
+      await this.client.statObject(this.getBucketName(bucket), objectKey);
       return true;
     } catch {
       return false;
@@ -102,11 +101,17 @@ export class MinioService implements OnModuleInit, IObjectStorageService {
     };
   }
 
-  async getObjectStream(bucket: string, objectKey: string): Promise<Readable> {
-    return this.client.getObject(bucket, objectKey);
+  async getObjectStream(
+    bucket: StorageBucket,
+    objectKey: string,
+  ): Promise<Readable> {
+    return this.client.getObject(this.getBucketName(bucket), objectKey);
   }
 
-  async getObjectText(bucket: string, objectKey: string): Promise<string> {
+  async getObjectText(
+    bucket: StorageBucket,
+    objectKey: string,
+  ): Promise<string> {
     const stream = await this.getObjectStream(bucket, objectKey);
     const chunks: Buffer[] = [];
 

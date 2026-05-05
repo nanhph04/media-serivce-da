@@ -23,6 +23,37 @@ export class ConfigService
     return value;
   }
 
+  getNumberOrThrow(key: string): number {
+    const value = this.getOrThrow<string | number>(key);
+    if (typeof value === 'number') {
+      return value;
+    }
+
+    const parsed = Number(value);
+    if (Number.isNaN(parsed)) {
+      throw new Error(`Config key "${key}" must be a valid number`);
+    }
+
+    return parsed;
+  }
+
+  getBooleanOrThrow(key: string): boolean {
+    const value = this.getOrThrow<string | boolean>(key);
+    if (typeof value === 'boolean') {
+      return value;
+    }
+
+    if (value === 'true') {
+      return true;
+    }
+
+    if (value === 'false') {
+      return false;
+    }
+
+    throw new Error(`Config key "${key}" must be "true" or "false"`);
+  }
+
   isProduction(): boolean {
     return this.get<string>('NODE_ENV') === 'production';
   }
