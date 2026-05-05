@@ -34,6 +34,9 @@ export class VideoListItemResponseDto {
   @ApiProperty({ type: [String] })
   resolutions!: string[];
 
+  @ApiProperty({ nullable: true })
+  errorMessage!: string | null;
+
   @ApiProperty()
   viewCount!: number;
 

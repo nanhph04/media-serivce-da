@@ -1,17 +1,33 @@
 import { Inject, Injectable } from '@nestjs/common';
+import {
+  OBJECT_STORAGE_SERVICE,
+  type IObjectStorageService,
+} from '@shared/application/interfaces/object-storage.service.interface';
+import {
+  VIDEO_UPLOAD_CONFIG,
+  type IVideoUploadConfig,
+} from '@shared/application/interfaces/video-upload-config.interface';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import {
+  VIDEO_PROCESSING_JOB_DISPATCHER,
+  type IVideoProcessingJobDispatcher,
+} from '@shared/application/interfaces/video-processing-job-dispatcher.interface';
+import {
+  BadRequestException,
   ForbiddenException,
   NotFoundException,
 } from '@shared/domain/exceptions/domain.exception';
-import { VideoQueueService } from '@shared/infrastructure/queue/video-queue.service';
-import { MinioService } from '@shared/infrastructure/storage/minio.service';
 import {
   type IVideoRepository,
   VIDEO_REPOSITORY,
 } from '../../domain/repositories/video.repository';
+import { VIDEO_UPLOAD_RESOLUTIONS } from '../../presentation/dtos/confirm-video-upload.request';
 import type { ConfirmVideoUploadCommand } from '../dtos/confirm-video-upload.command';
 import type { ConfirmVideoUploadResponse } from '../dtos/confirm-video-upload.response';
+
+const VIDEO_UPLOAD_RESOLUTION_ORDER = new Map<string, number>(
+  VIDEO_UPLOAD_RESOLUTIONS.map((resolution, index) => [resolution, index]),
+);
 
 @Injectable()
 export class ConfirmVideoUploadUseCase extends BaseUseCase<
@@ -21,8 +37,12 @@ export class ConfirmVideoUploadUseCase extends BaseUseCase<
   constructor(
     @Inject(VIDEO_REPOSITORY)
     private readonly videoRepository: IVideoRepository,
-    private readonly minioService: MinioService,
-    private readonly videoQueueService: VideoQueueService,
+    @Inject(OBJECT_STORAGE_SERVICE)
+    private readonly objectStorageService: IObjectStorageService,
+    @Inject(VIDEO_PROCESSING_JOB_DISPATCHER)
+    private readonly videoProcessingJobDispatcher: IVideoProcessingJobDispatcher,
+    @Inject(VIDEO_UPLOAD_CONFIG)
+    private readonly videoUploadConfig: IVideoUploadConfig,
   ) {
     super();
   }
@@ -38,26 +58,56 @@ export class ConfirmVideoUploadUseCase extends BaseUseCase<
       throw new ForbiddenException('You do not own this video');
     }
 
-    const exists = await this.minioService.objectExists(
-      this.minioService.getRawBucket(),
+    const exists = await this.objectStorageService.objectExists(
+      'raw',
       video.rawFileKey,
     );
     if (!exists) {
       throw new NotFoundException('Raw upload file not found');
     }
 
+    const rawVideoMetadata = await this.objectStorageService.getObjectMetadata(
+      'raw',
+      video.rawFileKey,
+    );
+    if (rawVideoMetadata.sizeBytes <= 0) {
+      throw new BadRequestException('Uploaded video file is empty or invalid');
+    }
+
+    const maxVideoUploadSizeBytes =
+      this.videoUploadConfig.getMaxVideoUploadSizeBytes();
+    if (rawVideoMetadata.sizeBytes > maxVideoUploadSizeBytes) {
+      throw new BadRequestException(
+        `Video file exceeds maximum upload size of ${this.formatBytes(maxVideoUploadSizeBytes)}`,
+      );
+    }
+
+    const normalizedResolutions = [...command.resolutions].sort(
+      (left, right) => {
+        return (
+          (VIDEO_UPLOAD_RESOLUTION_ORDER.get(left) ?? Number.MAX_SAFE_INTEGER) -
+          (VIDEO_UPLOAD_RESOLUTION_ORDER.get(right) ?? Number.MAX_SAFE_INTEGER)
+        );
+      },
+    );
+
     video.markProcessing();
     await this.videoRepository.save(video);
-    await this.videoQueueService.enqueueTranscodeJob({
+    await this.videoProcessingJobDispatcher.enqueueTranscodeJob({
       videoId: video.id,
       rawFileKey: video.rawFileKey,
-      resolution: command.resolutions,
+      resolution: normalizedResolutions,
       userId: command.userId,
     });
 
     return {
       status: video.status,
-      message: 'Video đang được xử lý, bạn sẽ nhận được thông báo khi hoàn tất',
+      message: 'Video dang duoc xu ly, ban se nhan duoc thong bao khi hoan tat',
     };
+  }
+
+  private formatBytes(sizeBytes: number): string {
+    const sizeInGiB = sizeBytes / (1024 * 1024 * 1024);
+    return `${sizeInGiB.toFixed(sizeInGiB >= 10 ? 0 : 1)}GB`;
   }
 }

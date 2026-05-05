@@ -12,6 +12,7 @@ export interface VideoListItemResponse {
   thumbnailUrl: string | null;
   durationSeconds: number | null;
   resolutions: string[];
+  errorMessage: string | null;
   viewCount: number;
   publishedAt: Date | null;
   createdAt: Date;
@@ -33,6 +34,7 @@ export function mapVideoEntityToListItem(
     thumbnailUrl: video.thumbnailUrl,
     durationSeconds: video.durationSeconds,
     resolutions: video.resolutions,
+    errorMessage: video.errorMessage,
     viewCount: video.viewCount,
     publishedAt: video.publishedAt,
     createdAt: video.createdAt,

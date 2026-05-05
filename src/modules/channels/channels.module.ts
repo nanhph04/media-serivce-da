@@ -1,5 +1,8 @@
 import { forwardRef, Module } from '@nestjs/common';
+import { CHANNEL_MEMBERSHIP_ELIGIBILITY_CONFIG } from '@shared/application/interfaces/channel-membership-eligibility-config.interface';
 import { ChannelAccessService } from './application/channel-access.service';
+import { CHANNEL_MEMBERSHIP_ELIGIBILITY_SERVICE } from './application/interfaces/channel-membership-eligibility.service.interface';
+import { ChannelMembershipEligibilityService } from './application/services/channel-membership-eligibility.service';
 import { CreateChannelUseCase } from './application/use-cases/create-channel.use-case';
 import { UpdateChannelUseCase } from './application/use-cases/update-channel.use-case';
 import { GetChannelDetailUseCase } from './application/use-cases/get-channel-detail.use-case';
@@ -46,6 +49,7 @@ import { MEMBERSHIP_TIER_REPOSITORY } from './domain/repositories/membership-tie
     ChannelMembershipRepositoryImpl,
     MembershipTierRepositoryImpl,
     ChannelAccessService,
+    ChannelMembershipEligibilityService,
     ChannelMembershipMapper,
     CreateChannelUseCase,
     UpdateChannelUseCase,
@@ -75,11 +79,20 @@ import { MEMBERSHIP_TIER_REPOSITORY } from './domain/repositories/membership-tie
       useExisting: ConfigService,
     },
     {
+      provide: CHANNEL_MEMBERSHIP_ELIGIBILITY_CONFIG,
+      useExisting: ConfigService,
+    },
+    {
       provide: CHANNEL_ACCESS_SERVICE,
       useExisting: ChannelAccessService,
     },
+    {
+      provide: CHANNEL_MEMBERSHIP_ELIGIBILITY_SERVICE,
+      useExisting: ChannelMembershipEligibilityService,
+    },
   ],
   exports: [
+    CHANNEL_MEMBERSHIP_ELIGIBILITY_SERVICE,
     CHANNEL_ACCESS_SERVICE,
     CHANNEL_REPOSITORY,
     CHANNEL_MEMBERSHIP_REPOSITORY,

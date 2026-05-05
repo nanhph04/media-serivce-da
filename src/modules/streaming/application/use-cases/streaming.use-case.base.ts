@@ -1,110 +1,32 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { PlaybackTokenService } from '@shared/infrastructure/security/playback-token.service';
-import { MinioService } from '@shared/infrastructure/storage/minio.service';
-import { CacheService } from '@shared/infrastructure/cache/cache.service';
-import { ConfigService } from '@shared/infrastructure/config/config.service';
 import {
   ForbiddenException,
   NotFoundException,
 } from '@shared/domain/exceptions/domain.exception';
-import type { Response } from 'express';
-import { RecordVideoViewUseCase } from '../../engagement/application/use-cases/record-video-view.use-case';
-import {
-  type IVideoRepository,
-  VIDEO_REPOSITORY,
-} from '../../videos/domain/repositories/video.repository';
+import type { IStreamConfig } from '@shared/application/interfaces/stream-config.interface';
+import type { ITextCache } from '@shared/application/interfaces/cache-store.interface';
+import type {
+  IObjectStorageService,
+} from '@shared/application/interfaces/object-storage.service.interface';
+import type { IPlaybackTokenVerifier } from '@shared/application/interfaces/playback-token.service.interface';
+import type { IVideoRepository } from '../../../videos/domain/repositories/video.repository';
 
-@Injectable()
-export class StreamingApplicationService {
-  private readonly masterPlaylistKeyTtlSeconds: number;
-  private readonly playlistCacheTtlSeconds: number;
+export abstract class StreamingUseCaseBase {
+  protected constructor(
+    protected readonly playbackTokenVerifier: IPlaybackTokenVerifier,
+    protected readonly objectStorageService: IObjectStorageService,
+    protected readonly textCache: ITextCache,
+    protected readonly streamConfig: IStreamConfig,
+    protected readonly videoRepository: IVideoRepository,
+  ) {}
 
-  constructor(
-    private readonly playbackTokenService: PlaybackTokenService,
-    private readonly minioService: MinioService,
-    private readonly cacheService: CacheService,
-    private readonly configService: ConfigService,
-    private readonly recordVideoViewUseCase: RecordVideoViewUseCase,
-    @Inject(VIDEO_REPOSITORY)
-    private readonly videoRepository: IVideoRepository,
-  ) {
-    this.masterPlaylistKeyTtlSeconds = this.configService.getNumber(
-      'STREAM_MASTER_PLAYLIST_KEY_CACHE_TTL_SECONDS',
-      30,
-    );
-    this.playlistCacheTtlSeconds = this.configService.getNumber(
-      'STREAM_REWRITTEN_PLAYLIST_CACHE_TTL_SECONDS',
-      10,
-    );
-  }
-
-  async streamMasterPlaylist(
+  protected verifyToken(
     videoId: string,
     token: string | undefined,
-  ): Promise<string> {
-    const payload = this.playbackTokenService.verifyToken(token, videoId);
-    const masterPlaylistKey = await this.getMasterPlaylistKeyOrThrow(videoId);
-    const rewrittenPlaylist = await this.getRewrittenPlaylist({
-      videoId,
-      token: token ?? '',
-      objectKey: masterPlaylistKey,
-    });
-
-    await this.recordVideoViewUseCase.execute({
-      userId: payload.userId,
-      videoId: payload.videoId,
-    });
-
-    return rewrittenPlaylist;
+  ): { userId: string; videoId: string; channelId: string } {
+    return this.playbackTokenVerifier.verifyToken(token, videoId);
   }
 
-  async pipeSegment(
-    input: {
-      videoId: string;
-      token: string | undefined;
-      segmentName: string;
-    },
-    response: Response,
-  ): Promise<void> {
-    this.playbackTokenService.verifyToken(input.token, input.videoId);
-    const masterPlaylistKey = await this.getMasterPlaylistKeyOrThrow(
-      input.videoId,
-    );
-    const playlistDir = this.getPlaylistDirectory(masterPlaylistKey);
-    const objectKey = this.buildMediaObjectKey(playlistDir, input.segmentName);
-
-    const contentType = input.segmentName.endsWith('.m3u8')
-      ? 'application/vnd.apple.mpegurl'
-      : 'video/mp2t';
-
-    response.setHeader('Content-Type', contentType);
-
-    if (input.segmentName.endsWith('.m3u8')) {
-      response.send(
-        await this.getRewrittenPlaylist({
-          videoId: input.videoId,
-          token: input.token ?? '',
-          objectKey,
-          currentPlaylistPath: input.segmentName,
-        }),
-      );
-      return;
-    }
-
-    const stream = await this.getSegmentObjectStreamOrThrow({
-      playlistDir,
-      segmentName: input.segmentName,
-      objectKey,
-    });
-
-    await new Promise<void>((resolve, reject) => {
-      stream.on('error', reject);
-      response.on('close', resolve);
-      stream.pipe(response);
-    });
-  }
-
-  private async getMasterPlaylistKeyOrThrow(videoId: string): Promise<string> {
+  protected async getMasterPlaylistKeyOrThrow(videoId: string): Promise<string> {
     const cacheKey = this.getMasterPlaylistCacheKey(videoId);
     const cachedMasterPlaylistKey = await this.getCachedString(cacheKey);
     if (cachedMasterPlaylistKey) {
@@ -119,13 +41,13 @@ export class StreamingApplicationService {
     await this.setCachedString(
       cacheKey,
       video.masterPlaylistKey,
-      this.masterPlaylistKeyTtlSeconds,
+      this.streamConfig.getMasterPlaylistKeyCacheTtlSeconds(),
     );
 
     return video.masterPlaylistKey;
   }
 
-  private async getRewrittenPlaylist(input: {
+  protected async getRewrittenPlaylist(input: {
     videoId: string;
     token: string;
     objectKey: string;
@@ -152,13 +74,13 @@ export class StreamingApplicationService {
     await this.setCachedString(
       cacheKey,
       rewrittenPlaylist,
-      this.playlistCacheTtlSeconds,
+      this.streamConfig.getRewrittenPlaylistCacheTtlSeconds(),
     );
 
     return rewrittenPlaylist;
   }
 
-  private rewritePlaylist(input: {
+  protected rewritePlaylist(input: {
     videoId: string;
     token: string;
     playlist: string;
@@ -177,9 +99,7 @@ export class StreamingApplicationService {
         }
 
         if (trimmed.includes('://')) {
-          throw new ForbiddenException(
-            'External playlist URLs are not allowed',
-          );
+          throw new ForbiddenException('External playlist URLs are not allowed');
         }
 
         let resolvedPath = this.resolvePlaylistReference(
@@ -196,11 +116,46 @@ export class StreamingApplicationService {
       .join('\n');
   }
 
-  private buildMediaObjectKey(
+  protected buildMediaObjectKey(
     playlistDir: string,
     segmentName: string,
   ): string {
     return `${playlistDir}/${segmentName}`.replace(/\\/g, '/');
+  }
+
+  protected async getSegmentObjectStreamOrThrow(input: {
+    playlistDir: string;
+    segmentName: string;
+    objectKey: string;
+  }): Promise<NodeJS.ReadableStream> {
+    try {
+      return await this.objectStorageService.getObjectStream(
+        'processed',
+        input.objectKey,
+      );
+    } catch (error: unknown) {
+      if (!this.isMissingObjectError(error)) {
+        throw error;
+      }
+
+      return this.getFallbackObjectStreamOrThrow({
+        playlistDir: input.playlistDir,
+        segmentName: input.segmentName,
+        attemptedObjectKey: input.objectKey,
+      });
+    }
+  }
+
+  protected async getObjectTextOrThrow(objectKey: string): Promise<string> {
+    try {
+      return await this.objectStorageService.getObjectText(
+        'processed',
+        objectKey,
+      );
+    } catch (error: unknown) {
+      this.throwIfMissingObject(error, objectKey);
+      throw error;
+    }
   }
 
   private shouldUseSharedSegmentDirectory(
@@ -253,18 +208,6 @@ export class StreamingApplicationService {
     return resolvedParts.join('/');
   }
 
-  private async getObjectTextOrThrow(objectKey: string): Promise<string> {
-    try {
-      return await this.minioService.getObjectText(
-        this.minioService.getProcessedBucket(),
-        objectKey,
-      );
-    } catch (error: unknown) {
-      this.throwIfMissingObject(error, objectKey);
-      throw error;
-    }
-  }
-
   private getMasterPlaylistCacheKey(videoId: string): string {
     return `media_service:stream:video:${videoId}:master-playlist-key`;
   }
@@ -279,7 +222,7 @@ export class StreamingApplicationService {
 
   private async getCachedString(key: string): Promise<string | null> {
     try {
-      const value = await this.cacheService.get<string>(key);
+      const value = await this.textCache.get(key);
       return typeof value === 'string' && value.length > 0 ? value : null;
     } catch {
       return null;
@@ -292,32 +235,9 @@ export class StreamingApplicationService {
     ttlSeconds: number,
   ): Promise<void> {
     try {
-      await this.cacheService.set(key, value, ttlSeconds);
+      await this.textCache.set(key, value, ttlSeconds);
     } catch {
       // Cache write failure must not fail streaming.
-    }
-  }
-
-  private async getSegmentObjectStreamOrThrow(input: {
-    playlistDir: string;
-    segmentName: string;
-    objectKey: string;
-  }): Promise<NodeJS.ReadableStream> {
-    try {
-      return await this.minioService.getObjectStream(
-        this.minioService.getProcessedBucket(),
-        input.objectKey,
-      );
-    } catch (error: unknown) {
-      if (!this.isMissingObjectError(error)) {
-        throw error;
-      }
-
-      return this.getFallbackObjectStreamOrThrow({
-        playlistDir: input.playlistDir,
-        segmentName: input.segmentName,
-        attemptedObjectKey: input.objectKey,
-      });
     }
   }
 
@@ -341,8 +261,8 @@ export class StreamingApplicationService {
     );
 
     try {
-      return await this.minioService.getObjectStream(
-        this.minioService.getProcessedBucket(),
+      return await this.objectStorageService.getObjectStream(
+        'processed',
         fallbackObjectKey,
       );
     } catch (error: unknown) {
@@ -372,7 +292,7 @@ export class StreamingApplicationService {
     );
   }
 
-  private getPlaylistDirectory(masterPlaylistKey: string): string {
+  protected getPlaylistDirectory(masterPlaylistKey: string): string {
     const lastSlashIndex = masterPlaylistKey.lastIndexOf('/');
     if (lastSlashIndex < 0) {
       return '';

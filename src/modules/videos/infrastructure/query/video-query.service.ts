@@ -21,10 +21,7 @@ import {
   VideoStatus,
   VideoVisibility,
 } from '../../domain/entities/video.entity';
-import {
-  VIDEO_CACHE_KEYS,
-  VIDEO_CACHE_TTL_SECONDS,
-} from '../cache.constants';
+import { VIDEO_CACHE_KEYS, VIDEO_CACHE_TTL_SECONDS } from '../cache.constants';
 import { VideoWatchProgressOrmEntity } from '../persistence/video-watch-progress.orm-entity';
 import { VideoOrmEntity } from '../persistence/video.orm-entity';
 
@@ -70,6 +67,14 @@ export class VideoQueryService implements IVideoQueryService {
     }));
   }
 
+  async getChannelMembershipEligibilityMetrics(
+    channelId: string,
+  ): Promise<{ readyVideoCount: number; totalVideoViews: number }> {
+    return this.videoRepository.getChannelMembershipEligibilityMetrics(
+      channelId,
+    );
+  }
+
   async getVideoMetadata(videoId: string): Promise<VideoMetadataResponse> {
     const cacheKey = VIDEO_CACHE_KEYS.metadata(videoId);
     const cached = await this.getCachedValue<CachedVideoMetadata>(cacheKey);
@@ -95,6 +100,7 @@ export class VideoQueryService implements IVideoQueryService {
       viewCount: video.viewCount,
       status: video.status,
       visibility: video.visibility,
+      errorMessage: video.errorMessage,
       publishedAt: video.publishedAt,
       updatedAt: video.updatedAt,
     };
@@ -109,7 +115,9 @@ export class VideoQueryService implements IVideoQueryService {
   }
 
   async getLatestVideos(limit: number): Promise<VideoListItemResponse[]> {
-    const version = await this.getCacheVersion(VIDEO_CACHE_KEYS.latestVersion());
+    const version = await this.getCacheVersion(
+      VIDEO_CACHE_KEYS.latestVersion(),
+    );
     const cacheKey = VIDEO_CACHE_KEYS.latest(version, limit);
     const cached = await this.getCachedValue<CachedVideoListItem[]>(cacheKey);
 
@@ -247,9 +255,7 @@ export class VideoQueryService implements IVideoQueryService {
     }
   }
 
-  private listItemToCached(
-    item: VideoListItemResponse,
-  ): CachedVideoListItem {
+  private listItemToCached(item: VideoListItemResponse): CachedVideoListItem {
     return {
       ...item,
       publishedAt: item.publishedAt?.toISOString() ?? null,
@@ -284,9 +290,7 @@ export class VideoQueryService implements IVideoQueryService {
   ): VideoMetadataResponse {
     return {
       ...metadata,
-      publishedAt: metadata.publishedAt
-        ? new Date(metadata.publishedAt)
-        : null,
+      publishedAt: metadata.publishedAt ? new Date(metadata.publishedAt) : null,
       updatedAt: new Date(metadata.updatedAt),
     };
   }

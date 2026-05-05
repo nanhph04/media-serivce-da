@@ -1,4 +1,7 @@
-import { VideoStatus, VideoVisibility } from '../../domain/entities/video.entity';
+import {
+  VideoStatus,
+  VideoVisibility,
+} from '../../domain/entities/video.entity';
 import { VideosController } from './videos.controller';
 
 describe('VideosController', () => {
@@ -67,6 +70,7 @@ describe('VideosController', () => {
       viewCount: 10,
       status: VideoStatus.READY,
       visibility: VideoVisibility.PUBLIC,
+      errorMessage: null,
       publishedAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-02T00:00:00.000Z',
     });
@@ -223,6 +227,7 @@ function buildMetadata(): {
   viewCount: number;
   status: VideoStatus;
   visibility: VideoVisibility;
+  errorMessage: string | null;
   publishedAt: Date;
   updatedAt: Date;
 } {
@@ -234,6 +239,7 @@ function buildMetadata(): {
     viewCount: 10,
     status: VideoStatus.READY,
     visibility: VideoVisibility.PUBLIC,
+    errorMessage: null,
     publishedAt: new Date('2026-01-01T00:00:00.000Z'),
     updatedAt: new Date('2026-01-02T00:00:00.000Z'),
   };

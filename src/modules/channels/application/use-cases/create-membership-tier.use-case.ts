@@ -22,6 +22,10 @@ import {
 } from '../../domain/repositories/membership-tier.repository';
 import type { CreateMembershipTierCommand } from '../dtos/create-membership-tier.command';
 import type { MembershipTierResponse } from '../dtos/membership-tier.response';
+import {
+  CHANNEL_MEMBERSHIP_ELIGIBILITY_SERVICE,
+  type IChannelMembershipEligibilityService,
+} from '../interfaces/channel-membership-eligibility.service.interface';
 
 @Injectable()
 export class CreateMembershipTierUseCase extends BaseUseCase<
@@ -35,6 +39,8 @@ export class CreateMembershipTierUseCase extends BaseUseCase<
     private readonly channelRepository: IChannelRepository,
     @Inject(MEMBERSHIP_CONFIG)
     private readonly membershipConfig: IMembershipConfig,
+    @Inject(CHANNEL_MEMBERSHIP_ELIGIBILITY_SERVICE)
+    private readonly channelMembershipEligibilityService: IChannelMembershipEligibilityService,
   ) {
     super();
   }
@@ -67,6 +73,18 @@ export class CreateMembershipTierUseCase extends BaseUseCase<
 
     if (existingTier) {
       throw new ConflictException('Membership tier level already exists');
+    }
+
+    const eligibility =
+      await this.channelMembershipEligibilityService.syncChannelEligibility(
+        command.channelId,
+      );
+
+    if (!eligibility.isEligible) {
+      throw new ForbiddenException(
+        'Channel is not eligible to open membership registration yet',
+        eligibility.missingRequirements,
+      );
     }
 
     const minPrice = this.membershipConfig.getMinPriceForLevel(command.level);

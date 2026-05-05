@@ -21,6 +21,26 @@ export class PublicVideoDto {
   publishedAt!: string | null;
 }
 
+export class ChannelMembershipEligibilityDto {
+  @ApiProperty()
+  isEligible!: boolean;
+
+  @ApiProperty()
+  readyVideoCount!: number;
+
+  @ApiProperty()
+  minReadyVideoCount!: number;
+
+  @ApiProperty()
+  totalVideoViews!: number;
+
+  @ApiProperty()
+  minTotalVideoViews!: number;
+
+  @ApiProperty({ type: [String] })
+  missingRequirements!: string[];
+}
+
 export class ChannelDetailResponseDto {
   @ApiProperty()
   id!: string;
@@ -35,6 +55,9 @@ export class ChannelDetailResponseDto {
   bio!: string;
 
   @ApiProperty()
+  isEligibleForMembership!: boolean;
+
+  @ApiProperty()
   avatarUrl!: string;
 
   @ApiProperty()
@@ -42,6 +65,9 @@ export class ChannelDetailResponseDto {
 
   @ApiProperty()
   status!: string;
+
+  @ApiProperty({ type: ChannelMembershipEligibilityDto })
+  membershipEligibility!: ChannelMembershipEligibilityDto;
 
   @ApiProperty({ type: [MembershipTierResponseDto] })
   membershipTiers!: MembershipTierResponseDto[];

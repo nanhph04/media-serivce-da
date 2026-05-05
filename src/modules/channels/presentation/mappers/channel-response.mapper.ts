@@ -1,5 +1,6 @@
 import type { ChannelDetailResponseDto } from '../dtos/channel-detail.response';
 import type {
+  ChannelMembershipEligibilityDto,
   ChannelMembershipStatusResponseDto,
   PublicVideoDto,
 } from '../dtos/channel-detail.response';
@@ -40,7 +41,8 @@ interface PublicVideoResponseSource {
 }
 
 interface ChannelDetailResponseSource {
-  channel: Omit<ChannelResponseSource, 'isEligibleForMembership' | 'createdAt' | 'updatedAt'>;
+  channel: ChannelResponseSource;
+  membershipEligibility: ChannelMembershipEligibilityDto;
   membershipTiers: MembershipTierResponseSource[];
   publicVideos: PublicVideoResponseSource[];
 }
@@ -104,9 +106,11 @@ export function toChannelDetailResponseDto(
     userId: source.channel.userId,
     name: source.channel.name,
     bio: source.channel.bio,
+    isEligibleForMembership: source.channel.isEligibleForMembership,
     avatarUrl: source.channel.avatarUrl,
     bannerUrl: source.channel.bannerUrl,
     status: source.channel.status,
+    membershipEligibility: source.membershipEligibility,
     membershipTiers: source.membershipTiers.map(toMembershipTierResponseDto),
     publicVideos: source.publicVideos.map(toPublicVideoResponseDto),
   };

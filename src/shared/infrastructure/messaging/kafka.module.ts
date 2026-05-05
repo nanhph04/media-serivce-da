@@ -6,6 +6,7 @@ import { LoggerService } from '../logger/logger.service';
 import { KafkaService } from './kafka.service';
 import { KAFKA_SERVICE } from './kafka.constants';
 import type { IKafkaModuleOptions } from '../../application/interfaces/kafka-config.interface';
+import { EVENT_PUBLISHER } from '../../application/interfaces/event-publisher.interface';
 
 @Global()
 @Module({
@@ -43,7 +44,11 @@ import type { IKafkaModuleOptions } from '../../application/interfaces/kafka-con
         return new KafkaService(kafkaOptions, loggerService);
       },
     },
+    {
+      provide: EVENT_PUBLISHER,
+      useExisting: KAFKA_SERVICE,
+    },
   ],
-  exports: [KAFKA_SERVICE],
+  exports: [KAFKA_SERVICE, EVENT_PUBLISHER],
 })
 export class KafkaModule {}

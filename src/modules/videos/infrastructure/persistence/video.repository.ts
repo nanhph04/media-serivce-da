@@ -86,6 +86,29 @@ export class VideoRepository implements IVideoRepository {
       .execute();
   }
 
+  async getChannelMembershipEligibilityMetrics(
+    channelId: string,
+  ): Promise<{ readyVideoCount: number; totalVideoViews: number }> {
+    const row = await this.ormRepository
+      .createQueryBuilder('video')
+      .select(
+        'COALESCE(SUM(CASE WHEN video.status = :readyStatus THEN 1 ELSE 0 END), 0)',
+        'readyVideoCount',
+      )
+      .addSelect('COALESCE(SUM(video.viewCount), 0)', 'totalVideoViews')
+      .where('video.channelId = :channelId', { channelId })
+      .setParameter('readyStatus', VideoStatus.READY)
+      .getRawOne<{
+        readyVideoCount?: string | number | null;
+        totalVideoViews?: string | number | null;
+      }>();
+
+    return {
+      readyVideoCount: Number(row?.readyVideoCount ?? 0),
+      totalVideoViews: Number(row?.totalVideoViews ?? 0),
+    };
+  }
+
   async findPublicByChannelId(channelId: string): Promise<VideoEntity[]> {
     const rows = await this.ormRepository
       .createQueryBuilder('video')

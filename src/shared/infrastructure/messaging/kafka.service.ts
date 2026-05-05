@@ -8,10 +8,11 @@ import {
 import { Kafka, Producer, Consumer, Admin } from 'kafkajs';
 import type { IKafkaConfig } from '../../application/interfaces/kafka-config.interface';
 import { LoggerService } from '../logger/logger.service';
+import type { IEventPublisher } from '../../application/interfaces/event-publisher.interface';
 
 @Injectable()
 export class KafkaService
-  implements OnModuleInit, OnApplicationBootstrap, OnModuleDestroy
+  implements OnModuleInit, OnApplicationBootstrap, OnModuleDestroy, IEventPublisher
 {
   private kafka: Kafka;
   private producer: Producer | null = null;

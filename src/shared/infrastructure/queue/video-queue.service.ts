@@ -1,16 +1,15 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { ConfigService } from '../config/config.service';
-
-export interface VideoProcessingJobPayload {
-  videoId: string;
-  rawFileKey: string;
-  resolution: string[];
-  userId: string;
-}
+import type {
+  IVideoProcessingJobDispatcher,
+  VideoProcessingJobPayload,
+} from '../../application/interfaces/video-processing-job-dispatcher.interface';
 
 @Injectable()
-export class VideoQueueService implements OnModuleDestroy {
+export class VideoQueueService
+  implements OnModuleDestroy, IVideoProcessingJobDispatcher
+{
   private readonly queue: Queue<VideoProcessingJobPayload>;
 
   constructor(private readonly configService: ConfigService) {

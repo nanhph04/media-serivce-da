@@ -1,6 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
-import { CacheService } from '@shared/infrastructure/cache/cache.service';
+import {
+  IDEMPOTENCY_STORE,
+  type IIdempotencyStore,
+} from '@shared/application/interfaces/cache-store.interface';
 import { UnlockVideoUseCase } from './unlock-video.use-case';
 import type { HandleVideoPaymentSuccessCommand } from '../dtos/handle-video-payment-success.command';
 
@@ -11,7 +14,8 @@ export class HandleVideoPaymentSuccessUseCase extends BaseUseCase<
 > {
   constructor(
     private readonly unlockVideoUseCase: UnlockVideoUseCase,
-    private readonly cacheService: CacheService,
+    @Inject(IDEMPOTENCY_STORE)
+    private readonly idempotencyStore: IIdempotencyStore,
   ) {
     super();
   }
@@ -28,7 +32,7 @@ export class HandleVideoPaymentSuccessUseCase extends BaseUseCase<
   }
 
   private async markEventProcessed(eventId: string): Promise<boolean> {
-    return this.cacheService.setIfNotExists(
+    return this.idempotencyStore.setIfNotExists(
       `media:event:${eventId}`,
       '1',
       60 * 60 * 24,

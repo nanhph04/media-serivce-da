@@ -11,6 +11,7 @@ export interface VideoMetadataResponse {
   viewCount: number;
   status: VideoStatus;
   visibility: VideoVisibility;
+  errorMessage: string | null;
   publishedAt: Date | null;
   updatedAt: Date;
 }

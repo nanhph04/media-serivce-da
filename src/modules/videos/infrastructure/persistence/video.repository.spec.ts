@@ -3,6 +3,9 @@ import { VideoRepository } from './video.repository';
 describe('VideoRepository', () => {
   const execute = jest.fn();
   const where = jest.fn();
+  const addSelect = jest.fn();
+  const getRawOne = jest.fn();
+  const setParameter = jest.fn();
   const set = jest.fn();
   const update = jest.fn();
   const createQueryBuilder = jest.fn();
@@ -21,6 +24,16 @@ describe('VideoRepository', () => {
     set.mockReturnValue({ where });
     update.mockReturnValue({ set });
     createQueryBuilder.mockReturnValue({ update });
+    addSelect.mockReturnValue({
+      where,
+    });
+    where.mockReturnValue({
+      execute,
+      setParameter,
+    });
+    setParameter.mockReturnValue({
+      getRawOne,
+    });
   });
 
   it('increments view_count atomically for the target video', async () => {
@@ -71,5 +84,24 @@ describe('VideoRepository', () => {
 
     expect(findOne).toHaveBeenCalledWith({ where: { id: 'video-1' } });
     expect(video?.category).toEqual([]);
+  });
+
+  it('aggregates ready video count and total views for channel eligibility', async () => {
+    const select = jest.fn().mockReturnValue({ addSelect });
+    addSelect.mockReturnValue({ where });
+    where.mockReturnValue({ setParameter });
+    setParameter.mockReturnValue({ getRawOne });
+    getRawOne.mockResolvedValue({
+      readyVideoCount: '5',
+      totalVideoViews: '1000',
+    });
+    createQueryBuilder.mockReturnValue({ select });
+
+    await expect(
+      repository.getChannelMembershipEligibilityMetrics('channel-1'),
+    ).resolves.toEqual({
+      readyVideoCount: 5,
+      totalVideoViews: 1000,
+    });
   });
 });

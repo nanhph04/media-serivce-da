@@ -58,6 +58,7 @@ export class UpdateVideoMetadataUseCase extends BaseUseCase<
       viewCount: video.viewCount,
       status: video.status,
       visibility: video.visibility,
+      errorMessage: video.errorMessage,
       publishedAt: video.publishedAt,
       updatedAt: video.updatedAt,
     };

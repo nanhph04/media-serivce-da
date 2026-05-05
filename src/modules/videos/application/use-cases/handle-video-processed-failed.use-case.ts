@@ -1,6 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
-import { CacheService } from '@shared/infrastructure/cache/cache.service';
+import {
+  IDEMPOTENCY_STORE,
+  type IIdempotencyStore,
+} from '@shared/application/interfaces/cache-store.interface';
 import {
   type IVideoRepository,
   VIDEO_REPOSITORY,
@@ -15,7 +18,8 @@ export class HandleVideoProcessedFailedUseCase extends BaseUseCase<
   constructor(
     @Inject(VIDEO_REPOSITORY)
     private readonly videoRepository: IVideoRepository,
-    private readonly cacheService: CacheService,
+    @Inject(IDEMPOTENCY_STORE)
+    private readonly idempotencyStore: IIdempotencyStore,
   ) {
     super();
   }
@@ -35,7 +39,7 @@ export class HandleVideoProcessedFailedUseCase extends BaseUseCase<
   }
 
   private async markEventProcessed(eventId: string): Promise<boolean> {
-    return this.cacheService.setIfNotExists(
+    return this.idempotencyStore.setIfNotExists(
       `media:event:${eventId}`,
       '1',
       60 * 60 * 24,

@@ -1,6 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
-import { CacheService } from '@shared/infrastructure/cache/cache.service';
+import {
+  IDEMPOTENCY_STORE,
+  type IIdempotencyStore,
+} from '@shared/application/interfaces/cache-store.interface';
 import { ChannelMembershipEntity } from '../../domain/entities/channel-membership.entity';
 import {
   CHANNEL_MEMBERSHIP_REPOSITORY,
@@ -16,7 +19,8 @@ export class HandleMembershipPaymentSuccessUseCase extends BaseUseCase<
   constructor(
     @Inject(CHANNEL_MEMBERSHIP_REPOSITORY)
     private readonly membershipRepository: IChannelMembershipRepository,
-    private readonly cacheService: CacheService,
+    @Inject(IDEMPOTENCY_STORE)
+    private readonly idempotencyStore: IIdempotencyStore,
   ) {
     super();
   }
@@ -55,7 +59,7 @@ export class HandleMembershipPaymentSuccessUseCase extends BaseUseCase<
   }
 
   private async markEventProcessed(eventId: string): Promise<boolean> {
-    return this.cacheService.setIfNotExists(
+    return this.idempotencyStore.setIfNotExists(
       `media:event:${eventId}`,
       '1',
       60 * 60 * 24,

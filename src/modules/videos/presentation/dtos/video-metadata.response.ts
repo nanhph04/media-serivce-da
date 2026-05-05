@@ -23,6 +23,9 @@ export class VideoMetadataResponseDto {
   visibility!: string;
 
   @ApiProperty({ nullable: true })
+  errorMessage!: string | null;
+
+  @ApiProperty({ nullable: true })
   publishedAt!: string | null;
 
   @ApiProperty()

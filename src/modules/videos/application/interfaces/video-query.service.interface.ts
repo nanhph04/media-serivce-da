@@ -1,6 +1,7 @@
 import type { VideoListItemResponse } from '../dtos/video-list-item.response';
 import type { VideoMetadataResponse } from '../dtos/video-metadata.response';
 import type { ContinueWatchingItemResponse } from '../dtos/continue-watching-item.response';
+import type { ChannelVideoMembershipEligibilityMetrics } from '../../domain/repositories/video.repository';
 
 export const VIDEO_QUERY_SERVICE = Symbol('VIDEO_QUERY_SERVICE');
 
@@ -17,6 +18,9 @@ export interface IVideoQueryService {
   getPublicVideoSummariesByChannel(
     channelId: string,
   ): Promise<PublicChannelVideoSummary[]>;
+  getChannelMembershipEligibilityMetrics(
+    channelId: string,
+  ): Promise<ChannelVideoMembershipEligibilityMetrics>;
   getVideoMetadata(videoId: string): Promise<VideoMetadataResponse>;
   getLatestVideos(limit: number): Promise<VideoListItemResponse[]>;
   getVideosByCategory(

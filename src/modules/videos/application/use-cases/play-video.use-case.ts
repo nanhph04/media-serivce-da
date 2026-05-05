@@ -1,7 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
+import {
+  PLAYBACK_TOKEN_ISSUER,
+  type IPlaybackTokenIssuer,
+} from '@shared/application/interfaces/playback-token.service.interface';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import { NotFoundException } from '@shared/domain/exceptions/domain.exception';
-import { PlaybackTokenService } from '@shared/infrastructure/security/playback-token.service';
 import {
   VideoWatchAccessService,
 } from '../services/video-watch-access.service';
@@ -27,7 +30,8 @@ export class PlayVideoUseCase extends BaseUseCase<
     @Inject(VIDEO_WATCH_PROGRESS_REPOSITORY)
     private readonly watchProgressRepository: IVideoWatchProgressRepository,
     private readonly videoWatchAccessService: VideoWatchAccessService,
-    private readonly playbackTokenService: PlaybackTokenService,
+    @Inject(PLAYBACK_TOKEN_ISSUER)
+    private readonly playbackTokenIssuer: IPlaybackTokenIssuer,
   ) {
     super();
   }
@@ -46,7 +50,7 @@ export class PlayVideoUseCase extends BaseUseCase<
     const resumePositionSeconds =
       progress && !progress.isCompleted() ? progress.lastPositionSeconds : 0;
 
-    const playbackToken = this.playbackTokenService.issueToken({
+    const playbackToken = this.playbackTokenIssuer.issueToken({
       videoId: video.id,
       userId: command.userId,
       channelId: video.channelId,

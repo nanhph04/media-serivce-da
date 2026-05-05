@@ -5,17 +5,16 @@ import {
   ForbiddenException,
   UnauthorizedException,
 } from '../../domain/exceptions/domain.exception';
-
-export interface PlaybackTokenPayload {
-  videoId: string;
-  userId: string;
-  channelId: string;
-  scope: 'stream';
-  exp: number;
-}
+import type {
+  IPlaybackTokenIssuer,
+  IPlaybackTokenVerifier,
+  PlaybackTokenPayload,
+} from '../../application/interfaces/playback-token.service.interface';
 
 @Injectable()
-export class PlaybackTokenService {
+export class PlaybackTokenService
+  implements IPlaybackTokenIssuer, IPlaybackTokenVerifier
+{
   constructor(private readonly configService: ConfigService) {}
 
   issueToken(input: {

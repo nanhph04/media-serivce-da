@@ -143,4 +143,13 @@ export class ChannelEntity {
     this.props.status = ChannelStatus.SUSPENDED;
     this.props.updatedAt = new Date();
   }
+
+  public syncMembershipEligibility(isEligibleForMembership: boolean): void {
+    if (this.props.isEligibleForMembership === isEligibleForMembership) {
+      return;
+    }
+
+    this.props.isEligibleForMembership = isEligibleForMembership;
+    this.props.updatedAt = new Date();
+  }
 }

@@ -1,8 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService as NestConfigService } from '@nestjs/config';
+import type { IStreamConfig } from '../../application/interfaces/stream-config.interface';
+import type { IVideoUploadConfig } from '../../application/interfaces/video-upload-config.interface';
+import type { IVideoViewConfig } from '../../application/interfaces/video-view-config.interface';
 
 @Injectable()
-export class ConfigService {
+export class ConfigService
+  implements IStreamConfig, IVideoUploadConfig, IVideoViewConfig
+{
   constructor(private readonly configService: NestConfigService) {}
 
   get<T = string>(key: string, defaultValue?: T): T {
@@ -43,6 +48,37 @@ export class ConfigService {
 
     const parsed = Number(value);
     return Number.isNaN(parsed) ? defaultValue : parsed;
+  }
+
+  getMinReadyVideosForMembership(): number {
+    return this.getNumber('CHANNEL_MEMBERSHIP_MIN_READY_VIDEOS', 5);
+  }
+
+  getMinTotalViewsForMembership(): number {
+    return this.getNumber('CHANNEL_MEMBERSHIP_MIN_TOTAL_VIEWS', 1000);
+  }
+
+  getVideoViewDedupeTtlSeconds(): number {
+    return this.getNumber('VIDEO_VIEW_DEDUPE_TTL_SECONDS', 60);
+  }
+
+  getMaxVideoUploadSizeBytes(): number {
+    return this.getNumber(
+      'VIDEO_MAX_UPLOAD_SIZE_BYTES',
+      2 * 1024 * 1024 * 1024,
+    );
+  }
+
+  getVideoViewTopic(): string {
+    return this.get<string>('KAFKA_VIDEO_VIEW_TOPIC', 'video.viewed');
+  }
+
+  getMasterPlaylistKeyCacheTtlSeconds(): number {
+    return this.getNumber('STREAM_MASTER_PLAYLIST_KEY_CACHE_TTL_SECONDS', 30);
+  }
+
+  getRewrittenPlaylistCacheTtlSeconds(): number {
+    return this.getNumber('STREAM_REWRITTEN_PLAYLIST_CACHE_TTL_SECONDS', 10);
   }
 
   getBoolean(key: string, defaultValue = false): boolean {

@@ -1,10 +1,14 @@
 import { Injectable, Inject } from '@nestjs/common';
 import Redis from 'ioredis';
+import type {
+  IIdempotencyStore,
+  ITextCache,
+} from '../../application/interfaces/cache-store.interface';
 
 export const CACHE_CLIENT = 'CACHE_CLIENT';
 
 @Injectable()
-export class CacheService {
+export class CacheService implements ITextCache, IIdempotencyStore {
   constructor(@Inject(CACHE_CLIENT) private readonly redis: Redis) {}
 
   async get<T>(key: string): Promise<T | null> {

@@ -1,9 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import {
+  OBJECT_STORAGE_SERVICE,
+  type IObjectStorageService,
+} from '@shared/application/interfaces/object-storage.service.interface';
+import {
   InternalServerErrorException,
 } from '@shared/domain/exceptions/domain.exception';
-import { MinioService } from '@shared/infrastructure/storage/minio.service';
 import {
   CATEGORY_REPOSITORY,
   type ICategoryRepository,
@@ -33,7 +36,8 @@ export class InitVideoUploadUseCase extends BaseUseCase<
     private readonly categoryRepository: ICategoryRepository,
     @Inject(CHANNEL_ACCESS_SERVICE)
     private readonly channelAccessService: IChannelAccessService,
-    private readonly minioService: MinioService,
+    @Inject(OBJECT_STORAGE_SERVICE)
+    private readonly objectStorageService: IObjectStorageService,
   ) {
     super();
   }
@@ -65,8 +69,11 @@ export class InitVideoUploadUseCase extends BaseUseCase<
       videoId: video.id,
       status: video.status,
       rawFileKey,
-      bucket: this.minioService.getRawBucket(),
-      uploadUrl: await this.minioService.createRawUploadUrl(rawFileKey),
+      bucket: this.objectStorageService.getBucketName('raw'),
+      uploadUrl: await this.objectStorageService.createUploadUrl(
+        'raw',
+        rawFileKey,
+      ),
     };
   }
 

@@ -1,6 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
-import { CacheService } from '@shared/infrastructure/cache/cache.service';
+import {
+  IDEMPOTENCY_STORE,
+  type IIdempotencyStore,
+} from '@shared/application/interfaces/cache-store.interface';
+import {
+  CHANNEL_MEMBERSHIP_ELIGIBILITY_SERVICE,
+  type IChannelMembershipEligibilityService,
+} from '../../../channels/application/interfaces/channel-membership-eligibility.service.interface';
 import {
   type IVideoRepository,
   VIDEO_REPOSITORY,
@@ -15,7 +22,10 @@ export class HandleVideoProcessedSuccessUseCase extends BaseUseCase<
   constructor(
     @Inject(VIDEO_REPOSITORY)
     private readonly videoRepository: IVideoRepository,
-    private readonly cacheService: CacheService,
+    @Inject(CHANNEL_MEMBERSHIP_ELIGIBILITY_SERVICE)
+    private readonly channelMembershipEligibilityService: IChannelMembershipEligibilityService,
+    @Inject(IDEMPOTENCY_STORE)
+    private readonly idempotencyStore: IIdempotencyStore,
   ) {
     super();
   }
@@ -38,10 +48,13 @@ export class HandleVideoProcessedSuccessUseCase extends BaseUseCase<
     });
 
     await this.videoRepository.save(video);
+    await this.channelMembershipEligibilityService.syncChannelEligibility(
+      video.channelId,
+    );
   }
 
   private async markEventProcessed(eventId: string): Promise<boolean> {
-    return this.cacheService.setIfNotExists(
+    return this.idempotencyStore.setIfNotExists(
       `media:event:${eventId}`,
       '1',
       60 * 60 * 24,

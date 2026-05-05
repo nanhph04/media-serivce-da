@@ -3,6 +3,10 @@ import { ConfigService } from '../config/config.service';
 import Redis from 'ioredis';
 import { CacheService } from './cache.service';
 import { CACHE_CLIENT } from './cache.service';
+import {
+  IDEMPOTENCY_STORE,
+  TEXT_CACHE,
+} from '../../application/interfaces/cache-store.interface';
 
 @Global()
 @Module({
@@ -20,7 +24,15 @@ import { CACHE_CLIENT } from './cache.service';
       inject: [ConfigService],
     },
     CacheService,
+    {
+      provide: TEXT_CACHE,
+      useExisting: CacheService,
+    },
+    {
+      provide: IDEMPOTENCY_STORE,
+      useExisting: CacheService,
+    },
   ],
-  exports: [CacheService, CACHE_CLIENT],
+  exports: [CacheService, CACHE_CLIENT, TEXT_CACHE, IDEMPOTENCY_STORE],
 })
 export class CacheModule {}

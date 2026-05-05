@@ -1,20 +1,21 @@
 import { NotFoundException } from '@shared/domain/exceptions/domain.exception';
-import { Category, CategoryStatus } from '../../../categories/domain/entities/category.entity';
+import {
+  Category,
+  CategoryStatus,
+} from '../../../categories/domain/entities/category.entity';
 import {
   VideoEntity,
   VideoStatus,
   VideoVisibility,
 } from '../../domain/entities/video.entity';
-import {
-  VIDEO_CACHE_KEYS,
-  VIDEO_CACHE_TTL_SECONDS,
-} from '../cache.constants';
+import { VIDEO_CACHE_KEYS, VIDEO_CACHE_TTL_SECONDS } from '../cache.constants';
 import { VideoQueryService } from './video-query.service';
 
 describe('VideoQueryService', () => {
   const videoRepository = {
     findBasicById: jest.fn(),
     findById: jest.fn(),
+    getChannelMembershipEligibilityMetrics: jest.fn(),
     findPublicByChannelId: jest.fn(),
     findLatestPublic: jest.fn(),
     findByCategory: jest.fn(),
@@ -47,6 +48,7 @@ describe('VideoQueryService', () => {
       viewCount: 7,
       status: VideoStatus.READY,
       visibility: VideoVisibility.PUBLIC,
+      errorMessage: null,
       publishedAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-02T00:00:00.000Z',
     });
@@ -61,6 +63,7 @@ describe('VideoQueryService', () => {
       viewCount: 7,
       status: VideoStatus.READY,
       visibility: VideoVisibility.PUBLIC,
+      errorMessage: null,
       publishedAt: new Date('2026-01-01T00:00:00.000Z'),
       updatedAt: new Date('2026-01-02T00:00:00.000Z'),
     });
@@ -79,6 +82,7 @@ describe('VideoQueryService', () => {
       viewCount: 10,
       status: VideoStatus.READY,
       visibility: VideoVisibility.PUBLIC,
+      errorMessage: null,
       publishedAt: new Date('2026-01-01T00:00:00.000Z'),
       updatedAt: new Date('2026-01-02T00:00:00.000Z'),
     });
@@ -92,6 +96,7 @@ describe('VideoQueryService', () => {
         viewCount: 10,
         status: VideoStatus.READY,
         visibility: VideoVisibility.PUBLIC,
+        errorMessage: null,
         publishedAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-02T00:00:00.000Z',
       },
@@ -138,17 +143,13 @@ describe('VideoQueryService', () => {
 
     const result = await service.getLatestVideos(20);
 
-    expect(result[0].createdAt).toEqual(
-      new Date('2026-01-01T00:00:00.000Z'),
-    );
+    expect(result[0].createdAt).toEqual(new Date('2026-01-01T00:00:00.000Z'));
     expect(videoRepository.findLatestPublic).not.toHaveBeenCalled();
     expect(cacheService.getKeys).not.toHaveBeenCalled();
   });
 
   it('caches latest videos on cache miss', async () => {
-    cacheService.get
-      .mockResolvedValueOnce(0)
-      .mockResolvedValueOnce(null);
+    cacheService.get.mockResolvedValueOnce(0).mockResolvedValueOnce(null);
     videoRepository.findLatestPublic.mockResolvedValue([buildVideo()]);
 
     await service.getLatestVideos(20);
@@ -161,9 +162,7 @@ describe('VideoQueryService', () => {
   });
 
   it('caches videos by category using category and limit key', async () => {
-    cacheService.get
-      .mockResolvedValueOnce(0)
-      .mockResolvedValueOnce(null);
+    cacheService.get.mockResolvedValueOnce(0).mockResolvedValueOnce(null);
     videoRepository.findByCategory.mockResolvedValue([buildVideo()]);
 
     await service.getVideosByCategory('music', 10);
@@ -178,9 +177,7 @@ describe('VideoQueryService', () => {
   });
 
   it('switches to a versioned latest cache key when the version changes', async () => {
-    cacheService.get
-      .mockResolvedValueOnce(3)
-      .mockResolvedValueOnce(null);
+    cacheService.get.mockResolvedValueOnce(3).mockResolvedValueOnce(null);
     videoRepository.findLatestPublic.mockResolvedValue([buildVideo()]);
 
     await service.getLatestVideos(20);
@@ -237,6 +234,20 @@ describe('VideoQueryService', () => {
       },
     ]);
   });
+
+  it('returns channel membership eligibility metrics from repository', async () => {
+    videoRepository.getChannelMembershipEligibilityMetrics.mockResolvedValue({
+      readyVideoCount: 5,
+      totalVideoViews: 1000,
+    });
+
+    await expect(
+      service.getChannelMembershipEligibilityMetrics('channel-1'),
+    ).resolves.toEqual({
+      readyVideoCount: 5,
+      totalVideoViews: 1000,
+    });
+  });
 });
 
 function buildVideo(
@@ -291,6 +302,7 @@ function buildCachedListItem(): {
   thumbnailUrl: string | null;
   durationSeconds: number | null;
   resolutions: string[];
+  errorMessage: string | null;
   viewCount: number;
   publishedAt: string | null;
   createdAt: string;
@@ -308,6 +320,7 @@ function buildCachedListItem(): {
     thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
     durationSeconds: 120,
     resolutions: ['720p'],
+    errorMessage: null,
     viewCount: 10,
     publishedAt: '2026-01-01T00:00:00.000Z',
     createdAt: '2026-01-01T00:00:00.000Z',

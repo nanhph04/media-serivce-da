@@ -14,6 +14,10 @@ import {
   MEMBERSHIP_TIER_REPOSITORY,
   type IMembershipTierRepository,
 } from '../../domain/repositories/membership-tier.repository';
+import {
+  CHANNEL_MEMBERSHIP_ELIGIBILITY_SERVICE,
+  type IChannelMembershipEligibilityService,
+} from '../interfaces/channel-membership-eligibility.service.interface';
 
 @Injectable()
 export class GetChannelDetailUseCase extends BaseUseCase<
@@ -25,6 +29,8 @@ export class GetChannelDetailUseCase extends BaseUseCase<
     private readonly channelRepository: IChannelRepository,
     @Inject(MEMBERSHIP_TIER_REPOSITORY)
     private readonly membershipTierRepository: IMembershipTierRepository,
+    @Inject(CHANNEL_MEMBERSHIP_ELIGIBILITY_SERVICE)
+    private readonly channelMembershipEligibilityService: IChannelMembershipEligibilityService,
     @Inject(VIDEO_QUERY_SERVICE)
     private readonly videoQueryService: IVideoQueryService,
   ) {
@@ -46,6 +52,10 @@ export class GetChannelDetailUseCase extends BaseUseCase<
       await this.videoQueryService.getPublicVideoSummariesByChannel(
         command.channelId,
       );
+    const membershipEligibility =
+      await this.channelMembershipEligibilityService.getChannelEligibility(
+        command.channelId,
+      );
 
     return {
       channel: {
@@ -60,6 +70,7 @@ export class GetChannelDetailUseCase extends BaseUseCase<
         createdAt: channel.createdAt,
         updatedAt: channel.updatedAt,
       },
+      membershipEligibility,
       membershipTiers: membershipTiers.map((tier) => ({
         id: tier.id,
         channelId: tier.channelId,

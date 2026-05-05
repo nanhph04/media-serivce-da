@@ -3,9 +3,14 @@ import { Client } from 'minio';
 import type { Readable } from 'stream';
 import { ConfigService } from '../config/config.service';
 import { LoggerService } from '../logger/logger.service';
+import type {
+  IObjectStorageService,
+  StorageObjectMetadata,
+  StorageBucket,
+} from '../../application/interfaces/object-storage.service.interface';
 
 @Injectable()
-export class MinioService implements OnModuleInit {
+export class MinioService implements OnModuleInit, IObjectStorageService {
   private readonly client: Client;
   private readonly rawBucket: string;
   private readonly processedBucket: string;
@@ -45,6 +50,24 @@ export class MinioService implements OnModuleInit {
     return this.processedBucket;
   }
 
+  getBucketName(bucket: StorageBucket): string {
+    return bucket === 'raw' ? this.rawBucket : this.processedBucket;
+  }
+
+  async createUploadUrl(
+    bucket: StorageBucket,
+    objectKey: string,
+    expirySeconds = 900,
+  ): Promise<string> {
+    return bucket === 'raw'
+      ? this.createRawUploadUrl(objectKey, expirySeconds)
+      : this.client.presignedPutObject(
+          this.processedBucket,
+          objectKey,
+          expirySeconds,
+        );
+  }
+
   async createRawUploadUrl(
     objectKey: string,
     expirySeconds = 900,
@@ -63,6 +86,20 @@ export class MinioService implements OnModuleInit {
     } catch {
       return false;
     }
+  }
+
+  async getObjectMetadata(
+    bucket: StorageBucket,
+    objectKey: string,
+  ): Promise<StorageObjectMetadata> {
+    const stat = await this.client.statObject(
+      this.getBucketName(bucket),
+      objectKey,
+    );
+
+    return {
+      sizeBytes: stat.size,
+    };
   }
 
   async getObjectStream(bucket: string, objectKey: string): Promise<Readable> {

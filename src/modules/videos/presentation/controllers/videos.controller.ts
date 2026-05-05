@@ -20,27 +20,17 @@ import {
 import { InternalGatewayGuard } from '@shared/presentation/guards/internal-gateway.guard';
 import { VideoVisibility } from '../../domain/entities/video.entity';
 import type { VideoListItemResponse } from '../../application/dtos/video-list-item.response';
-import {
-  ConfirmVideoUploadUseCase,
-} from '../../application/use-cases/confirm-video-upload.use-case';
+import { ConfirmVideoUploadUseCase } from '../../application/use-cases/confirm-video-upload.use-case';
 import { GetContinueWatchingUseCase } from '../../application/use-cases/get-continue-watching.use-case';
 import { GetLatestVideosUseCase } from '../../application/use-cases/get-latest-videos.use-case';
-import {
-  GetSubscribedVideosUseCase,
-} from '../../application/use-cases/get-subscribed-videos.use-case';
+import { GetSubscribedVideosUseCase } from '../../application/use-cases/get-subscribed-videos.use-case';
 import { GetVideoMetadataUseCase } from '../../application/use-cases/get-video-metadata.use-case';
-import {
-  GetVideosByCategoryUseCase,
-} from '../../application/use-cases/get-videos-by-category.use-case';
+import { GetVideosByCategoryUseCase } from '../../application/use-cases/get-videos-by-category.use-case';
 import { InitVideoUploadUseCase } from '../../application/use-cases/init-video-upload.use-case';
 import { PlayVideoUseCase } from '../../application/use-cases/play-video.use-case';
-import {
-  RefreshPlaybackTokenUseCase,
-} from '../../application/use-cases/refresh-playback-token.use-case';
+import { RefreshPlaybackTokenUseCase } from '../../application/use-cases/refresh-playback-token.use-case';
 import { UpdateVideoProgressUseCase } from '../../application/use-cases/update-video-progress.use-case';
-import {
-  UpdateVideoMetadataUseCase,
-} from '../../application/use-cases/update-video-metadata.use-case';
+import { UpdateVideoMetadataUseCase } from '../../application/use-cases/update-video-metadata.use-case';
 import type { ContinueWatchingItemResponse } from '../../application/dtos/continue-watching-item.response';
 import { ConfirmVideoUploadRequestDto } from '../dtos/confirm-video-upload.request';
 import { ConfirmVideoUploadResponseDto } from '../dtos/confirm-video-upload.response';
@@ -263,6 +253,7 @@ export class VideosController {
       thumbnailUrl: video.thumbnailUrl,
       durationSeconds: video.durationSeconds,
       resolutions: video.resolutions,
+      errorMessage: video.errorMessage,
       viewCount: video.viewCount,
       publishedAt: video.publishedAt?.toISOString() ?? null,
       createdAt: video.createdAt.toISOString(),
@@ -281,6 +272,7 @@ export class VideosController {
       viewCount: metadata.viewCount,
       status: metadata.status,
       visibility: metadata.visibility,
+      errorMessage: metadata.errorMessage,
       publishedAt: metadata.publishedAt?.toISOString() ?? null,
       updatedAt: metadata.updatedAt.toISOString(),
     };
