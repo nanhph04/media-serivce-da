@@ -1,13 +1,16 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import {
+  ArrayMinSize,
   ArrayUnique,
   IsInt,
   IsArray,
   IsIn,
-  IsOptional,
+  IsNotEmpty,
   IsString,
   MaxLength,
   Min,
+  IsOptional,
 } from 'class-validator';
 
 export class InitVideoUploadRequestDto {
@@ -30,12 +33,18 @@ export class InitVideoUploadRequestDto {
   @IsOptional()
   description = '';
 
-  @ApiPropertyOptional({ type: [String], default: [] })
+  @ApiProperty({ type: [String], minItems: 1 })
+  @Transform(({ value }) =>
+    Array.isArray(value)
+      ? value.map((item) => (typeof item === 'string' ? item.trim() : item))
+      : value,
+  )
   @IsArray()
+  @ArrayMinSize(1)
   @ArrayUnique()
   @IsString({ each: true })
-  @IsOptional()
-  categories: string[] = [];
+  @IsNotEmpty({ each: true })
+  categories!: string[];
 
   @ApiPropertyOptional({ enum: ['public', 'private'], default: 'public' })
   @IsIn(['public', 'private'])

@@ -138,7 +138,7 @@ describe('VideosController', () => {
     const result = await controller.initUpload('owner-1', {
       title: 'Video 2',
       description: '',
-      categories: [],
+      categories: ['news'],
       visibility: 'public',
       price: 0,
       requiredTierLevel: null,
@@ -148,7 +148,7 @@ describe('VideosController', () => {
       userId: 'owner-1',
       title: 'Video 2',
       description: '',
-      categories: [],
+      categories: ['news'],
       visibility: 'public',
       price: 0,
       requiredTierLevel: null,
@@ -192,6 +192,76 @@ describe('VideosController', () => {
 
     expect(getLatestVideosUseCase.execute).toHaveBeenCalledWith({
       limit: 20,
+    });
+  });
+
+  it('returns paginated category discovery results', async () => {
+    getVideosByCategoryUseCase.execute.mockResolvedValue({
+      items: [
+        {
+          id: 'video-1',
+          channelId: 'channel-1',
+          title: 'Video',
+          description: 'Description',
+          categories: ['music'],
+          status: VideoStatus.READY,
+          price: 0,
+          requiredTierLevel: null,
+          thumbnailUrl: null,
+          durationSeconds: 120,
+          resolutions: ['720p'],
+          errorMessage: null,
+          viewCount: 10,
+          publishedAt: new Date('2026-01-01T00:00:00.000Z'),
+          createdAt: new Date('2026-01-01T00:00:00.000Z'),
+          updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+        },
+      ],
+      pagination: {
+        page: 2,
+        limit: 10,
+        total: 25,
+        totalPages: 3,
+      },
+    });
+
+    const result = await controller.byCategory('music', '2', '10');
+
+    expect(getVideosByCategoryUseCase.execute).toHaveBeenCalledWith({
+      category: 'music',
+      page: 2,
+      limit: 10,
+    });
+    expect(result).toEqual({
+      success: true,
+      code: 200,
+      data: [
+        {
+          id: 'video-1',
+          channelId: 'channel-1',
+          title: 'Video',
+          description: 'Description',
+          categories: ['music'],
+          status: VideoStatus.READY,
+          price: 0,
+          requiredTierLevel: null,
+          thumbnailUrl: null,
+          durationSeconds: 120,
+          resolutions: ['720p'],
+          errorMessage: null,
+          viewCount: 10,
+          publishedAt: '2026-01-01T00:00:00.000Z',
+          createdAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-02T00:00:00.000Z',
+        },
+      ],
+      mess: undefined,
+      pagination: {
+        page: 2,
+        limit: 10,
+        total: 25,
+        totalPages: 3,
+      },
     });
   });
 

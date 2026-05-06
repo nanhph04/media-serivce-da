@@ -83,6 +83,21 @@ describe('ChannelMembershipEligibilityService', () => {
     expect(channelRepository.update).toHaveBeenCalledWith(channel);
   });
 
+  it('does not revoke persisted eligibility after thresholds fall again', async () => {
+    const channel = buildChannel({ isEligibleForMembership: true });
+    channelRepository.findById.mockResolvedValue(channel);
+    videoQueryService.getChannelMembershipEligibilityMetrics.mockResolvedValue({
+      readyVideoCount: 1,
+      totalVideoViews: 5,
+    });
+
+    const result = await service.syncChannelEligibility('channel-1');
+
+    expect(result.isEligible).toBe(false);
+    expect(channel.isEligibleForMembership).toBe(true);
+    expect(channelRepository.update).not.toHaveBeenCalled();
+  });
+
   it('throws not found when the channel does not exist', async () => {
     channelRepository.findById.mockResolvedValue(null);
 
@@ -104,6 +119,7 @@ function buildChannel(
     bannerUrl: '',
     status: ChannelStatus.ACTIVE,
     isEligibleForMembership: true,
+    isMembershipClosedByAdmin: false,
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
     updatedAt: new Date('2026-01-01T00:00:00.000Z'),
     ...overrides,

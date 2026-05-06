@@ -47,8 +47,11 @@ export class ChannelMembershipEligibilityService {
     }
 
     const eligibility = await this.buildEligibilityResponse(channelId);
+    const hadEligibilityBeforeSync = channel.isEligibleForMembership;
     channel.syncMembershipEligibility(eligibility.isEligible);
-    await this.channelRepository.update(channel);
+    if (eligibility.isEligible && !hadEligibilityBeforeSync) {
+      await this.channelRepository.update(channel);
+    }
 
     return eligibility;
   }

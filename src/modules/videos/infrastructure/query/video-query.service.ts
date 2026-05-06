@@ -8,6 +8,7 @@ import {
   mapVideoEntityToStudioListItem,
   type StudioVideoListItemResponse,
 } from '../../application/dtos/studio-video-list-item.response';
+import type { VideosByCategoryResponse } from '../../application/dtos/videos-by-category.response';
 import {
   mapVideoEntityToListItem,
   type VideoListItemResponse,
@@ -17,6 +18,7 @@ import {
   type IVideoQueryService,
   PublicChannelVideoSummary,
 } from '../../application/interfaces/video-query.service.interface';
+import type { SearchPublicVideosQuery } from '../../application/interfaces/video-search-query.service.interface';
 import {
   type IVideoRepository,
   VIDEO_REPOSITORY,
@@ -160,25 +162,68 @@ export class VideoQueryService implements IVideoQueryService {
 
   async getVideosByCategory(
     category: string,
+    page: number,
     limit: number,
-  ): Promise<VideoListItemResponse[]> {
+  ): Promise<VideosByCategoryResponse> {
     const version = await this.getCacheVersion(
       VIDEO_CACHE_KEYS.categoryLatestVersion(),
     );
-    const cacheKey = VIDEO_CACHE_KEYS.categoryLatest(version, category, limit);
+    const cacheKey = VIDEO_CACHE_KEYS.categoryPage(version, category, page, limit);
+    const cached = await this.getCachedValue<{
+      items: CachedVideoListItem[];
+      total: number;
+    }>(cacheKey);
+
+    if (cached) {
+      return {
+        items: cached.items.map((item) => this.cachedListItemToResponse(item)),
+        pagination: this.toPagination(page, limit, cached.total),
+      };
+    }
+
+    const result = await this.videoRepository.findByCategoryPaged({
+      category,
+      page,
+      limit,
+    });
+    const items = result.items.map(mapVideoEntityToListItem);
+
+    await this.setCachedValue(
+      cacheKey,
+      {
+        items: items.map((item) => this.listItemToCached(item)),
+        total: result.total,
+      },
+      VIDEO_CACHE_TTL_SECONDS.discoveryList,
+    );
+
+    return {
+      items,
+      pagination: this.toPagination(page, limit, result.total),
+    };
+  }
+
+  async searchPublicVideos(
+    query: SearchPublicVideosQuery,
+  ): Promise<VideoListItemResponse[]> {
+    const cacheKey = VIDEO_CACHE_KEYS.publicSearch(
+      query.q,
+      query.category,
+      query.limit,
+    );
     const cached = await this.getCachedValue<CachedVideoListItem[]>(cacheKey);
 
     if (cached) {
       return cached.map((item) => this.cachedListItemToResponse(item));
     }
 
-    const videos = await this.videoRepository.findByCategory(category, limit);
+    const videos = await this.videoRepository.searchPublic(query);
     const response = videos.map(mapVideoEntityToListItem);
 
     await this.setCachedValue(
       cacheKey,
       response.map((item) => this.listItemToCached(item)),
-      VIDEO_CACHE_TTL_SECONDS.discoveryList,
+      VIDEO_CACHE_TTL_SECONDS.publicSearch,
     );
 
     return response;
@@ -313,6 +358,20 @@ export class VideoQueryService implements IVideoQueryService {
       ...metadata,
       publishedAt: metadata.publishedAt ? new Date(metadata.publishedAt) : null,
       updatedAt: new Date(metadata.updatedAt),
+    };
+  }
+
+  private toPagination(page: number, limit: number, total: number): {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  } {
+    return {
+      page,
+      limit,
+      total,
+      totalPages: total === 0 ? 0 : Math.ceil(total / limit),
     };
   }
 }

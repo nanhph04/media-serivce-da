@@ -108,6 +108,7 @@ function buildChannel(
     bannerUrl: '',
     status: ChannelStatus.ACTIVE,
     isEligibleForMembership: true,
+    isMembershipClosedByAdmin: false,
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
     updatedAt: new Date('2026-01-01T00:00:00.000Z'),
     ...overrides,

@@ -25,6 +25,7 @@ export class ChannelRepositoryImpl implements IChannelRepository {
       bannerUrl: channel.bannerUrl,
       status: channel.status,
       isEligibleForMembership: channel.isEligibleForMembership,
+      isMembershipClosedByAdmin: channel.isMembershipClosedByAdmin,
       createdAt: channel.createdAt,
       updatedAt: channel.updatedAt,
     };
@@ -41,6 +42,7 @@ export class ChannelRepositoryImpl implements IChannelRepository {
       bannerUrl: channel.bannerUrl,
       status: channel.status,
       isEligibleForMembership: channel.isEligibleForMembership,
+      isMembershipClosedByAdmin: channel.isMembershipClosedByAdmin,
       createdAt: channel.createdAt,
       updatedAt: channel.updatedAt,
     });
@@ -67,6 +69,7 @@ export class ChannelRepositoryImpl implements IChannelRepository {
       bannerUrl: ormEntity.bannerUrl,
       status: ormEntity.status,
       isEligibleForMembership: ormEntity.isEligibleForMembership,
+      isMembershipClosedByAdmin: ormEntity.isMembershipClosedByAdmin,
       createdAt: ormEntity.createdAt,
       updatedAt: ormEntity.updatedAt,
     });
@@ -86,6 +89,7 @@ export class ChannelRepositoryImpl implements IChannelRepository {
       bannerUrl: ormEntity.bannerUrl,
       status: ormEntity.status,
       isEligibleForMembership: ormEntity.isEligibleForMembership,
+      isMembershipClosedByAdmin: ormEntity.isMembershipClosedByAdmin,
       createdAt: ormEntity.createdAt,
       updatedAt: ormEntity.updatedAt,
     });

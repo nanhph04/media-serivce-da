@@ -50,6 +50,7 @@ import { VIDEO_MODERATION_OUTCOME_PUBLISHER } from './application/interfaces/vid
 import { VIDEO_QUERY_SERVICE } from './application/interfaces/video-query.service.interface';
 import { VIDEO_PROGRESS_STORE } from './application/interfaces/video-progress-store.interface';
 import { VIDEO_PROGRESS_STREAM } from './application/interfaces/video-progress-stream.interface';
+import { VIDEO_SEARCH_QUERY_SERVICE } from './application/interfaces/video-search-query.service.interface';
 import { VIDEO_VIEW_AGGREGATION } from './application/interfaces/video-view-aggregation.interface';
 import { VIDEO_PURCHASE_UNLOCK_REPOSITORY } from './domain/repositories/video-purchase-unlock.repository';
 import { VIDEO_REPOSITORY } from './domain/repositories/video.repository';
@@ -124,6 +125,10 @@ import { VideoProgressService } from './application/services/video-progress.serv
       useExisting: VideoQueryService,
     },
     {
+      provide: VIDEO_SEARCH_QUERY_SERVICE,
+      useExisting: VideoQueryService,
+    },
+    {
       provide: VIDEO_CACHE_INVALIDATOR,
       useExisting: VideoCacheInvalidator,
     },
@@ -151,6 +156,7 @@ import { VideoProgressService } from './application/services/video-progress.serv
   exports: [
     VIDEO_REPOSITORY,
     VIDEO_QUERY_SERVICE,
+    VIDEO_SEARCH_QUERY_SERVICE,
     VIDEO_WATCH_PROGRESS_REPOSITORY,
   ],
 })

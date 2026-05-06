@@ -17,6 +17,9 @@ describe('ChannelController', () => {
   const getMembershipStatusUseCase = {
     execute: jest.fn(),
   };
+  const moderateChannelMembershipUseCase = {
+    execute: jest.fn(),
+  };
 
   const controller = new ChannelController(
     createChannelUseCase as never,
@@ -24,6 +27,7 @@ describe('ChannelController', () => {
     getCurrentChannelUseCase as never,
     getChannelDetailUseCase as never,
     getMembershipStatusUseCase as never,
+    moderateChannelMembershipUseCase as never,
   );
 
   beforeEach(() => {
@@ -36,6 +40,7 @@ describe('ChannelController', () => {
       userId: 'owner-1',
       status: ChannelStatus.INACTIVE,
       isEligibleForMembership: false,
+      isMembershipClosedByAdmin: true,
     });
 
     const result = await controller.getCurrentChannel('owner-1');
@@ -48,6 +53,7 @@ describe('ChannelController', () => {
       userId: 'owner-1',
       status: ChannelStatus.INACTIVE,
       isEligibleForMembership: false,
+      isMembershipClosedByAdmin: true,
     });
   });
 });

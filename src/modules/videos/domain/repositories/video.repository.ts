@@ -13,6 +13,23 @@ export interface StudioVideoFilters {
   visibilities?: string[];
 }
 
+export interface PublicVideoSearchFilters {
+  q?: string;
+  category?: string;
+  limit: number;
+}
+
+export interface PublicVideosByCategoryPageFilters {
+  category: string;
+  page: number;
+  limit: number;
+}
+
+export interface PublicVideosByCategoryPageResult {
+  items: VideoEntity[];
+  total: number;
+}
+
 export interface IVideoRepository {
   save(video: VideoEntity): Promise<void>;
   findById(id: string): Promise<VideoEntity | null>;
@@ -29,5 +46,9 @@ export interface IVideoRepository {
   findPublicByChannelId(channelId: string): Promise<VideoEntity[]>;
   findLatestPublic(limit: number): Promise<VideoEntity[]>;
   findByCategory(category: string, limit: number): Promise<VideoEntity[]>;
+  findByCategoryPaged(
+    filters: PublicVideosByCategoryPageFilters,
+  ): Promise<PublicVideosByCategoryPageResult>;
+  searchPublic(filters: PublicVideoSearchFilters): Promise<VideoEntity[]>;
   findByChannelIds(channelIds: string[], limit: number): Promise<VideoEntity[]>;
 }

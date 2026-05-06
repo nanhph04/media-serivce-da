@@ -54,6 +54,12 @@ export class UpdateMembershipTierUseCase extends BaseUseCase<
       throw new ForbiddenException('Channel is not active');
     }
 
+    if (channel.isMembershipClosedByAdmin && command.isAcceptingNew === true) {
+      throw new ForbiddenException(
+        'Membership registration is temporarily closed by admin',
+      );
+    }
+
     const tier = await this.membershipTierRepository.findById(command.tierId);
 
     if (!tier) {
@@ -62,6 +68,16 @@ export class UpdateMembershipTierUseCase extends BaseUseCase<
 
     if (tier.channelId !== command.channelId) {
       throw new NotFoundException('Membership tier not found');
+    }
+
+    if (
+      command.isAcceptingNew === true &&
+      !tier.isAcceptingNew &&
+      !channel.isEligibleForMembership
+    ) {
+      throw new ForbiddenException(
+        'Channel is not eligible to open membership registration yet',
+      );
     }
 
     if (command.priceCoin !== undefined) {

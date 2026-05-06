@@ -114,9 +114,44 @@ describe('CreateMembershipTierUseCase', () => {
       message: 'Price must be at least 10 coin for level 2',
     });
   });
+
+  it('allows creating a tier without rechecking thresholds once channel earned eligibility', async () => {
+    channelRepository.findById.mockResolvedValue(
+      buildChannel({ isEligibleForMembership: true }),
+    );
+
+    await useCase.execute({
+      channelId: 'channel-1',
+      userId: 'owner-1',
+      name: 'Platinum',
+      level: 3,
+      priceCoin: 100,
+    });
+
+    expect(eligibilityService.syncChannelEligibility).not.toHaveBeenCalled();
+    expect(membershipTierRepository.create).toHaveBeenCalled();
+  });
+
+  it('blocks create when membership is closed by admin', async () => {
+    channelRepository.findById.mockResolvedValue(
+      buildChannel({ isMembershipClosedByAdmin: true }),
+    );
+
+    await expect(
+      useCase.execute({
+        channelId: 'channel-1',
+        userId: 'owner-1',
+        name: 'Gold',
+        level: 1,
+        priceCoin: 100,
+      }),
+    ).rejects.toThrow('Membership registration is temporarily closed by admin');
+  });
 });
 
-function buildChannel(): ChannelEntity {
+function buildChannel(
+  overrides: Partial<ConstructorParameters<typeof ChannelEntity>[0]> = {},
+): ChannelEntity {
   return new ChannelEntity({
     id: 'channel-1',
     userId: 'owner-1',
@@ -126,7 +161,9 @@ function buildChannel(): ChannelEntity {
     bannerUrl: '',
     status: ChannelStatus.ACTIVE,
     isEligibleForMembership: false,
+    isMembershipClosedByAdmin: false,
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
     updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+    ...overrides,
   });
 }

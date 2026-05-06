@@ -14,6 +14,7 @@ interface ChannelResponseSource {
   name: string;
   bio: string;
   isEligibleForMembership: boolean;
+  isMembershipClosedByAdmin: boolean;
   avatarUrl: string;
   bannerUrl: string;
   status: string;
@@ -52,6 +53,10 @@ interface ChannelMembershipStatusResponseSource {
   isActive: boolean;
   membershipId: string | null;
   expiryDate: Date | null;
+  canRenew: boolean;
+  canUpgrade: boolean;
+  membershipBlockedReason: string | null;
+  isMembershipClosedByAdmin: boolean;
 }
 
 interface CurrentChannelResponseSource {
@@ -59,6 +64,7 @@ interface CurrentChannelResponseSource {
   userId: string;
   status: string;
   isEligibleForMembership: boolean;
+  isMembershipClosedByAdmin: boolean;
 }
 
 export function toChannelResponseDto(
@@ -70,6 +76,7 @@ export function toChannelResponseDto(
     name: source.name,
     bio: source.bio,
     isEligibleForMembership: source.isEligibleForMembership,
+    isMembershipClosedByAdmin: source.isMembershipClosedByAdmin,
     avatarUrl: source.avatarUrl,
     bannerUrl: source.bannerUrl,
     status: source.status,
@@ -115,6 +122,7 @@ export function toChannelDetailResponseDto(
     name: source.channel.name,
     bio: source.channel.bio,
     isEligibleForMembership: source.channel.isEligibleForMembership,
+    isMembershipClosedByAdmin: source.channel.isMembershipClosedByAdmin,
     avatarUrl: source.channel.avatarUrl,
     bannerUrl: source.channel.bannerUrl,
     status: source.channel.status,
@@ -131,6 +139,10 @@ export function toChannelMembershipStatusResponseDto(
     isActive: source.isActive,
     membershipId: source.membershipId,
     expiryDate: source.expiryDate?.toISOString() ?? null,
+    canRenew: source.canRenew,
+    canUpgrade: source.canUpgrade,
+    membershipBlockedReason: source.membershipBlockedReason,
+    isMembershipClosedByAdmin: source.isMembershipClosedByAdmin,
   };
 }
 
@@ -142,5 +154,6 @@ export function toCurrentChannelResponseDto(
     userId: source.userId,
     status: source.status,
     isEligibleForMembership: source.isEligibleForMembership,
+    isMembershipClosedByAdmin: source.isMembershipClosedByAdmin,
   };
 }

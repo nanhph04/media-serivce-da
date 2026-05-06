@@ -35,6 +35,9 @@ export class ChannelOrmEntity {
   @Column({ name: 'is_eligible_for_membership', default: false })
   isEligibleForMembership!: boolean;
 
+  @Column({ name: 'is_membership_closed_by_admin', default: false })
+  isMembershipClosedByAdmin!: boolean;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 

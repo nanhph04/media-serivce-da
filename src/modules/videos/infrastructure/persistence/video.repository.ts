@@ -8,6 +8,9 @@ import {
 } from '../../domain/entities/video.entity';
 import { Category } from '../../../categories/domain/entities/category.entity';
 import type {
+  PublicVideoSearchFilters,
+  PublicVideosByCategoryPageFilters,
+  PublicVideosByCategoryPageResult,
   IVideoRepository,
   StudioVideoFilters,
 } from '../../domain/repositories/video.repository';
@@ -185,7 +188,14 @@ export class VideoRepository implements IVideoRepository {
     category: string,
     limit: number,
   ): Promise<VideoEntity[]> {
-    const rows = await this.ormRepository
+    return this.searchPublic({ category, limit });
+  }
+
+  async findByCategoryPaged(
+    filters: PublicVideosByCategoryPageFilters,
+  ): Promise<PublicVideosByCategoryPageResult> {
+    const offset = (filters.page - 1) * filters.limit;
+    const queryBuilder = this.ormRepository
       .createQueryBuilder('video')
       .leftJoinAndSelect('video.videoCategories', 'videoCategory')
       .leftJoinAndSelect('videoCategory.category', 'category')
@@ -193,12 +203,80 @@ export class VideoRepository implements IVideoRepository {
       .andWhere('video.visibility = :visibility', {
         visibility: VideoVisibility.PUBLIC,
       })
-      .andWhere('category.slug = :category', { category })
+      .andWhere('category.slug = :category', {
+        category: filters.category,
+      })
       .orderBy('video.publishedAt', 'DESC')
       .addOrderBy('video.createdAt', 'DESC')
-      .take(limit)
+      .skip(offset)
+      .take(filters.limit);
+
+    const [rows, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      items: rows.map((row) => this.toDomain(row)),
+      total,
+    };
+  }
+
+  async searchPublic(filters: PublicVideoSearchFilters): Promise<VideoEntity[]> {
+    const queryBuilder = this.ormRepository
+      .createQueryBuilder('video')
+      .leftJoinAndSelect('video.videoCategories', 'videoCategory')
+      .leftJoinAndSelect('videoCategory.category', 'category')
+      .where('video.status = :status', { status: VideoStatus.READY })
+      .andWhere('video.visibility = :visibility', {
+        visibility: VideoVisibility.PUBLIC,
+      });
+
+    if (filters.category) {
+      queryBuilder.andWhere('category.slug = :category', {
+        category: filters.category,
+      });
+    }
+
+    const normalizedQuery = filters.q?.trim().toLowerCase();
+    if (normalizedQuery) {
+      const exact = normalizedQuery;
+      const prefix = `${escapeLikePattern(normalizedQuery)}%`;
+      const partial = `%${escapeLikePattern(normalizedQuery)}%`;
+
+      queryBuilder
+        .andWhere(
+          `(
+            LOWER(video.title) LIKE :partial ESCAPE '\\'
+            OR LOWER(video.description) LIKE :partial ESCAPE '\\'
+          )`,
+          { partial },
+        )
+        .addSelect(
+          `CASE
+            WHEN LOWER(video.title) = :exact THEN 400
+            WHEN LOWER(video.title) LIKE :prefix ESCAPE '\\' THEN 300
+            WHEN LOWER(video.title) LIKE :partial ESCAPE '\\' THEN 200
+            WHEN LOWER(video.description) LIKE :partial ESCAPE '\\' THEN 100
+            ELSE 0
+          END`,
+          'search_rank',
+        )
+        .setParameters({
+          exact,
+          prefix,
+          partial,
+        });
+
+      queryBuilder.orderBy('search_rank', 'DESC');
+      queryBuilder.addOrderBy('video.publishedAt', 'DESC');
+    } else {
+      queryBuilder.orderBy('video.publishedAt', 'DESC');
+    }
+
+    const searchRows = await queryBuilder
+      .addOrderBy('video.createdAt', 'DESC')
+      .take(filters.limit)
       .getMany();
-    return rows.map((row) => this.toDomain(row));
+
+    return searchRows.map((row) => this.toDomain(row));
   }
 
   async findByChannelIds(
@@ -263,4 +341,8 @@ export class VideoRepository implements IVideoRepository {
       updatedAt: row.updatedAt,
     });
   }
+}
+
+function escapeLikePattern(value: string): string {
+  return value.replace(/[\\%_]/g, '\\$&');
 }

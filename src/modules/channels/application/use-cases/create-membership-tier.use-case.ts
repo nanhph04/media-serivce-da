@@ -62,6 +62,12 @@ export class CreateMembershipTierUseCase extends BaseUseCase<
       throw new ForbiddenException('Channel is not active');
     }
 
+    if (channel.isMembershipClosedByAdmin) {
+      throw new ForbiddenException(
+        'Membership registration is temporarily closed by admin',
+      );
+    }
+
     if (![1, 2, 3].includes(command.level)) {
       throw new BadRequestException('Level must be 1, 2, or 3');
     }
@@ -75,15 +81,16 @@ export class CreateMembershipTierUseCase extends BaseUseCase<
       throw new ConflictException('Membership tier level already exists');
     }
 
-    const eligibility =
-      await this.channelMembershipEligibilityService.syncChannelEligibility(
-        command.channelId,
-      );
+    const eligibility = channel.isEligibleForMembership
+      ? null
+      : await this.channelMembershipEligibilityService.syncChannelEligibility(
+          command.channelId,
+        );
 
-    if (!eligibility.isEligible) {
+    if (!channel.isEligibleForMembership && !eligibility?.isEligible) {
       throw new ForbiddenException(
         'Channel is not eligible to open membership registration yet',
-        eligibility.missingRequirements,
+        eligibility?.missingRequirements,
       );
     }
 

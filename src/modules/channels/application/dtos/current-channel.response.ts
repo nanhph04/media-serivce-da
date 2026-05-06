@@ -3,4 +3,5 @@ export interface CurrentChannelResponse {
   userId: string;
   status: string;
   isEligibleForMembership: boolean;
+  isMembershipClosedByAdmin: boolean;
 }

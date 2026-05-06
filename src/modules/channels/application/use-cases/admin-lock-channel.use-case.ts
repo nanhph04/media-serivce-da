@@ -33,6 +33,7 @@ export class AdminLockChannelUseCase extends BaseUseCase<
       name: channel.name,
       bio: channel.bio,
       isEligibleForMembership: channel.isEligibleForMembership,
+      isMembershipClosedByAdmin: channel.isMembershipClosedByAdmin,
       avatarUrl: channel.avatarUrl,
       bannerUrl: channel.bannerUrl,
       status: channel.status,

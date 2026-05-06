@@ -31,6 +31,7 @@ export class GetCurrentChannelUseCase extends BaseUseCase<
       userId: channel.userId,
       status: channel.status,
       isEligibleForMembership: channel.isEligibleForMembership,
+      isMembershipClosedByAdmin: channel.isMembershipClosedByAdmin,
     };
   }
 }

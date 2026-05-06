@@ -25,6 +25,7 @@ import {
   ApiResponse,
   apiResponseContract,
 } from '@shared/presentation/dto/api-response.dto';
+import { PaginationDto } from '@shared/presentation/dto/pagination.dto';
 import { InternalGatewayGuard } from '@shared/presentation/guards/internal-gateway.guard';
 import {
   VideoStatus,
@@ -294,17 +295,24 @@ export class VideosController {
   @Get('discovery/by-category')
   @SkipInternalGatewayGuard()
   @ApiQuery({ name: 'category', required: true })
+  @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiSuccessResponse(VideoListItemResponseDto, { isArray: true })
   async byCategory(
     @Query('category') category: string,
+    @Query('page') page?: string,
     @Query('limit') limit?: string,
   ): Promise<ApiResponse<VideoListItemResponseDto[]>> {
-    const rows = await this.getVideosByCategoryUseCase.execute({
+    const result = await this.getVideosByCategoryUseCase.execute({
       category,
+      page: this.parsePage(page),
       limit: this.parseLimit(limit),
     });
-    return apiResponseContract(rows.map((row) => this.toVideoListItemDto(row)));
+    return ApiResponse.success(
+      result.items.map((row) => this.toVideoListItemDto(row)),
+      undefined,
+      result.pagination as PaginationDto,
+    );
   }
 
   @Get('discovery/subscribed')
@@ -453,7 +461,13 @@ export class VideosController {
   }
 
   private parseLimit(limit?: string): number {
-    return Number(limit) || 20;
+    const parsed = Number(limit) || 20;
+    return Math.min(Math.max(parsed, 1), 50);
+  }
+
+  private parsePage(page?: string): number {
+    const parsed = Number(page) || 1;
+    return Math.max(parsed, 1);
   }
 
   private parseStatuses(status?: string): VideoStatus[] | undefined {

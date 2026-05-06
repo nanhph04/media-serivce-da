@@ -12,4 +12,7 @@ export class CurrentChannelResponseDto {
 
   @ApiProperty()
   isEligibleForMembership!: boolean;
+
+  @ApiProperty()
+  isMembershipClosedByAdmin!: boolean;
 }

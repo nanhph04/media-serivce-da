@@ -17,6 +17,9 @@ export class ChannelResponseDto {
   isEligibleForMembership!: boolean;
 
   @ApiProperty()
+  isMembershipClosedByAdmin!: boolean;
+
+  @ApiProperty()
   avatarUrl!: string;
 
   @ApiProperty()

@@ -1,5 +1,5 @@
 import { ExecutionContext } from '@nestjs/common';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import { of, lastValueFrom } from 'rxjs';
 import { ApiResponse } from '../dto/api-response.dto';
 import { SuccessResponseInterceptor } from './success-response.interceptor';
@@ -86,10 +86,15 @@ describe('SuccessResponseInterceptor', () => {
 });
 
 function createHttpContext(response: Response): ExecutionContext {
+  const request = {
+    headers: {},
+  } as Request;
+
   return {
     getType: () => 'http',
     switchToHttp: () => ({
       getResponse: () => response,
+      getRequest: () => request,
     }),
   } as ExecutionContext;
 }

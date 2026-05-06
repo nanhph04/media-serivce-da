@@ -20,6 +20,8 @@ describe('VideoQueryService', () => {
     findPublicByChannelId: jest.fn(),
     findLatestPublic: jest.fn(),
     findByCategory: jest.fn(),
+    findByCategoryPaged: jest.fn(),
+    searchPublic: jest.fn(),
   };
   const createQueryBuilder = jest.fn();
   const watchProgressOrmRepository = {
@@ -162,19 +164,131 @@ describe('VideoQueryService', () => {
     );
   });
 
-  it('caches videos by category using category and limit key', async () => {
+  it('returns paginated category discovery results and caches them by page', async () => {
     cacheService.get.mockResolvedValueOnce(0).mockResolvedValueOnce(null);
-    videoRepository.findByCategory.mockResolvedValue([buildVideo()]);
+    videoRepository.findByCategoryPaged.mockResolvedValue({
+      items: [buildVideo()],
+      total: 25,
+    });
 
-    await service.getVideosByCategory('music', 10);
+    await expect(service.getVideosByCategory('music', 2, 10)).resolves.toEqual({
+      items: [
+        {
+          id: 'video-1',
+          channelId: 'channel-1',
+          title: 'Video',
+          description: 'Description',
+          categories: ['music'],
+          status: VideoStatus.READY,
+          price: 0,
+          requiredTierLevel: null,
+          thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
+          durationSeconds: 120,
+          resolutions: ['720p'],
+          errorMessage: null,
+          viewCount: 10,
+          publishedAt: new Date('2026-01-01T00:00:00.000Z'),
+          createdAt: new Date('2026-01-01T00:00:00.000Z'),
+          updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+        },
+      ],
+      pagination: {
+        page: 2,
+        limit: 10,
+        total: 25,
+        totalPages: 3,
+      },
+    });
 
-    expect(videoRepository.findByCategory).toHaveBeenCalledWith('music', 10);
+    expect(videoRepository.findByCategoryPaged).toHaveBeenCalledWith({
+      category: 'music',
+      page: 2,
+      limit: 10,
+    });
     expect(cacheService.set).toHaveBeenCalledWith(
-      VIDEO_CACHE_KEYS.categoryLatest(0, 'music', 10),
-      [buildCachedListItem()],
+      VIDEO_CACHE_KEYS.categoryPage(0, 'music', 2, 10),
+      {
+        items: [buildCachedListItem()],
+        total: 25,
+      },
       VIDEO_CACHE_TTL_SECONDS.discoveryList,
     );
     expect(cacheService.getKeys).not.toHaveBeenCalled();
+  });
+
+  it('returns paginated category discovery from cache', async () => {
+    cacheService.get
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce({
+        items: [buildCachedListItem()],
+        total: 1,
+      });
+
+    const result = await service.getVideosByCategory('music', 1, 20);
+
+    expect(result.items[0].id).toBe('video-1');
+    expect(result.pagination).toEqual({
+      page: 1,
+      limit: 20,
+      total: 1,
+      totalPages: 1,
+    });
+    expect(videoRepository.searchPublic).not.toHaveBeenCalled();
+  });
+
+  it('searches public videos by keyword and category with short-lived cache', async () => {
+    cacheService.get.mockResolvedValue(null);
+    videoRepository.searchPublic.mockResolvedValue([buildVideo()]);
+
+    await expect(
+      service.searchPublicVideos({
+        q: 'piano',
+        category: 'music',
+        limit: 5,
+      }),
+    ).resolves.toEqual([
+      {
+        id: 'video-1',
+        channelId: 'channel-1',
+        title: 'Video',
+        description: 'Description',
+        categories: ['music'],
+        status: VideoStatus.READY,
+        price: 0,
+        requiredTierLevel: null,
+        thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
+        durationSeconds: 120,
+        resolutions: ['720p'],
+        errorMessage: null,
+        viewCount: 10,
+        publishedAt: new Date('2026-01-01T00:00:00.000Z'),
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+      },
+    ]);
+
+    expect(videoRepository.searchPublic).toHaveBeenCalledWith({
+      q: 'piano',
+      category: 'music',
+      limit: 5,
+    });
+    expect(cacheService.set).toHaveBeenCalledWith(
+      VIDEO_CACHE_KEYS.publicSearch('piano', 'music', 5),
+      [buildCachedListItem()],
+      VIDEO_CACHE_TTL_SECONDS.publicSearch,
+    );
+  });
+
+  it('returns search results from cache without querying repository', async () => {
+    cacheService.get.mockResolvedValue([buildCachedListItem()]);
+
+    const result = await service.searchPublicVideos({
+      q: 'piano',
+      limit: 3,
+    });
+
+    expect(result[0].updatedAt).toEqual(new Date('2026-01-02T00:00:00.000Z'));
+    expect(videoRepository.searchPublic).not.toHaveBeenCalled();
   });
 
   it('returns studio videos directly from repository without discovery cache', async () => {

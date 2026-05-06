@@ -15,6 +15,7 @@ export interface ChannelProps {
   bannerUrl: string;
   status: ChannelStatus;
   isEligibleForMembership: boolean;
+  isMembershipClosedByAdmin: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -58,6 +59,10 @@ export class ChannelEntity {
     return this.props.isEligibleForMembership;
   }
 
+  get isMembershipClosedByAdmin(): boolean {
+    return this.props.isMembershipClosedByAdmin;
+  }
+
   get createdAt(): Date {
     return this.props.createdAt;
   }
@@ -91,6 +96,7 @@ export class ChannelEntity {
       bannerUrl: '',
       status: ChannelStatus.ACTIVE,
       isEligibleForMembership: false,
+      isMembershipClosedByAdmin: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -144,12 +150,30 @@ export class ChannelEntity {
     this.props.updatedAt = new Date();
   }
 
-  public syncMembershipEligibility(isEligibleForMembership: boolean): void {
-    if (this.props.isEligibleForMembership === isEligibleForMembership) {
+  public closeMembershipByAdmin(): void {
+    if (this.props.isMembershipClosedByAdmin) {
       return;
     }
 
-    this.props.isEligibleForMembership = isEligibleForMembership;
+    this.props.isMembershipClosedByAdmin = true;
+    this.props.updatedAt = new Date();
+  }
+
+  public openMembershipByAdmin(): void {
+    if (!this.props.isMembershipClosedByAdmin) {
+      return;
+    }
+
+    this.props.isMembershipClosedByAdmin = false;
+    this.props.updatedAt = new Date();
+  }
+
+  public syncMembershipEligibility(isEligibleForMembership: boolean): void {
+    if (!isEligibleForMembership || this.props.isEligibleForMembership) {
+      return;
+    }
+
+    this.props.isEligibleForMembership = true;
     this.props.updatedAt = new Date();
   }
 }

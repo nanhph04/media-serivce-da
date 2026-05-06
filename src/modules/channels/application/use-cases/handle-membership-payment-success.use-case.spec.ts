@@ -1,49 +1,50 @@
+import { ChannelEntity, ChannelStatus } from '../../domain/entities/channel.entity';
 import { ChannelMembershipEntity } from '../../domain/entities/channel-membership.entity';
-import type { IChannelMembershipRepository } from '../../domain/repositories/channel-membership.repository';
+import { MembershipTierEntity } from '../../domain/entities/membership-tier.entity';
 import { HandleMembershipPaymentSuccessUseCase } from './handle-membership-payment-success.use-case';
 
-class FakeChannelMembershipRepository implements IChannelMembershipRepository {
+class FakeChannelMembershipRepository {
   public readonly items = new Map<string, ChannelMembershipEntity>();
 
-  public async create(membership: ChannelMembershipEntity): Promise<void> {
+  async create(membership: ChannelMembershipEntity): Promise<void> {
     this.items.set(this.key(membership.userId, membership.channelId), membership);
   }
 
-  public async update(membership: ChannelMembershipEntity): Promise<void> {
+  async update(membership: ChannelMembershipEntity): Promise<void> {
     this.items.set(this.key(membership.userId, membership.channelId), membership);
   }
 
-  public async findById(): Promise<ChannelMembershipEntity | null> {
+  async findById(): Promise<ChannelMembershipEntity | null> {
     return null;
   }
 
-  public async findByUserIdAndChannelId(
+  async findByUserIdAndChannelId(
     userId: string,
     channelId: string,
   ): Promise<ChannelMembershipEntity | null> {
     return this.items.get(this.key(userId, channelId)) ?? null;
   }
 
-  public async findByChannelId(): Promise<ChannelMembershipEntity[]> {
+  async findByChannelId(): Promise<ChannelMembershipEntity[]> {
     return [];
   }
 
-  public async findByUserId(): Promise<ChannelMembershipEntity[]> {
+  async findByUserId(): Promise<ChannelMembershipEntity[]> {
     return [];
   }
 
-  public async countByChannelId(): Promise<number> {
+  async countByChannelId(): Promise<number> {
     return 0;
   }
 
-  public async findByUserIdAndChannelIdActive(
+  async findByUserIdAndChannelIdActive(
     userId: string,
     channelId: string,
   ): Promise<ChannelMembershipEntity | null> {
     return this.items.get(this.key(userId, channelId)) ?? null;
   }
 
-  public async upsert(membership: ChannelMembershipEntity): Promise<void> {
+  async upsert(membership: ChannelMembershipEntity): Promise<void> {
     this.items.set(this.key(membership.userId, membership.channelId), membership);
   }
 
@@ -56,20 +57,34 @@ describe('HandleMembershipPaymentSuccessUseCase', () => {
   const cacheService = {
     setIfNotExists: jest.fn(),
   };
+  const channelRepository = {
+    findById: jest.fn(),
+  };
+  const membershipTierRepository = {
+    findById: jest.fn(),
+  };
+  const compensationPublisher = {
+    publishCompensationRequest: jest.fn(),
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
+    cacheService.setIfNotExists.mockResolvedValue(true);
+    channelRepository.findById.mockResolvedValue(buildChannel());
+    membershipTierRepository.findById.mockResolvedValue(buildTier());
   });
 
   it('creates active membership with default one-month expiry when event omits expiryDate', async () => {
     const dateNowSpy = jest
       .spyOn(Date, 'now')
       .mockReturnValue(new Date('2026-05-04T00:00:00.000Z').getTime());
-    cacheService.setIfNotExists.mockResolvedValue(true);
     const repository = new FakeChannelMembershipRepository();
     const useCase = new HandleMembershipPaymentSuccessUseCase(
-      repository,
+      repository as never,
+      channelRepository as never,
+      membershipTierRepository as never,
       cacheService as never,
+      compensationPublisher as never,
     );
 
     await useCase.execute({
@@ -78,6 +93,9 @@ describe('HandleMembershipPaymentSuccessUseCase', () => {
         userId: 'user-1',
         channelId: 'channel-1',
         membershipTierId: 'tier-1',
+        paymentType: 'new',
+        chargedCoinAmount: 50,
+        ledgerReferenceId: 'ledger-1',
       },
     });
 
@@ -90,6 +108,7 @@ describe('HandleMembershipPaymentSuccessUseCase', () => {
     expect(membership?.expiryDate?.toISOString()).toBe(
       '2026-06-04T00:00:00.000Z',
     );
+    expect(compensationPublisher.publishCompensationRequest).not.toHaveBeenCalled();
     dateNowSpy.mockRestore();
   });
 
@@ -97,7 +116,6 @@ describe('HandleMembershipPaymentSuccessUseCase', () => {
     const dateNowSpy = jest
       .spyOn(Date, 'now')
       .mockReturnValue(new Date('2026-05-04T00:00:00.000Z').getTime());
-    cacheService.setIfNotExists.mockResolvedValue(true);
     const repository = new FakeChannelMembershipRepository();
     const existing = ChannelMembershipEntity.create({
       userId: 'user-2',
@@ -106,9 +124,16 @@ describe('HandleMembershipPaymentSuccessUseCase', () => {
       expiryDate: new Date('2026-06-15T00:00:00.000Z'),
     });
     await repository.upsert(existing);
+    channelRepository.findById.mockResolvedValue(buildChannel({ id: 'channel-2' }));
+    membershipTierRepository.findById.mockResolvedValue(
+      buildTier({ id: 'tier-2', channelId: 'channel-2' }),
+    );
     const useCase = new HandleMembershipPaymentSuccessUseCase(
-      repository,
+      repository as never,
+      channelRepository as never,
+      membershipTierRepository as never,
       cacheService as never,
+      compensationPublisher as never,
     );
 
     await useCase.execute({
@@ -117,6 +142,9 @@ describe('HandleMembershipPaymentSuccessUseCase', () => {
         userId: 'user-2',
         channelId: 'channel-2',
         membershipTierId: 'tier-2',
+        paymentType: 'upgrade',
+        chargedCoinAmount: 150,
+        ledgerReferenceId: 'ledger-2',
       },
     });
 
@@ -132,12 +160,53 @@ describe('HandleMembershipPaymentSuccessUseCase', () => {
     dateNowSpy.mockRestore();
   });
 
+  it('publishes compensation instead of granting when admin closed membership', async () => {
+    const repository = new FakeChannelMembershipRepository();
+    channelRepository.findById.mockResolvedValue(
+      buildChannel({ isMembershipClosedByAdmin: true }),
+    );
+    const useCase = new HandleMembershipPaymentSuccessUseCase(
+      repository as never,
+      channelRepository as never,
+      membershipTierRepository as never,
+      cacheService as never,
+      compensationPublisher as never,
+    );
+
+    await useCase.execute({
+      eventId: 'event-closed',
+      data: {
+        userId: 'user-3',
+        channelId: 'channel-1',
+        membershipTierId: 'tier-1',
+        paymentType: 'renew',
+        chargedCoinAmount: 60,
+        ledgerReferenceId: 'ledger-3',
+      },
+    });
+
+    expect(repository.items.size).toBe(0);
+    expect(compensationPublisher.publishCompensationRequest).toHaveBeenCalledWith({
+      sourcePaymentEventId: 'event-closed',
+      userId: 'user-3',
+      channelId: 'channel-1',
+      membershipTierId: 'tier-1',
+      paymentType: 'renew',
+      chargedCoinAmount: 60,
+      ledgerReferenceId: 'ledger-3',
+      reasonCode: 'ADMIN_CLOSED',
+    });
+  });
+
   it('ignores duplicate event ids', async () => {
     cacheService.setIfNotExists.mockResolvedValue(false);
     const repository = new FakeChannelMembershipRepository();
     const useCase = new HandleMembershipPaymentSuccessUseCase(
-      repository,
+      repository as never,
+      channelRepository as never,
+      membershipTierRepository as never,
       cacheService as never,
+      compensationPublisher as never,
     );
 
     await useCase.execute({
@@ -146,9 +215,47 @@ describe('HandleMembershipPaymentSuccessUseCase', () => {
         userId: 'user-3',
         channelId: 'channel-3',
         membershipTierId: 'tier-3',
+        paymentType: 'new',
+        chargedCoinAmount: 70,
       },
     });
 
     expect(repository.items.size).toBe(0);
+    expect(compensationPublisher.publishCompensationRequest).not.toHaveBeenCalled();
   });
 });
+
+function buildChannel(
+  overrides: Partial<ConstructorParameters<typeof ChannelEntity>[0]> = {},
+): ChannelEntity {
+  return new ChannelEntity({
+    id: 'channel-1',
+    userId: 'owner-1',
+    name: 'Channel',
+    bio: 'Bio',
+    avatarUrl: '',
+    bannerUrl: '',
+    status: ChannelStatus.ACTIVE,
+    isEligibleForMembership: true,
+    isMembershipClosedByAdmin: false,
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+    ...overrides,
+  });
+}
+
+function buildTier(
+  overrides: Partial<ConstructorParameters<typeof MembershipTierEntity>[0]> = {},
+): MembershipTierEntity {
+  return new MembershipTierEntity({
+    id: 'tier-1',
+    channelId: 'channel-1',
+    name: 'Silver',
+    level: 1,
+    priceCoin: 50,
+    isAcceptingNew: true,
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+    ...overrides,
+  });
+}

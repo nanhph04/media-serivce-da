@@ -31,6 +31,9 @@ describe('MembershipPaymentConsumer', () => {
               userId: string;
               channelId: string;
               membershipTierId: string;
+              paymentType: 'new' | 'renew' | 'upgrade';
+              chargedCoinAmount?: number | null;
+              ledgerReferenceId?: string | null;
               expiryDate?: string | null;
             };
           };
@@ -58,6 +61,9 @@ describe('MembershipPaymentConsumer', () => {
           userId: 'user-1',
           channelId: 'channel-1',
           membershipTierId: 'tier-1',
+          paymentType: 'new',
+          chargedCoinAmount: 50,
+          ledgerReferenceId: 'ledger-1',
           expiryDate: '2026-05-01T00:00:00.000Z',
         },
       },
@@ -69,6 +75,9 @@ describe('MembershipPaymentConsumer', () => {
         userId: 'user-1',
         channelId: 'channel-1',
         membershipTierId: 'tier-1',
+        paymentType: 'new',
+        chargedCoinAmount: 50,
+        ledgerReferenceId: 'ledger-1',
         expiryDate: '2026-05-01T00:00:00.000Z',
       },
     });

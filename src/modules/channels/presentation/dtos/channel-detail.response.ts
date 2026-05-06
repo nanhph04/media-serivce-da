@@ -58,6 +58,9 @@ export class ChannelDetailResponseDto {
   isEligibleForMembership!: boolean;
 
   @ApiProperty()
+  isMembershipClosedByAdmin!: boolean;
+
+  @ApiProperty()
   avatarUrl!: string;
 
   @ApiProperty()
@@ -85,4 +88,16 @@ export class ChannelMembershipStatusResponseDto {
 
   @ApiProperty({ nullable: true })
   expiryDate!: string | null;
+
+  @ApiProperty()
+  canRenew!: boolean;
+
+  @ApiProperty()
+  canUpgrade!: boolean;
+
+  @ApiProperty({ nullable: true })
+  membershipBlockedReason!: string | null;
+
+  @ApiProperty()
+  isMembershipClosedByAdmin!: boolean;
 }

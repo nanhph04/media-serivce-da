@@ -4,6 +4,7 @@ export interface ChannelResponse {
   name: string;
   bio: string;
   isEligibleForMembership: boolean;
+  isMembershipClosedByAdmin: boolean;
   avatarUrl: string;
   bannerUrl: string;
   status: string;

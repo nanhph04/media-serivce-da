@@ -12,6 +12,7 @@ describe('toChannelDetailResponseDto', () => {
         name: 'Channel',
         bio: 'Bio',
         isEligibleForMembership: false,
+        isMembershipClosedByAdmin: true,
         avatarUrl: '',
         bannerUrl: '',
         status: 'active',
@@ -31,6 +32,7 @@ describe('toChannelDetailResponseDto', () => {
     });
 
     expect(result.isEligibleForMembership).toBe(false);
+    expect(result.isMembershipClosedByAdmin).toBe(true);
     expect(result.membershipEligibility).toEqual({
       isEligible: false,
       readyVideoCount: 4,
@@ -50,12 +52,14 @@ describe('toCurrentChannelResponseDto', () => {
         userId: 'owner-1',
         status: 'inactive',
         isEligibleForMembership: true,
+        isMembershipClosedByAdmin: true,
       }),
     ).toEqual({
       channelId: 'channel-1',
       userId: 'owner-1',
       status: 'inactive',
       isEligibleForMembership: true,
+      isMembershipClosedByAdmin: true,
     });
   });
 });

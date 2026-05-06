@@ -2,7 +2,9 @@ import type { VideoListItemResponse } from '../dtos/video-list-item.response';
 import type { VideoMetadataResponse } from '../dtos/video-metadata.response';
 import type { ContinueWatchingItemResponse } from '../dtos/continue-watching-item.response';
 import type { StudioVideoListItemResponse } from '../dtos/studio-video-list-item.response';
+import type { VideosByCategoryResponse } from '../dtos/videos-by-category.response';
 import type { ChannelVideoMembershipEligibilityMetrics } from '../../domain/repositories/video.repository';
+import type { SearchPublicVideosQuery } from './video-search-query.service.interface';
 import type {
   VideoStatus,
   VideoVisibility,
@@ -38,7 +40,11 @@ export interface IVideoQueryService {
   ): Promise<StudioVideoListItemResponse[]>;
   getVideosByCategory(
     category: string,
+    page: number,
     limit: number,
+  ): Promise<VideosByCategoryResponse>;
+  searchPublicVideos(
+    query: SearchPublicVideosQuery,
   ): Promise<VideoListItemResponse[]>;
   getContinueWatching(
     userId: string,

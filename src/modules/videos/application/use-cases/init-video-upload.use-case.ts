@@ -4,14 +4,15 @@ import {
   OBJECT_STORAGE_SERVICE,
   type IObjectStorageService,
 } from '@shared/application/interfaces/object-storage.service.interface';
+import { BadRequestException } from '@shared/domain/exceptions/domain.exception';
 import {
-  InternalServerErrorException,
-} from '@shared/domain/exceptions/domain.exception';
+  CategoryStatus,
+  type Category,
+} from '../../../categories/domain/entities/category.entity';
 import {
   CATEGORY_REPOSITORY,
   type ICategoryRepository,
 } from '../../../categories/domain/repositories/category.repository';
-import { Category } from '../../../categories/domain/entities/category.entity';
 import {
   CHANNEL_ACCESS_SERVICE,
   type IChannelAccessService,
@@ -78,25 +79,26 @@ export class InitVideoUploadUseCase extends BaseUseCase<
   }
 
   private async resolveCategories(slugs: string[]): Promise<Category[]> {
-    const normalizedSlugs = [...new Set(slugs.map((slug) => slug.trim()).filter(Boolean))];
+    const normalizedSlugs = [
+      ...new Set(slugs.map((slug) => slug.trim()).filter(Boolean)),
+    ];
+
+    if (normalizedSlugs.length === 0) {
+      throw new BadRequestException('At least one category is required');
+    }
+
     const matchedCategories =
       await this.categoryRepository.findBySlugs(normalizedSlugs);
 
-    if (matchedCategories.length > 0) {
-      return matchedCategories;
+    if (
+      matchedCategories.length !== normalizedSlugs.length ||
+      matchedCategories.some(
+        (category) => category.status !== CategoryStatus.ACTIVE,
+      )
+    ) {
+      throw new BadRequestException('One or more categories are invalid');
     }
 
-    const fallbackSlug = Category.convertNameToSlug('Khác');
-    const fallbackCategory = await this.categoryRepository.findBySlug(
-      fallbackSlug,
-    );
-
-    if (!fallbackCategory) {
-      throw new InternalServerErrorException(
-        'Default category does not exist',
-      );
-    }
-
-    return [fallbackCategory];
+    return matchedCategories;
   }
 }

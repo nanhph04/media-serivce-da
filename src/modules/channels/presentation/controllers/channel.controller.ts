@@ -8,9 +8,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiHeader, ApiTags } from '@nestjs/swagger';
+import { ForbiddenException } from '@shared/domain/exceptions/domain.exception';
 import { ApiCreatedSuccessResponse } from '@shared/presentation/decorators/api-success-response.decorator';
 import { ApiSuccessResponse } from '@shared/presentation/decorators/api-success-response.decorator';
 import { CurrentUserId } from '@shared/presentation/decorators/user-id.decorator';
+import { CurrentUserRole } from '@shared/presentation/decorators/user-role.decorator';
 import { SkipInternalGatewayGuard } from '@shared/presentation/decorators/skip-internal-gateway.decorator';
 import {
   ApiResponse,
@@ -21,8 +23,10 @@ import { CreateChannelUseCase } from '../../application/use-cases/create-channel
 import { GetCurrentChannelUseCase } from '../../application/use-cases/get-current-channel.use-case';
 import { GetChannelDetailUseCase } from '../../application/use-cases/get-channel-detail.use-case';
 import { GetMembershipStatusUseCase } from '../../application/use-cases/get-membership-status.use-case';
+import { ModerateChannelMembershipUseCase } from '../../application/use-cases/moderate-channel-membership.use-case';
 import { UpdateChannelUseCase } from '../../application/use-cases/update-channel.use-case';
 import { CreateChannelRequestDto } from '../dtos/create-channel.request';
+import { ModerateChannelMembershipRequestDto } from '../dtos/moderate-channel-membership.request';
 import { UpdateChannelRequestDto } from '../dtos/update-channel.request';
 import { ChannelResponseDto } from '../dtos/channel.response';
 import { CurrentChannelResponseDto } from '../dtos/current-channel.response';
@@ -48,6 +52,7 @@ export class ChannelController {
     private readonly getCurrentChannelUseCase: GetCurrentChannelUseCase,
     private readonly getChannelDetailUseCase: GetChannelDetailUseCase,
     private readonly getMembershipStatusUseCase: GetMembershipStatusUseCase,
+    private readonly moderateChannelMembershipUseCase: ModerateChannelMembershipUseCase,
   ) {}
 
   @Post()
@@ -112,5 +117,31 @@ export class ChannelController {
       userId,
     });
     return apiResponseContract(toChannelMembershipStatusResponseDto(status));
+  }
+
+  @Patch(':id/admin/membership')
+  @ApiHeader({ name: 'x-user-role', required: true })
+  @ApiSuccessResponse(ChannelResponseDto)
+  async moderateMembership(
+    @CurrentUserId() userId: string,
+    @CurrentUserRole() role: string | undefined,
+    @Param('id') channelId: string,
+    @Body() dto: ModerateChannelMembershipRequestDto,
+  ): Promise<ApiResponse<ChannelResponseDto>> {
+    this.assertAdmin(role);
+
+    const channel = await this.moderateChannelMembershipUseCase.execute({
+      channelId,
+      adminId: userId,
+      action: dto.action,
+    });
+
+    return apiResponseContract(toChannelResponseDto(channel));
+  }
+
+  private assertAdmin(role: string | undefined): void {
+    if (role !== 'admin') {
+      throw new ForbiddenException('Admin role is required');
+    }
   }
 }
