@@ -7,14 +7,25 @@ export interface ChannelVideoMembershipEligibilityMetrics {
   totalVideoViews: number;
 }
 
+export interface StudioVideoFilters {
+  limit: number;
+  statuses?: string[];
+  visibilities?: string[];
+}
+
 export interface IVideoRepository {
   save(video: VideoEntity): Promise<void>;
   findById(id: string): Promise<VideoEntity | null>;
   findBasicById(id: string): Promise<VideoEntity | null>;
   incrementViewCount(videoId: string): Promise<void>;
+  incrementViewCountBy(videoId: string, delta: number): Promise<void>;
   getChannelMembershipEligibilityMetrics(
     channelId: string,
   ): Promise<ChannelVideoMembershipEligibilityMetrics>;
+  findStudioByOwnerId(
+    ownerId: string,
+    filters: StudioVideoFilters,
+  ): Promise<VideoEntity[]>;
   findPublicByChannelId(channelId: string): Promise<VideoEntity[]>;
   findLatestPublic(limit: number): Promise<VideoEntity[]>;
   findByCategory(category: string, limit: number): Promise<VideoEntity[]>;

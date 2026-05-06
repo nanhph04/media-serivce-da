@@ -2,13 +2,21 @@ import {
   Body,
   Controller,
   Get,
+  Inject,
+  Logger,
+  MessageEvent,
   Param,
   Patch,
   Post,
   Query,
+  Req,
+  Sse,
   UseGuards,
 } from '@nestjs/common';
 import { ApiHeader, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import type { Request } from 'express';
+import { concat, fromEvent, interval, merge, Observable, of } from 'rxjs';
+import { finalize, map, take, takeUntil } from 'rxjs/operators';
 import { ApiCreatedSuccessResponse } from '@shared/presentation/decorators/api-success-response.decorator';
 import { ApiSuccessResponse } from '@shared/presentation/decorators/api-success-response.decorator';
 import { CurrentUserId } from '@shared/presentation/decorators/user-id.decorator';
@@ -18,11 +26,15 @@ import {
   apiResponseContract,
 } from '@shared/presentation/dto/api-response.dto';
 import { InternalGatewayGuard } from '@shared/presentation/guards/internal-gateway.guard';
-import { VideoVisibility } from '../../domain/entities/video.entity';
+import {
+  VideoStatus,
+  VideoVisibility,
+} from '../../domain/entities/video.entity';
 import type { VideoListItemResponse } from '../../application/dtos/video-list-item.response';
 import { ConfirmVideoUploadUseCase } from '../../application/use-cases/confirm-video-upload.use-case';
 import { GetContinueWatchingUseCase } from '../../application/use-cases/get-continue-watching.use-case';
 import { GetLatestVideosUseCase } from '../../application/use-cases/get-latest-videos.use-case';
+import { GetStudioVideosUseCase } from '../../application/use-cases/get-studio-videos.use-case';
 import { GetSubscribedVideosUseCase } from '../../application/use-cases/get-subscribed-videos.use-case';
 import { GetVideoMetadataUseCase } from '../../application/use-cases/get-video-metadata.use-case';
 import { GetVideosByCategoryUseCase } from '../../application/use-cases/get-videos-by-category.use-case';
@@ -31,6 +43,8 @@ import { PlayVideoUseCase } from '../../application/use-cases/play-video.use-cas
 import { RefreshPlaybackTokenUseCase } from '../../application/use-cases/refresh-playback-token.use-case';
 import { UpdateVideoProgressUseCase } from '../../application/use-cases/update-video-progress.use-case';
 import { UpdateVideoMetadataUseCase } from '../../application/use-cases/update-video-metadata.use-case';
+import { VideoProgressService } from '../../application/services/video-progress.service';
+import type { VideoProgressSnapshot } from '../../application/dtos/video-progress.snapshot';
 import type { ContinueWatchingItemResponse } from '../../application/dtos/continue-watching-item.response';
 import { ConfirmVideoUploadRequestDto } from '../dtos/confirm-video-upload.request';
 import { ConfirmVideoUploadResponseDto } from '../dtos/confirm-video-upload.response';
@@ -42,16 +56,25 @@ import { RefreshPlaybackTokenResponseDto } from '../dtos/refresh-playback-token.
 import { UpdateVideoMetadataRequestDto } from '../dtos/update-video-metadata.request';
 import { UpdateVideoProgressRequestDto } from '../dtos/update-video-progress.request';
 import { UpdateVideoProgressResponseDto } from '../dtos/update-video-progress.response';
+import { StudioVideoListItemResponseDto } from '../dtos/studio-video-list-item.response';
 import { VideoListItemResponseDto } from '../dtos/video-list-item.response';
 import { VideoMetadataResponseDto } from '../dtos/video-metadata.response';
+import { VideoProgressResponseDto } from '../dtos/video-progress.response';
+import type { StudioVideoListItemResponse } from '../../application/dtos/studio-video-list-item.response';
 import type { VideoMetadataResponse } from '../../application/dtos/video-metadata.response';
 import type { UpdateVideoProgressResponse } from '../../application/dtos/update-video-progress.response';
+import {
+  VIDEO_PROGRESS_STREAM,
+  type IVideoProgressStream,
+} from '../../application/interfaces/video-progress-stream.interface';
 
 @ApiTags('videos')
 @ApiHeader({ name: 'x-user-id', required: true })
 @UseGuards(InternalGatewayGuard)
 @Controller('videos')
 export class VideosController {
+  private readonly logger = new Logger(VideosController.name);
+
   constructor(
     private readonly initVideoUploadUseCase: InitVideoUploadUseCase,
     private readonly confirmVideoUploadUseCase: ConfirmVideoUploadUseCase,
@@ -60,11 +83,38 @@ export class VideosController {
     private readonly refreshPlaybackTokenUseCase: RefreshPlaybackTokenUseCase,
     private readonly getContinueWatchingUseCase: GetContinueWatchingUseCase,
     private readonly getLatestVideosUseCase: GetLatestVideosUseCase,
+    private readonly getStudioVideosUseCase: GetStudioVideosUseCase,
     private readonly getVideosByCategoryUseCase: GetVideosByCategoryUseCase,
     private readonly getSubscribedVideosUseCase: GetSubscribedVideosUseCase,
     private readonly getVideoMetadataUseCase: GetVideoMetadataUseCase,
     private readonly updateVideoMetadataUseCase: UpdateVideoMetadataUseCase,
+    private readonly videoProgressService: VideoProgressService,
+    @Inject(VIDEO_PROGRESS_STREAM)
+    private readonly videoProgressStream: IVideoProgressStream,
   ) {}
+
+  @Get('me')
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'status', required: false, type: String })
+  @ApiQuery({ name: 'visibility', required: false, type: String })
+  @ApiSuccessResponse(StudioVideoListItemResponseDto, { isArray: true })
+  async studioVideos(
+    @CurrentUserId() userId: string,
+    @Query('limit') limit?: string,
+    @Query('status') status?: string,
+    @Query('visibility') visibility?: string,
+  ): Promise<ApiResponse<StudioVideoListItemResponseDto[]>> {
+    const rows = await this.getStudioVideosUseCase.execute({
+      userId,
+      limit: this.parseLimit(limit),
+      statuses: this.parseStatuses(status),
+      visibilities: this.parseVisibilities(visibility),
+    });
+
+    return apiResponseContract(
+      rows.map((row) => this.toStudioVideoListItemDto(row)),
+    );
+  }
 
   @Post('init-upload')
   @ApiOperation({
@@ -160,6 +210,55 @@ export class VideosController {
     return apiResponseContract(this.toVideoMetadataDto(metadata));
   }
 
+  @Get(':id/progress')
+  @ApiSuccessResponse(VideoProgressResponseDto)
+  async getProgress(
+    @CurrentUserId() userId: string,
+    @Param('id') videoId: string,
+  ): Promise<ApiResponse<VideoProgressResponseDto>> {
+    const snapshot = await this.videoProgressService.getSnapshotForOwner(
+      videoId,
+      userId,
+    );
+    return apiResponseContract(this.toVideoProgressDto(snapshot));
+  }
+
+  @Sse(':id/progress/stream')
+  async streamProgress(
+    @CurrentUserId() userId: string,
+    @Param('id') videoId: string,
+    @Req() request: Request,
+  ): Promise<Observable<MessageEvent>> {
+    const initialSnapshot =
+      await this.videoProgressService.getSnapshotForOwner(videoId, userId);
+    const disconnect$ = merge(
+      fromEvent(request, 'close'),
+      fromEvent(request, 'aborted'),
+    ).pipe(take(1));
+
+    const initial$ = of(this.toSseMessage('snapshot', initialSnapshot));
+    const live$ = this.videoProgressStream.observe(videoId).pipe(
+      map((snapshot) =>
+        this.toSseMessage(snapshot.terminal ? 'end' : 'progress', snapshot),
+      ),
+    );
+    const heartbeat$ = interval(15000).pipe(
+      map(() => ({
+        type: 'ping',
+        data: {
+          timestamp: new Date().toISOString(),
+        },
+      })),
+    );
+
+    return concat(initial$, merge(live$, heartbeat$)).pipe(
+      takeUntil(disconnect$),
+      finalize(() => {
+        this.logger.log(`Closed progress stream for videoId=${videoId}`);
+      }),
+    );
+  }
+
   @Patch(':id/metadata')
   @ApiHeader({ name: 'x-internal-secret', required: true })
   @ApiHeader({ name: 'x-user-id', required: true })
@@ -187,7 +286,7 @@ export class VideosController {
     @Query('limit') limit?: string,
   ): Promise<ApiResponse<VideoListItemResponseDto[]>> {
     const rows = await this.getLatestVideosUseCase.execute({
-      limit: Number(limit) || 20,
+      limit: this.parseLimit(limit),
     });
     return apiResponseContract(rows.map((row) => this.toVideoListItemDto(row)));
   }
@@ -203,7 +302,7 @@ export class VideosController {
   ): Promise<ApiResponse<VideoListItemResponseDto[]>> {
     const rows = await this.getVideosByCategoryUseCase.execute({
       category,
-      limit: Number(limit) || 20,
+      limit: this.parseLimit(limit),
     });
     return apiResponseContract(rows.map((row) => this.toVideoListItemDto(row)));
   }
@@ -217,7 +316,7 @@ export class VideosController {
   ): Promise<ApiResponse<VideoListItemResponseDto[]>> {
     const rows = await this.getSubscribedVideosUseCase.execute({
       userId,
-      limit: Number(limit) || 20,
+      limit: this.parseLimit(limit),
     });
     return apiResponseContract(rows.map((row) => this.toVideoListItemDto(row)));
   }
@@ -231,7 +330,7 @@ export class VideosController {
   ): Promise<ApiResponse<ContinueWatchingItemResponseDto[]>> {
     const rows = await this.getContinueWatchingUseCase.execute({
       userId,
-      limit: Number(limit) || 20,
+      limit: this.parseLimit(limit),
     });
     return apiResponseContract(
       rows.map((row) => this.toContinueWatchingItemDto(row)),
@@ -248,6 +347,30 @@ export class VideosController {
       description: video.description,
       categories: video.categories,
       status: video.status,
+      price: video.price,
+      requiredTierLevel: video.requiredTierLevel,
+      thumbnailUrl: video.thumbnailUrl,
+      durationSeconds: video.durationSeconds,
+      resolutions: video.resolutions,
+      errorMessage: video.errorMessage,
+      viewCount: video.viewCount,
+      publishedAt: video.publishedAt?.toISOString() ?? null,
+      createdAt: video.createdAt.toISOString(),
+      updatedAt: video.updatedAt.toISOString(),
+    };
+  }
+
+  private toStudioVideoListItemDto(
+    video: StudioVideoListItemResponse,
+  ): StudioVideoListItemResponseDto {
+    return {
+      id: video.id,
+      channelId: video.channelId,
+      title: video.title,
+      description: video.description,
+      categories: video.categories,
+      status: video.status,
+      visibility: video.visibility,
       price: video.price,
       requiredTierLevel: video.requiredTierLevel,
       thumbnailUrl: video.thumbnailUrl,
@@ -288,6 +411,31 @@ export class VideosController {
     };
   }
 
+  private toVideoProgressDto(
+    snapshot: VideoProgressSnapshot,
+  ): VideoProgressResponseDto {
+    return {
+      videoId: snapshot.videoId,
+      stage: snapshot.stage,
+      percent: snapshot.percent,
+      message: snapshot.message,
+      terminal: snapshot.terminal,
+      updatedAt: snapshot.updatedAt,
+      detail: snapshot.detail ?? null,
+      errorCode: snapshot.errorCode ?? null,
+    };
+  }
+
+  private toSseMessage(
+    type: string,
+    snapshot: VideoProgressSnapshot,
+  ): MessageEvent {
+    return {
+      type,
+      data: this.toVideoProgressDto(snapshot),
+    };
+  }
+
   private toContinueWatchingItemDto(
     item: ContinueWatchingItemResponse,
   ): ContinueWatchingItemResponseDto {
@@ -302,5 +450,37 @@ export class VideosController {
       lastWatchedAt: item.lastWatchedAt.toISOString(),
       viewCount: item.viewCount,
     };
+  }
+
+  private parseLimit(limit?: string): number {
+    return Number(limit) || 20;
+  }
+
+  private parseStatuses(status?: string): VideoStatus[] | undefined {
+    if (!status) {
+      return undefined;
+    }
+
+    return status
+      .split(',')
+      .map((value) => value.trim())
+      .filter((value): value is VideoStatus =>
+        Object.values(VideoStatus).includes(value as VideoStatus),
+      );
+  }
+
+  private parseVisibilities(
+    visibility?: string,
+  ): VideoVisibility[] | undefined {
+    if (!visibility) {
+      return undefined;
+    }
+
+    return visibility
+      .split(',')
+      .map((value) => value.trim())
+      .filter((value): value is VideoVisibility =>
+        Object.values(VideoVisibility).includes(value as VideoVisibility),
+      );
   }
 }

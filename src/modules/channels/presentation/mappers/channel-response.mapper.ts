@@ -5,6 +5,7 @@ import type {
   PublicVideoDto,
 } from '../dtos/channel-detail.response';
 import type { ChannelResponseDto } from '../dtos/channel.response';
+import type { CurrentChannelResponseDto } from '../dtos/current-channel.response';
 import type { MembershipTierResponseDto } from '../dtos/membership-tier.response';
 
 interface ChannelResponseSource {
@@ -51,6 +52,13 @@ interface ChannelMembershipStatusResponseSource {
   isActive: boolean;
   membershipId: string | null;
   expiryDate: Date | null;
+}
+
+interface CurrentChannelResponseSource {
+  channelId: string;
+  userId: string;
+  status: string;
+  isEligibleForMembership: boolean;
 }
 
 export function toChannelResponseDto(
@@ -123,5 +131,16 @@ export function toChannelMembershipStatusResponseDto(
     isActive: source.isActive,
     membershipId: source.membershipId,
     expiryDate: source.expiryDate?.toISOString() ?? null,
+  };
+}
+
+export function toCurrentChannelResponseDto(
+  source: CurrentChannelResponseSource,
+): CurrentChannelResponseDto {
+  return {
+    channelId: source.channelId,
+    userId: source.userId,
+    status: source.status,
+    isEligibleForMembership: source.isEligibleForMembership,
   };
 }

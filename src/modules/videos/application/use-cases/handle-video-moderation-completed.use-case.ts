@@ -20,6 +20,7 @@ import {
   VIDEO_MODERATION_OUTCOME_PUBLISHER,
   type IVideoModerationOutcomePublisher,
 } from '../interfaces/video-moderation-outcome-publisher.interface';
+import { VideoProgressService } from '../services/video-progress.service';
 
 @Injectable()
 export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
@@ -36,6 +37,7 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
     @Inject(IDEMPOTENCY_STORE)
     private readonly idempotencyStore: IIdempotencyStore,
     private readonly loggerService: LoggerService,
+    private readonly videoProgressService: VideoProgressService,
   ) {
     super();
     this.loggerService.setContext(HandleVideoModerationCompletedUseCase.name);
@@ -70,6 +72,15 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
         evidenceTimestampSeconds: command.data.evidenceTimestampSeconds,
         transcodeQueued: true,
       });
+      await this.videoProgressService.applyProgressUpdate(
+        this.videoProgressService.createSnapshot({
+          videoId: command.data.videoId,
+          stage: 'processing',
+          percent: 5,
+          message: 'Video queued for processing',
+          terminal: false,
+        }),
+      );
       return;
     }
 
@@ -86,6 +97,15 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
         evidenceTimestampSeconds: command.data.evidenceTimestampSeconds,
         transcodeQueued: false,
       });
+      await this.videoProgressService.applyProgressUpdate(
+        this.videoProgressService.createSnapshot({
+          videoId: command.data.videoId,
+          stage: 'pending_manual_review',
+          percent: 100,
+          message: command.data.reason || 'Video requires manual review',
+          terminal: true,
+        }),
+      );
       return;
     }
 
@@ -102,6 +122,15 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
         evidenceTimestampSeconds: command.data.evidenceTimestampSeconds,
         transcodeQueued: false,
       });
+      await this.videoProgressService.applyProgressUpdate(
+        this.videoProgressService.createSnapshot({
+          videoId: command.data.videoId,
+          stage: 'rejected',
+          percent: 100,
+          message: command.data.reason || 'Video rejected by moderation',
+          terminal: true,
+        }),
+      );
       return;
     }
 
@@ -117,6 +146,15 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
       evidenceTimestampSeconds: command.data.evidenceTimestampSeconds,
       transcodeQueued: false,
     });
+    await this.videoProgressService.applyProgressUpdate(
+      this.videoProgressService.createSnapshot({
+        videoId: command.data.videoId,
+        stage: 'failed',
+        percent: 100,
+        message: command.data.reason || 'Video moderation failed',
+        terminal: true,
+      }),
+    );
   }
 
   private async markEventProcessed(eventId: string): Promise<boolean> {

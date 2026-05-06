@@ -16,11 +16,16 @@ describe('HandleVideoProcessedSuccessUseCase', () => {
   const cacheService = {
     setIfNotExists: jest.fn(),
   };
+  const videoProgressService = {
+    applyProgressUpdate: jest.fn(),
+    createSnapshot: jest.fn().mockImplementation((input) => input),
+  };
 
   const useCase = new HandleVideoProcessedSuccessUseCase(
     videoRepository as never,
     eligibilityService as never,
     cacheService as never,
+    videoProgressService as never,
   );
 
   beforeEach(() => {
@@ -47,6 +52,12 @@ describe('HandleVideoProcessedSuccessUseCase', () => {
     expect(videoRepository.save).toHaveBeenCalled();
     expect(eligibilityService.syncChannelEligibility).toHaveBeenCalledWith(
       'channel-1',
+    );
+    expect(videoProgressService.applyProgressUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        stage: 'ready',
+        terminal: true,
+      }),
     );
   });
 });

@@ -10,8 +10,10 @@ describe('VideoRepository', () => {
   const update = jest.fn();
   const createQueryBuilder = jest.fn();
   const findOne = jest.fn();
+  const find = jest.fn();
   const ormRepository = {
     createQueryBuilder,
+    find,
     findOne,
   };
 
@@ -55,6 +57,15 @@ describe('VideoRepository', () => {
     };
     expect(setArg.viewCount()).toBe('"view_count" + 1');
     expect(setArg.updatedAt()).toBe('CURRENT_TIMESTAMP');
+  });
+
+  it('increments view_count by an arbitrary delta', async () => {
+    await repository.incrementViewCountBy('video-1', 7);
+
+    const setArg = set.mock.calls[0][0] as {
+      viewCount: () => string;
+    };
+    expect(setArg.viewCount()).toBe('"view_count" + 7');
   });
 
   it('loads basic video data without joining category relations', async () => {
@@ -103,5 +114,59 @@ describe('VideoRepository', () => {
       readyVideoCount: 5,
       totalVideoViews: 1000,
     });
+  });
+
+  it('loads studio videos by owner with optional visibility and status filters', async () => {
+    const createdAt = new Date('2026-01-01T00:00:00.000Z');
+    const updatedAt = new Date('2026-01-02T00:00:00.000Z');
+    find.mockResolvedValue([
+      {
+        id: 'video-1',
+        channelId: 'channel-1',
+        ownerId: 'owner-1',
+        title: 'Video',
+        description: 'Description',
+        visibility: 'private',
+        status: 'draft',
+        price: 0,
+        requiredTierLevel: null,
+        rawFileKey: 'raw/video.mp4',
+        masterPlaylistKey: null,
+        thumbnailUrl: null,
+        durationSeconds: null,
+        resolutions: [],
+        errorMessage: null,
+        viewCount: 0,
+        publishedAt: null,
+        createdAt,
+        updatedAt,
+        videoCategories: [],
+      },
+    ]);
+
+    const videos = await repository.findStudioByOwnerId('owner-1', {
+      limit: 10,
+      statuses: ['draft'],
+      visibilities: ['private'],
+    });
+
+    expect(find).toHaveBeenCalledWith({
+      where: {
+        ownerId: 'owner-1',
+        status: expect.any(Object),
+        visibility: expect.any(Object),
+      },
+      relations: {
+        videoCategories: {
+          category: true,
+        },
+      },
+      order: {
+        updatedAt: 'DESC',
+        createdAt: 'DESC',
+      },
+      take: 10,
+    });
+    expect(videos[0]?.ownerId).toBe('owner-1');
   });
 });

@@ -13,6 +13,7 @@ import {
   VIDEO_REPOSITORY,
 } from '../../domain/repositories/video.repository';
 import type { HandleVideoProcessedSuccessCommand } from '../dtos/handle-video-processed-success.command';
+import { VideoProgressService } from '../services/video-progress.service';
 
 @Injectable()
 export class HandleVideoProcessedSuccessUseCase extends BaseUseCase<
@@ -26,6 +27,7 @@ export class HandleVideoProcessedSuccessUseCase extends BaseUseCase<
     private readonly channelMembershipEligibilityService: IChannelMembershipEligibilityService,
     @Inject(IDEMPOTENCY_STORE)
     private readonly idempotencyStore: IIdempotencyStore,
+    private readonly videoProgressService: VideoProgressService,
   ) {
     super();
   }
@@ -50,6 +52,15 @@ export class HandleVideoProcessedSuccessUseCase extends BaseUseCase<
     await this.videoRepository.save(video);
     await this.channelMembershipEligibilityService.syncChannelEligibility(
       video.channelId,
+    );
+    await this.videoProgressService.applyProgressUpdate(
+      this.videoProgressService.createSnapshot({
+        videoId: command.data.videoId,
+        stage: 'ready',
+        percent: 100,
+        message: 'Video processing completed',
+        terminal: true,
+      }),
     );
   }
 

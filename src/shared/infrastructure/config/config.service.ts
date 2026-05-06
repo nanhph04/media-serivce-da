@@ -90,7 +90,7 @@ export class ConfigService
   }
 
   getVideoViewDedupeTtlSeconds(): number {
-    return this.getNumber('VIDEO_VIEW_DEDUPE_TTL_SECONDS', 60);
+    return this.getNumber('VIDEO_VIEW_DEDUPE_TTL_SECONDS', 1800);
   }
 
   getMaxVideoUploadSizeBytes(): number {
@@ -102,6 +102,25 @@ export class ConfigService
 
   getVideoViewTopic(): string {
     return this.get<string>('KAFKA_VIDEO_VIEW_TOPIC', 'video.viewed');
+  }
+
+  getVideoViewMinSeconds(): number {
+    return this.getNumber('VIDEO_VIEW_MIN_SECONDS', 10);
+  }
+
+  getVideoViewMinPercent(): number {
+    return this.getNumber('VIDEO_VIEW_MIN_PERCENT', 20);
+  }
+
+  getVideoViewFlushIntervalSeconds(): number {
+    return this.getNumber('VIDEO_VIEW_FLUSH_INTERVAL_SECONDS', 5);
+  }
+
+  getVideoViewDiscoveryInvalidationIntervalSeconds(): number {
+    return this.getNumber(
+      'VIDEO_VIEW_DISCOVERY_INVALIDATION_INTERVAL_SECONDS',
+      60,
+    );
   }
 
   getMasterPlaylistKeyCacheTtlSeconds(): number {

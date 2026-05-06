@@ -2,6 +2,7 @@ import {
   VideoStatus,
   VideoVisibility,
 } from '../../domain/entities/video.entity';
+import type { VideoProgressSnapshot } from '../../application/dtos/video-progress.snapshot';
 import { VideosController } from './videos.controller';
 
 describe('VideosController', () => {
@@ -26,6 +27,9 @@ describe('VideosController', () => {
   const getLatestVideosUseCase = {
     execute: jest.fn(),
   };
+  const getStudioVideosUseCase = {
+    execute: jest.fn(),
+  };
   const getVideosByCategoryUseCase = {
     execute: jest.fn(),
   };
@@ -38,6 +42,12 @@ describe('VideosController', () => {
   const updateVideoMetadataUseCase = {
     execute: jest.fn(),
   };
+  const videoProgressService = {
+    getSnapshotForOwner: jest.fn(),
+  };
+  const videoProgressStream = {
+    observe: jest.fn(),
+  };
   const controller = new VideosController(
     initVideoUploadUseCase as never,
     confirmVideoUploadUseCase as never,
@@ -46,10 +56,13 @@ describe('VideosController', () => {
     refreshPlaybackTokenUseCase as never,
     getContinueWatchingUseCase as never,
     getLatestVideosUseCase as never,
+    getStudioVideosUseCase as never,
     getVideosByCategoryUseCase as never,
     getSubscribedVideosUseCase as never,
     getVideoMetadataUseCase as never,
     updateVideoMetadataUseCase as never,
+    videoProgressService as never,
+    videoProgressStream as never,
   );
 
   beforeEach(() => {
@@ -182,6 +195,65 @@ describe('VideosController', () => {
     });
   });
 
+  it('returns studio videos for the current owner with filters', async () => {
+    getStudioVideosUseCase.execute.mockResolvedValue([
+      {
+        id: 'video-1',
+        channelId: 'channel-1',
+        title: 'Draft Video',
+        description: 'Description',
+        categories: ['music'],
+        status: VideoStatus.DRAFT,
+        visibility: VideoVisibility.PRIVATE,
+        price: 100,
+        requiredTierLevel: 2,
+        thumbnailUrl: null,
+        durationSeconds: null,
+        resolutions: [],
+        errorMessage: null,
+        viewCount: 0,
+        publishedAt: null,
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+      },
+    ]);
+
+    const result = await controller.studioVideos(
+      'owner-1',
+      '10',
+      'draft,processing',
+      'private',
+    );
+
+    expect(getStudioVideosUseCase.execute).toHaveBeenCalledWith({
+      userId: 'owner-1',
+      limit: 10,
+      statuses: [VideoStatus.DRAFT, VideoStatus.PROCESSING],
+      visibilities: [VideoVisibility.PRIVATE],
+    });
+    expect(result).toEqual([
+      {
+        id: 'video-1',
+        channelId: 'channel-1',
+        title: 'Draft Video',
+        description: 'Description',
+        categories: ['music'],
+        status: VideoStatus.DRAFT,
+        visibility: VideoVisibility.PRIVATE,
+        price: 100,
+        requiredTierLevel: 2,
+        thumbnailUrl: null,
+        durationSeconds: null,
+        resolutions: [],
+        errorMessage: null,
+        viewCount: 0,
+        publishedAt: null,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-02T00:00:00.000Z',
+      },
+    ]);
+  });
+
   it('maps continue watching rows to DTO shape', async () => {
     getContinueWatchingUseCase.execute.mockResolvedValue([
       {
@@ -217,6 +289,29 @@ describe('VideosController', () => {
       },
     ]);
   });
+
+  it('returns current upload and processing progress for the owner', async () => {
+    videoProgressService.getSnapshotForOwner.mockResolvedValue(
+      buildProgressSnapshot(),
+    );
+
+    const result = await controller.getProgress('owner-1', 'video-1');
+
+    expect(videoProgressService.getSnapshotForOwner).toHaveBeenCalledWith(
+      'video-1',
+      'owner-1',
+    );
+    expect(result).toEqual({
+      videoId: 'video-1',
+      stage: 'processing',
+      percent: 75,
+      message: 'HLS variants created',
+      terminal: false,
+      updatedAt: '2026-01-03T00:00:00.000Z',
+      detail: null,
+      errorCode: null,
+    });
+  });
 });
 
 function buildMetadata(): {
@@ -242,5 +337,18 @@ function buildMetadata(): {
     errorMessage: null,
     publishedAt: new Date('2026-01-01T00:00:00.000Z'),
     updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+  };
+}
+
+function buildProgressSnapshot(): VideoProgressSnapshot {
+  return {
+    videoId: 'video-1',
+    stage: 'processing',
+    percent: 75,
+    message: 'HLS variants created',
+    terminal: false,
+    updatedAt: '2026-01-03T00:00:00.000Z',
+    detail: null,
+    errorCode: null,
   };
 }

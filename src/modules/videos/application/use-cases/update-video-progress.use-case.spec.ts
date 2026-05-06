@@ -1,4 +1,5 @@
 import { NotFoundException } from '@shared/domain/exceptions/domain.exception';
+import { RecordVideoViewUseCase } from '../../../engagement/application/use-cases/record-video-view.use-case';
 import { UpdateVideoProgressUseCase } from './update-video-progress.use-case';
 import { VideoEntity, VideoStatus, VideoVisibility } from '../../domain/entities/video.entity';
 import { VideoWatchProgressEntity } from '../../domain/entities/video-watch-progress.entity';
@@ -14,15 +15,27 @@ describe('UpdateVideoProgressUseCase', () => {
   const videoWatchAccessService = {
     assertCanWatch: jest.fn(),
   };
+  const recordVideoViewUseCase = {
+    execute: jest.fn(),
+  };
+  const videoViewConfig = {
+    getVideoViewMinSeconds: jest.fn(),
+    getVideoViewMinPercent: jest.fn(),
+  };
 
   const useCase = new UpdateVideoProgressUseCase(
     videoRepository as never,
     watchProgressRepository as never,
     videoWatchAccessService as never,
+    recordVideoViewUseCase as never as RecordVideoViewUseCase,
+    videoViewConfig as never,
   );
 
   beforeEach(() => {
     jest.clearAllMocks();
+    recordVideoViewUseCase.execute.mockResolvedValue(undefined);
+    videoViewConfig.getVideoViewMinSeconds.mockReturnValue(10);
+    videoViewConfig.getVideoViewMinPercent.mockReturnValue(20);
   });
 
   it('creates a new progress record when one does not exist', async () => {
@@ -46,6 +59,10 @@ describe('UpdateVideoProgressUseCase', () => {
     });
 
     expect(watchProgressRepository.save).toHaveBeenCalledTimes(1);
+    expect(recordVideoViewUseCase.execute).toHaveBeenCalledWith({
+      userId: 'viewer-1',
+      videoId: 'video-1',
+    });
   });
 
   it('marks progress as completed when remaining time is below threshold', async () => {
@@ -72,6 +89,11 @@ describe('UpdateVideoProgressUseCase', () => {
       videoId: 'video-1',
       positionSeconds: 95,
       completed: true,
+    });
+
+    expect(recordVideoViewUseCase.execute).toHaveBeenCalledWith({
+      userId: 'viewer-1',
+      videoId: 'video-1',
     });
   });
 
@@ -100,6 +122,48 @@ describe('UpdateVideoProgressUseCase', () => {
     });
 
     expect(watchProgressRepository.save).not.toHaveBeenCalled();
+    expect(recordVideoViewUseCase.execute).not.toHaveBeenCalled();
+  });
+
+  it('does not record a view before the threshold is reached', async () => {
+    videoRepository.findBasicById.mockResolvedValue(buildVideo());
+    watchProgressRepository.findByUserIdAndVideoId.mockResolvedValue(null);
+    watchProgressRepository.save.mockResolvedValue(undefined);
+    videoWatchAccessService.assertCanWatch.mockResolvedValue(undefined);
+
+    await useCase.execute({
+      userId: 'viewer-1',
+      videoId: 'video-1',
+      positionSeconds: 5,
+      durationSeconds: 120,
+      state: 'watching',
+    });
+
+    expect(recordVideoViewUseCase.execute).not.toHaveBeenCalled();
+  });
+
+  it('does not fail progress persistence when view recording fails', async () => {
+    videoRepository.findBasicById.mockResolvedValue(buildVideo());
+    watchProgressRepository.findByUserIdAndVideoId.mockResolvedValue(null);
+    watchProgressRepository.save.mockResolvedValue(undefined);
+    videoWatchAccessService.assertCanWatch.mockResolvedValue(undefined);
+    recordVideoViewUseCase.execute.mockRejectedValue(new Error('Kafka down'));
+
+    await expect(
+      useCase.execute({
+        userId: 'viewer-1',
+        videoId: 'video-1',
+        positionSeconds: 25,
+        durationSeconds: 120,
+        state: 'watching',
+      }),
+    ).resolves.toEqual({
+      videoId: 'video-1',
+      positionSeconds: 25,
+      completed: false,
+    });
+
+    expect(watchProgressRepository.save).toHaveBeenCalledTimes(1);
   });
 
   it('throws not found when video does not exist', async () => {

@@ -1,13 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, Repository, type FindOptionsWhere } from 'typeorm';
 import {
   VideoEntity,
   VideoStatus,
   VideoVisibility,
 } from '../../domain/entities/video.entity';
 import { Category } from '../../../categories/domain/entities/category.entity';
-import type { IVideoRepository } from '../../domain/repositories/video.repository';
+import type {
+  IVideoRepository,
+  StudioVideoFilters,
+} from '../../domain/repositories/video.repository';
 import { VideoCategoryOrmEntity } from './video-category.orm-entity';
 import { VideoOrmEntity } from './video.orm-entity';
 
@@ -75,11 +78,15 @@ export class VideoRepository implements IVideoRepository {
   }
 
   async incrementViewCount(videoId: string): Promise<void> {
+    await this.incrementViewCountBy(videoId, 1);
+  }
+
+  async incrementViewCountBy(videoId: string, delta: number): Promise<void> {
     await this.ormRepository
       .createQueryBuilder()
       .update(VideoOrmEntity)
       .set({
-        viewCount: () => '"view_count" + 1',
+        viewCount: () => `"view_count" + ${delta}`,
         updatedAt: () => 'CURRENT_TIMESTAMP',
       })
       .where('id = :videoId', { videoId })
@@ -107,6 +114,37 @@ export class VideoRepository implements IVideoRepository {
       readyVideoCount: Number(row?.readyVideoCount ?? 0),
       totalVideoViews: Number(row?.totalVideoViews ?? 0),
     };
+  }
+
+  async findStudioByOwnerId(
+    ownerId: string,
+    filters: StudioVideoFilters,
+  ): Promise<VideoEntity[]> {
+    const where: FindOptionsWhere<VideoOrmEntity> = { ownerId };
+
+    if (filters.statuses && filters.statuses.length > 0) {
+      where.status = In(filters.statuses as VideoStatus[]);
+    }
+
+    if (filters.visibilities && filters.visibilities.length > 0) {
+      where.visibility = In(filters.visibilities as VideoVisibility[]);
+    }
+
+    const rows = await this.ormRepository.find({
+      where,
+      relations: {
+        videoCategories: {
+          category: true,
+        },
+      },
+      order: {
+        updatedAt: 'DESC',
+        createdAt: 'DESC',
+      },
+      take: filters.limit,
+    });
+
+    return rows.map((row) => this.toDomain(row));
   }
 
   async findPublicByChannelId(channelId: string): Promise<VideoEntity[]> {

@@ -18,18 +18,21 @@ import {
 } from '@shared/presentation/dto/api-response.dto';
 import { InternalGatewayGuard } from '@shared/presentation/guards/internal-gateway.guard';
 import { CreateChannelUseCase } from '../../application/use-cases/create-channel.use-case';
+import { GetCurrentChannelUseCase } from '../../application/use-cases/get-current-channel.use-case';
 import { GetChannelDetailUseCase } from '../../application/use-cases/get-channel-detail.use-case';
 import { GetMembershipStatusUseCase } from '../../application/use-cases/get-membership-status.use-case';
 import { UpdateChannelUseCase } from '../../application/use-cases/update-channel.use-case';
 import { CreateChannelRequestDto } from '../dtos/create-channel.request';
 import { UpdateChannelRequestDto } from '../dtos/update-channel.request';
 import { ChannelResponseDto } from '../dtos/channel.response';
+import { CurrentChannelResponseDto } from '../dtos/current-channel.response';
 import {
   ChannelDetailResponseDto,
   ChannelMembershipStatusResponseDto,
 } from '../dtos/channel-detail.response';
 import {
   toChannelDetailResponseDto,
+  toCurrentChannelResponseDto,
   toChannelMembershipStatusResponseDto,
   toChannelResponseDto,
 } from '../mappers/channel-response.mapper';
@@ -42,6 +45,7 @@ export class ChannelController {
   constructor(
     private readonly createChannelUseCase: CreateChannelUseCase,
     private readonly updateChannelUseCase: UpdateChannelUseCase,
+    private readonly getCurrentChannelUseCase: GetCurrentChannelUseCase,
     private readonly getChannelDetailUseCase: GetChannelDetailUseCase,
     private readonly getMembershipStatusUseCase: GetMembershipStatusUseCase,
   ) {}
@@ -76,6 +80,15 @@ export class ChannelController {
       bannerUrl: dto.bannerUrl,
     });
     return apiResponseContract(toChannelResponseDto(channel));
+  }
+
+  @Get('me')
+  @ApiSuccessResponse(CurrentChannelResponseDto)
+  async getCurrentChannel(
+    @CurrentUserId() userId: string,
+  ): Promise<ApiResponse<CurrentChannelResponseDto>> {
+    const result = await this.getCurrentChannelUseCase.execute({ userId });
+    return apiResponseContract(toCurrentChannelResponseDto(result));
   }
 
   @Get(':id')

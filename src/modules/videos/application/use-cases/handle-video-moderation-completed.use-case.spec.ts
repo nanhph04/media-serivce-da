@@ -23,6 +23,10 @@ describe('HandleVideoModerationCompletedUseCase', () => {
     setContext: jest.fn(),
     logInfo: jest.fn(),
   };
+  const videoProgressService = {
+    applyProgressUpdate: jest.fn(),
+    createSnapshot: jest.fn().mockImplementation((input) => input),
+  };
 
   let useCase: HandleVideoModerationCompletedUseCase;
 
@@ -35,6 +39,7 @@ describe('HandleVideoModerationCompletedUseCase', () => {
       moderationOutcomePublisher as never,
       idempotencyStore as never,
       logger as never,
+      videoProgressService as never,
     );
   });
 
@@ -74,6 +79,12 @@ describe('HandleVideoModerationCompletedUseCase', () => {
       evidenceTimestampSeconds: null,
       transcodeQueued: true,
     });
+    expect(videoProgressService.applyProgressUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        stage: 'processing',
+        percent: 5,
+      }),
+    );
   });
 
   it('marks yellow moderation result as pending manual review without transcoding', async () => {
@@ -108,6 +119,12 @@ describe('HandleVideoModerationCompletedUseCase', () => {
       evidenceTimestampSeconds: 12,
       transcodeQueued: false,
     });
+    expect(videoProgressService.applyProgressUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        stage: 'pending_manual_review',
+        terminal: true,
+      }),
+    );
   });
 
   it('marks rejected moderation result as rejected without transcoding', async () => {
@@ -142,6 +159,12 @@ describe('HandleVideoModerationCompletedUseCase', () => {
       evidenceTimestampSeconds: 45,
       transcodeQueued: false,
     });
+    expect(videoProgressService.applyProgressUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        stage: 'rejected',
+        terminal: true,
+      }),
+    );
   });
 
   it('marks technical moderation errors as failed without transcoding', async () => {
@@ -176,6 +199,12 @@ describe('HandleVideoModerationCompletedUseCase', () => {
       evidenceTimestampSeconds: null,
       transcodeQueued: false,
     });
+    expect(videoProgressService.applyProgressUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        stage: 'failed',
+        terminal: true,
+      }),
+    );
   });
 
   it('skips duplicate moderation events', async () => {

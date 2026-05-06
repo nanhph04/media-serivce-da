@@ -29,12 +29,17 @@ describe('ConfirmVideoUploadUseCase', () => {
   const videoUploadConfig = {
     getMaxVideoUploadSizeBytes: jest.fn(),
   };
+  const videoProgressService = {
+    applyProgressUpdate: jest.fn(),
+    createSnapshot: jest.fn().mockImplementation((input) => input),
+  };
 
   const useCase = new ConfirmVideoUploadUseCase(
     videoRepository as never,
     objectStorageService as never,
     videoModerationRequestPublisher as never,
     videoUploadConfig as never,
+    videoProgressService as never,
   );
 
   beforeEach(() => {
@@ -106,6 +111,7 @@ describe('ConfirmVideoUploadUseCase', () => {
       userId: 'owner-1',
     });
     expect(videoProcessingJobDispatcher.enqueueTranscodeJob).not.toHaveBeenCalled();
+    expect(videoProgressService.applyProgressUpdate).toHaveBeenCalled();
     expect(result.status).toBe(VideoStatus.PENDING_MODERATION);
   });
 

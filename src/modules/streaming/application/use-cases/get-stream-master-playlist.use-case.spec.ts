@@ -21,9 +21,6 @@ describe('GetStreamMasterPlaylistUseCase', () => {
     getMasterPlaylistKeyCacheTtlSeconds: jest.fn(),
     getRewrittenPlaylistCacheTtlSeconds: jest.fn(),
   };
-  const recordVideoViewUseCase = {
-    execute: jest.fn(),
-  };
   const videoRepository = {
     findBasicById: jest.fn(),
   };
@@ -42,11 +39,10 @@ describe('GetStreamMasterPlaylistUseCase', () => {
       textCache as never,
       streamConfig as never,
       videoRepository as never,
-      recordVideoViewUseCase as never,
     );
   });
 
-  it('records a view after loading the master playlist successfully', async () => {
+  it('returns the rewritten master playlist after loading it successfully', async () => {
     playbackTokenVerifier.verifyToken.mockReturnValue({
       videoId: 'video-1',
       userId: 'viewer-1',
@@ -63,14 +59,9 @@ describe('GetStreamMasterPlaylistUseCase', () => {
     ).resolves.toContain(
       '/api/media/stream/video-1/segments/segments%2Fsegment.ts?token=playback-token',
     );
-
-    expect(recordVideoViewUseCase.execute).toHaveBeenCalledWith({
-      userId: 'viewer-1',
-      videoId: 'video-1',
-    });
   });
 
-  it('does not record a view when the master playlist is missing', async () => {
+  it('does not return a playlist when the master playlist is missing', async () => {
     playbackTokenVerifier.verifyToken.mockReturnValue({
       videoId: 'video-1',
       userId: 'viewer-1',
@@ -84,8 +75,6 @@ describe('GetStreamMasterPlaylistUseCase', () => {
         token: 'playback-token',
       }),
     ).rejects.toThrow(NotFoundException);
-
-    expect(recordVideoViewUseCase.execute).not.toHaveBeenCalled();
   });
 
   it('reuses cached playlist data on repeated master playlist requests', async () => {

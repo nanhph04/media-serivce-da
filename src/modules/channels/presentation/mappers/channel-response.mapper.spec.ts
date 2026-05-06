@@ -1,4 +1,7 @@
-import { toChannelDetailResponseDto } from './channel-response.mapper';
+import {
+  toChannelDetailResponseDto,
+  toCurrentChannelResponseDto,
+} from './channel-response.mapper';
 
 describe('toChannelDetailResponseDto', () => {
   it('maps membership eligibility breakdown into the response dto', () => {
@@ -35,6 +38,24 @@ describe('toChannelDetailResponseDto', () => {
       totalVideoViews: 900,
       minTotalVideoViews: 1000,
       missingRequirements: ['Channel must have at least 1000 total views'],
+    });
+  });
+});
+
+describe('toCurrentChannelResponseDto', () => {
+  it('maps self channel response into dto', () => {
+    expect(
+      toCurrentChannelResponseDto({
+        channelId: 'channel-1',
+        userId: 'owner-1',
+        status: 'inactive',
+        isEligibleForMembership: true,
+      }),
+    ).toEqual({
+      channelId: 'channel-1',
+      userId: 'owner-1',
+      status: 'inactive',
+      isEligibleForMembership: true,
     });
   });
 });

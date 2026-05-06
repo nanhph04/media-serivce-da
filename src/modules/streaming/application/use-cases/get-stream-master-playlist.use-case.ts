@@ -19,7 +19,6 @@ import {
   type IVideoRepository,
   VIDEO_REPOSITORY,
 } from '../../../videos/domain/repositories/video.repository';
-import { RecordVideoViewUseCase } from '../../../engagement/application/use-cases/record-video-view.use-case';
 import { StreamingUseCaseBase } from './streaming.use-case.base';
 
 @Injectable()
@@ -35,7 +34,6 @@ export class GetStreamMasterPlaylistUseCase extends StreamingUseCaseBase {
     streamConfig: IStreamConfig,
     @Inject(VIDEO_REPOSITORY)
     videoRepository: IVideoRepository,
-    private readonly recordVideoViewUseCase: RecordVideoViewUseCase,
   ) {
     super(
       playbackTokenVerifier,
@@ -50,21 +48,14 @@ export class GetStreamMasterPlaylistUseCase extends StreamingUseCaseBase {
     videoId: string;
     token: string | undefined;
   }): Promise<string> {
-    const payload = this.verifyToken(input.videoId, input.token);
+    this.verifyToken(input.videoId, input.token);
     const masterPlaylistKey = await this.getMasterPlaylistKeyOrThrow(
       input.videoId,
     );
-    const rewrittenPlaylist = await this.getRewrittenPlaylist({
+    return this.getRewrittenPlaylist({
       videoId: input.videoId,
       token: input.token ?? '',
       objectKey: masterPlaylistKey,
     });
-
-    await this.recordVideoViewUseCase.execute({
-      userId: payload.userId,
-      videoId: payload.videoId,
-    });
-
-    return rewrittenPlaylist;
   }
 }

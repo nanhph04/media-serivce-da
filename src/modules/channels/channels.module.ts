@@ -4,6 +4,7 @@ import { ChannelAccessService } from './application/channel-access.service';
 import { CHANNEL_MEMBERSHIP_ELIGIBILITY_SERVICE } from './application/interfaces/channel-membership-eligibility.service.interface';
 import { ChannelMembershipEligibilityService } from './application/services/channel-membership-eligibility.service';
 import { CreateChannelUseCase } from './application/use-cases/create-channel.use-case';
+import { GetCurrentChannelUseCase } from './application/use-cases/get-current-channel.use-case';
 import { UpdateChannelUseCase } from './application/use-cases/update-channel.use-case';
 import { GetChannelDetailUseCase } from './application/use-cases/get-channel-detail.use-case';
 import { GetMembershipStatusUseCase } from './application/use-cases/get-membership-status.use-case';
@@ -52,6 +53,7 @@ import { MEMBERSHIP_TIER_REPOSITORY } from './domain/repositories/membership-tie
     ChannelMembershipEligibilityService,
     ChannelMembershipMapper,
     CreateChannelUseCase,
+    GetCurrentChannelUseCase,
     UpdateChannelUseCase,
     GetChannelDetailUseCase,
     GetMembershipStatusUseCase,

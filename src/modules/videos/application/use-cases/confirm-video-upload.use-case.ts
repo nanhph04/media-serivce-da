@@ -24,6 +24,7 @@ import {
 import { VIDEO_UPLOAD_RESOLUTIONS } from '../../presentation/dtos/confirm-video-upload.request';
 import type { ConfirmVideoUploadCommand } from '../dtos/confirm-video-upload.command';
 import type { ConfirmVideoUploadResponse } from '../dtos/confirm-video-upload.response';
+import { VideoProgressService } from '../services/video-progress.service';
 
 const VIDEO_UPLOAD_RESOLUTION_ORDER = new Map<string, number>(
   VIDEO_UPLOAD_RESOLUTIONS.map((resolution, index) => [resolution, index]),
@@ -43,6 +44,7 @@ export class ConfirmVideoUploadUseCase extends BaseUseCase<
     private readonly videoModerationRequestPublisher: IVideoModerationRequestPublisher,
     @Inject(VIDEO_UPLOAD_CONFIG)
     private readonly videoUploadConfig: IVideoUploadConfig,
+    private readonly videoProgressService: VideoProgressService,
   ) {
     super();
   }
@@ -100,6 +102,15 @@ export class ConfirmVideoUploadUseCase extends BaseUseCase<
       resolution: normalizedResolutions,
       userId: command.userId,
     });
+    await this.videoProgressService.applyProgressUpdate(
+      this.videoProgressService.createSnapshot({
+        videoId: video.id,
+        stage: 'pending_moderation',
+        percent: 10,
+        message: 'Video queued for moderation',
+        terminal: false,
+      }),
+    );
 
     return {
       status: video.status,

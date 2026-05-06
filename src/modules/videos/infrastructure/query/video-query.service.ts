@@ -5,6 +5,10 @@ import { CacheService } from '@shared/infrastructure/cache/cache.service';
 import { Repository } from 'typeorm';
 import type { ContinueWatchingItemResponse } from '../../application/dtos/continue-watching-item.response';
 import {
+  mapVideoEntityToStudioListItem,
+  type StudioVideoListItemResponse,
+} from '../../application/dtos/studio-video-list-item.response';
+import {
   mapVideoEntityToListItem,
   type VideoListItemResponse,
 } from '../../application/dtos/video-list-item.response';
@@ -135,6 +139,23 @@ export class VideoQueryService implements IVideoQueryService {
     );
 
     return response;
+  }
+
+  async getStudioVideos(
+    userId: string,
+    filters: {
+      limit: number;
+      statuses?: VideoStatus[];
+      visibilities?: VideoVisibility[];
+    },
+  ): Promise<StudioVideoListItemResponse[]> {
+    const videos = await this.videoRepository.findStudioByOwnerId(userId, {
+      limit: filters.limit,
+      statuses: filters.statuses,
+      visibilities: filters.visibilities,
+    });
+
+    return videos.map(mapVideoEntityToStudioListItem);
   }
 
   async getVideosByCategory(

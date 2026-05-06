@@ -16,6 +16,7 @@ describe('VideoQueryService', () => {
     findBasicById: jest.fn(),
     findById: jest.fn(),
     getChannelMembershipEligibilityMetrics: jest.fn(),
+    findStudioByOwnerId: jest.fn(),
     findPublicByChannelId: jest.fn(),
     findLatestPublic: jest.fn(),
     findByCategory: jest.fn(),
@@ -174,6 +175,51 @@ describe('VideoQueryService', () => {
       VIDEO_CACHE_TTL_SECONDS.discoveryList,
     );
     expect(cacheService.getKeys).not.toHaveBeenCalled();
+  });
+
+  it('returns studio videos directly from repository without discovery cache', async () => {
+    videoRepository.findStudioByOwnerId.mockResolvedValue([
+      buildVideo({
+        status: VideoStatus.DRAFT,
+        visibility: VideoVisibility.PRIVATE,
+      }),
+    ]);
+
+    await expect(
+      service.getStudioVideos('owner-1', {
+        limit: 20,
+        statuses: [VideoStatus.DRAFT],
+        visibilities: [VideoVisibility.PRIVATE],
+      }),
+    ).resolves.toEqual([
+      {
+        id: 'video-1',
+        channelId: 'channel-1',
+        title: 'Video',
+        description: 'Description',
+        categories: ['music'],
+        status: VideoStatus.DRAFT,
+        visibility: VideoVisibility.PRIVATE,
+        price: 0,
+        requiredTierLevel: null,
+        thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
+        durationSeconds: 120,
+        resolutions: ['720p'],
+        errorMessage: null,
+        viewCount: 10,
+        publishedAt: new Date('2026-01-01T00:00:00.000Z'),
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+      },
+    ]);
+    expect(videoRepository.findStudioByOwnerId).toHaveBeenCalledWith(
+      'owner-1',
+      {
+        limit: 20,
+        statuses: [VideoStatus.DRAFT],
+        visibilities: [VideoVisibility.PRIVATE],
+      },
+    );
   });
 
   it('switches to a versioned latest cache key when the version changes', async () => {

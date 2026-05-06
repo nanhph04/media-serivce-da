@@ -1,4 +1,4 @@
-date 27/04/2026
+date 06/05/2026
 
 MEDIA SERVICE API LIST
 Base URL: /api/media
@@ -8,6 +8,7 @@ Ghi chu chung
 - `x-user-role`: Duoc gateway/auth service set cho cac API can role.
 - `x-internal-secret`: He thong noi bo tu set khi goi qua gateway/service noi bo.
 - API co `SkipInternalGatewayGuard` la API public, khong can `x-internal-secret`.
+- Validation dang bat `whitelist + forbidNonWhitelisted + transform`.
 - Success response THUC TE duoc wrap theo envelope:
   {
     "success": true,
@@ -44,6 +45,22 @@ Ghi chu chung
 ==================================================
 2. CHANNEL APIs
 ==================================================
+
+2.0) GET /api/media/channels/me
+- Muc dich: lay channel cua user hien tai de frontend resolve `channelId` creator context.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-internal-secret`: He thong tu set
+- Ghi chu:
+  - Identity/Auth User Info KHONG chua `channelId`; frontend phai goi endpoint nay de lay.
+  - Neu user chua co channel thi tra `NOT_FOUND` / HTTP 404.
+  - Neu channel dang `inactive` hoac `suspended`, API van tra ve `status` hien tai de frontend tu xu ly.
+- Response HTTP 200:
+  - Envelope `data`:
+    - `channelId` (string)
+    - `userId` (string)
+    - `status` (string)
+    - `isEligibleForMembership` (boolean)
 
 2.1) POST /api/media/channels
 - Muc dich: tao channel moi.
@@ -110,9 +127,17 @@ Ghi chu chung
     - `userId` (string)
     - `name` (string)
     - `bio` (string)
+    - `isEligibleForMembership` (boolean)
     - `avatarUrl` (string)
     - `bannerUrl` (string)
     - `status` (string)
+    - `membershipEligibility` (object)
+      - `isEligible` (boolean)
+      - `readyVideoCount` (number)
+      - `minReadyVideoCount` (number)
+      - `totalVideoViews` (number)
+      - `minTotalVideoViews` (number)
+      - `missingRequirements` (string[])
     - `membershipTiers` (array)
       - `id` (string)
       - `channelId` (string)
@@ -132,6 +157,9 @@ Ghi chu chung
 
 2.4) GET /api/media/channels/:id/membership-status
 - Muc dich: kiem tra user hien tai co membership active trong channel hay khong.
+- Ghi chu them:
+  - Endpoint nay chi kiem tra membership theo TUNG channel.
+  - Endpoint nay KHONG phai API list active memberships cho man hinh Profile.
 - Header:
   - `x-user-id`: He thong tu set
   - `x-internal-secret`: He thong tu set
@@ -258,13 +286,47 @@ Ghi chu chung
 4. VIDEO APIs
 ==================================================
 
+4.0) GET /api/media/videos/me?limit=20&status=draft,processing&visibility=private
+- Muc dich: lay danh sach video Studio cua chinh creator hien tai, gom ca draft/private/trang thai xu ly.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-internal-secret`: He thong tu set
+- Query:
+  - `limit` (number, optional, default 20)
+  - `status` (string, optional): danh sach status phan tach bang dau phay. Gia tri hop le: `draft`, `pending_moderation`, `processing`, `pending_manual_review`, `rejected`, `ready`, `failed`
+  - `visibility` (string, optional): danh sach visibility phan tach bang dau phay. Gia tri hop le: `public`, `private`
+- He thong tu set them khi xu ly:
+  - `userId`: lay tu header `x-user-id`
+- Ghi chu:
+  - Endpoint nay chi tra video owner hien tai.
+  - Hien tai chua ho tro cursor pagination; dung `limit` + filter don gian.
+- Response HTTP 200:
+  - Envelope `data`: array, moi object gom:
+    - `id` (string)
+    - `channelId` (string)
+    - `title` (string)
+    - `description` (string)
+    - `categories` (string[])
+    - `status` (string)
+    - `visibility` (string)
+    - `price` (number)
+    - `requiredTierLevel` (number | null)
+    - `thumbnailUrl` (string | null)
+    - `durationSeconds` (number | null)
+    - `resolutions` (string[])
+    - `errorMessage` (string | null)
+    - `viewCount` (number)
+    - `publishedAt` (string ISO | null)
+    - `createdAt` (string ISO)
+    - `updatedAt` (string ISO)
+
 4.1) POST /api/media/videos/init-upload
 - Muc dich: tao video draft va tra presigned upload URL.
 - Header:
   - `x-user-id`: He thong tu set
   - `x-internal-secret`: He thong tu set
 - Body:
-  - `channelId` (string, bat buoc)
+  - `channelId` (string, optional, deprecated): backend IGNORE, channel duoc resolve tu `x-user-id`
   - `title` (string, bat buoc, max 200)
   - `description` (string, optional, default `""`)
   - `categories` (string[], optional, default `[]`)
@@ -289,7 +351,8 @@ Ghi chu chung
 - Path param:
   - `id` (string): videoId
 - Body:
-  - `resolutions` (string[], bat buoc, vi du `["360p","720p","1080p"]`)
+  - `resolutions` (string[], bat buoc, unique, 1-3 phan tu)
+  - Gia tri hop le hien tai: `480p`, `720p`, `1080p`
 - He thong tu set them khi xu ly:
   - `userId`: lay tu header `x-user-id`
 - Response HTTP 201:
@@ -325,7 +388,7 @@ Ghi chu chung
   - `id` (string): videoId
 - Body:
   - `positionSeconds` (number, bat buoc, min 0): vi tri hien tai cua video
-  - `durationSeconds` (number | null, optional, min 0): tong thoi luong video neu client/co player biet
+  - `durationSeconds` (number | null, optional, min 0): tong thoi luong video neu player biet
   - `state` (`watching` | `paused` | `completed`, optional): trang thai xem hien tai
 - He thong tu set them khi xu ly:
   - `userId`: lay tu header `x-user-id`
@@ -350,52 +413,78 @@ Ghi chu chung
     - `playbackToken` (string)
     - `playbackUrl` (string)
 
-4.6) GET /api/media/videos/continue-watching?limit=20
-- Muc dich: lay danh sach video user dang xem do de hien thi muc xem tiep.
-- Header:
-  - `x-user-id`: He thong tu set
-  - `x-internal-secret`: He thong tu set
-- Query:
-  - `limit` (number, optional, default 20)
-- He thong tu set them khi xu ly:
-  - `userId`: lay tu header `x-user-id`
-  - Neu thieu `limit` thi he thong dung `20`
-- Ghi chu:
-  - Chi lay cac ban ghi co progress chua hoan tat.
-  - Chi lay video co `status = ready` va `visibility = public`.
-- Response HTTP 200:
-  - Envelope `data`: array, moi object gom:
-    - `videoId` (string)
-    - `channelId` (string)
-    - `title` (string)
-    - `thumbnailUrl` (string | null)
-    - `durationSeconds` (number | null)
-    - `resumePositionSeconds` (number)
-    - `remainingSeconds` (number | null)
-    - `lastWatchedAt` (string ISO)
-    - `viewCount` (number)
-
-4.7) GET /api/media/videos/:id/metadata
+4.6) GET /api/media/videos/:id/metadata
 - Muc dich: lay metadata public cua video.
 - Public API: khong can `x-internal-secret`.
 - Path param:
   - `id` (string): videoId
 - Ghi chu:
-  - Chi tra video co `status = public` va `visibility = public`.
-  - Neu video khong ton tai hoac khong public thi tra `NOT_FOUND` / HTTP 404.
-  - Cache key: `video:{id}:metadata`, TTL 600s.
+  - Chi tra video public/phu hop quy tac public trong use case.
+  - Neu video khong ton tai hoac khong duoc expose thi tra `NOT_FOUND` / HTTP 404.
 - Response HTTP 200:
   - Envelope `data`:
     - `id` (string)
     - `title` (string)
     - `description` (string)
     - `thumbnailUrl` (string | null)
+    - `viewCount` (number)
     - `status` (string)
     - `visibility` (string)
+    - `errorMessage` (string | null)
     - `publishedAt` (string ISO | null)
     - `updatedAt` (string ISO)
 
-4.8) PATCH /api/media/videos/:id/metadata
+4.7) GET /api/media/videos/:id/progress
+- Muc dich: lay processing/moderation progress cua video cho owner.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-internal-secret`: He thong tu set
+- Path param:
+  - `id` (string): videoId
+- Ghi chu:
+  - API nay KHONG phai watch-progress.
+  - Chi owner cua video moi xem duoc; non-owner tra `FORBIDDEN` / HTTP 403.
+  - Stage hop le co the gom: `pending_moderation`, `moderating`, `processing`, `ready`, `pending_manual_review`, `rejected`, `failed`.
+- Response HTTP 200:
+  - Envelope `data`:
+    - `videoId` (string)
+    - `stage` (string)
+    - `percent` (number)
+    - `message` (string)
+    - `terminal` (boolean)
+    - `updatedAt` (string ISO)
+    - `detail` (object | null)
+    - `errorCode` (string | null)
+
+4.8) GET /api/media/videos/:id/progress/stream
+- Muc dich: stream processing/moderation progress real-time qua SSE cho owner.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-internal-secret`: He thong tu set
+- Path param:
+  - `id` (string): videoId
+- Ghi chu:
+  - SSE event dau tien la snapshot hien tai.
+  - Event type co the la:
+    - `snapshot`
+    - `progress`
+    - `end`
+    - `ping`
+  - `ping` duoc gui dinh ky ~15 giay.
+  - Chi owner cua video moi xem duoc; non-owner tra `FORBIDDEN` / HTTP 403.
+- Response HTTP 200:
+  - Content-Type: `text/event-stream`
+  - Event data cho `snapshot|progress|end`:
+    - `videoId` (string)
+    - `stage` (string)
+    - `percent` (number)
+    - `message` (string)
+    - `terminal` (boolean)
+    - `updatedAt` (string ISO)
+    - `detail` (object | null)
+    - `errorCode` (string | null)
+
+4.9) PATCH /api/media/videos/:id/metadata
 - Muc dich: creator cap nhat metadata cua video.
 - Header:
   - `x-user-id`: Gateway verify JWT roi tu set
@@ -405,27 +494,23 @@ Ghi chu chung
 - Body:
   - `title` (string, optional, max 200)
   - `description` (string, optional)
-  - `thumbnailUrl` (string | null, optional)
+  - `thumbnailUrl` (string | null, optional, max 500)
 - Ghi chu:
   - Chi owner duoc sua; non-owner tra `FORBIDDEN` / HTTP 403.
-  - Sau khi save chi xoa cache key `video:{id}:metadata`.
-  - Khong xoa discovery list cache; latest/by-category tu refresh theo TTL 600s.
 - Response HTTP 200:
   - Envelope `data`:
     - `id` (string)
     - `title` (string)
     - `description` (string)
     - `thumbnailUrl` (string | null)
+    - `viewCount` (number)
     - `status` (string)
     - `visibility` (string)
+    - `errorMessage` (string | null)
     - `publishedAt` (string ISO | null)
     - `updatedAt` (string ISO)
 
-4.9) GET /api/media/videos/discovery/latest?limit=20
-- Cache:
-  - Key: `media_service:videos:latest:{limit}`
-  - TTL: 600s
-  - Discovery list chap nhan eventual consistency; khong chu dong xoa khi creator sua metadata.
+4.10) GET /api/media/videos/discovery/latest?limit=20
 - Muc dich: lay danh sach video moi nhat.
 - Public API: khong can `x-internal-secret`.
 - Query:
@@ -445,20 +530,17 @@ Ghi chu chung
     - `thumbnailUrl` (string | null)
     - `durationSeconds` (number | null)
     - `resolutions` (string[])
+    - `errorMessage` (string | null)
     - `viewCount` (number)
     - `publishedAt` (string ISO | null)
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
 
-4.10) GET /api/media/videos/discovery/by-category?category=...&limit=20
-- Cache:
-  - Key: `media_service:videos:category:{category}:latest:{limit}`
-  - TTL: 600s
-  - Discovery list chap nhan eventual consistency; khong chu dong xoa khi creator sua metadata.
+4.11) GET /api/media/videos/discovery/by-category?category=...&limit=20
 - Muc dich: lay danh sach video theo category.
 - Public API: khong can `x-internal-secret`.
 - Query:
-  - `category` (string, bat buoc): slug category
+  - `category` (string, bat buoc)
   - `limit` (number, optional, default 20)
 - He thong tu set them khi xu ly:
   - Neu thieu `limit` thi he thong dung `20`
@@ -475,12 +557,13 @@ Ghi chu chung
     - `thumbnailUrl` (string | null)
     - `durationSeconds` (number | null)
     - `resolutions` (string[])
+    - `errorMessage` (string | null)
     - `viewCount` (number)
     - `publishedAt` (string ISO | null)
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
 
-4.11) GET /api/media/videos/discovery/subscribed?limit=20
+4.12) GET /api/media/videos/discovery/subscribed?limit=20
 - Muc dich: lay video tu cac channel user dang subscribe.
 - Header:
   - `x-user-id`: He thong tu set
@@ -503,10 +586,35 @@ Ghi chu chung
     - `thumbnailUrl` (string | null)
     - `durationSeconds` (number | null)
     - `resolutions` (string[])
+    - `errorMessage` (string | null)
     - `viewCount` (number)
     - `publishedAt` (string ISO | null)
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
+
+4.13) GET /api/media/videos/continue-watching?limit=20
+- Muc dich: lay danh sach video user dang xem do de hien thi muc xem tiep.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-internal-secret`: He thong tu set
+- Query:
+  - `limit` (number, optional, default 20)
+- He thong tu set them khi xu ly:
+  - `userId`: lay tu header `x-user-id`
+  - Neu thieu `limit` thi he thong dung `20`
+- Ghi chu:
+  - Chi lay cac ban ghi co progress chua hoan tat.
+- Response HTTP 200:
+  - Envelope `data`: array, moi object gom:
+    - `videoId` (string)
+    - `channelId` (string)
+    - `title` (string)
+    - `thumbnailUrl` (string | null)
+    - `durationSeconds` (number | null)
+    - `resumePositionSeconds` (number)
+    - `remainingSeconds` (number | null)
+    - `lastWatchedAt` (string ISO)
+    - `viewCount` (number)
 
 ==================================================
 5. STREAMING APIs
@@ -536,7 +644,8 @@ Ghi chu chung
 - Query:
   - `token` (string, bat buoc): He thong tu set tu API `GET /videos/:id/play` hoac refresh token
 - Response HTTP 200:
-  - Body: binary stream cua segment
+  - `Content-Type`: phu thuoc vao segment thuc te (`segment.contentType`)
+  - Body: binary stream hoac text segment
 
 ==================================================
 6. CATEGORY APIs
@@ -549,9 +658,6 @@ Ghi chu chung
   - Khong co body/query/path param.
 - Ghi chu:
   - Endpoint nay chi tra category co `status = active`.
-  - Dang dung cache active list:
-    - Key: `media_service:categories:active`
-    - TTL: 600s
 - Response HTTP 200:
   - Envelope `data`: array, moi object gom:
     - `id` (string)
@@ -571,7 +677,6 @@ Ghi chu chung
 - Request:
   - Khong co body/query/path param.
 - Ghi chu:
-  - Endpoint nay khong dung cache trong v1.
   - Neu thieu role hoac role khac `admin` thi tra `FORBIDDEN` / HTTP 403 voi message `Admin role is required`.
 - Response HTTP 200:
   - Envelope `data`: array, moi object gom:

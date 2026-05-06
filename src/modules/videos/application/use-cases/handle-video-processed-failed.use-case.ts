@@ -9,6 +9,7 @@ import {
   VIDEO_REPOSITORY,
 } from '../../domain/repositories/video.repository';
 import type { HandleVideoProcessedFailedCommand } from '../dtos/handle-video-processed-failed.command';
+import { VideoProgressService } from '../services/video-progress.service';
 
 @Injectable()
 export class HandleVideoProcessedFailedUseCase extends BaseUseCase<
@@ -20,6 +21,7 @@ export class HandleVideoProcessedFailedUseCase extends BaseUseCase<
     private readonly videoRepository: IVideoRepository,
     @Inject(IDEMPOTENCY_STORE)
     private readonly idempotencyStore: IIdempotencyStore,
+    private readonly videoProgressService: VideoProgressService,
   ) {
     super();
   }
@@ -36,6 +38,15 @@ export class HandleVideoProcessedFailedUseCase extends BaseUseCase<
 
     video.markFailed(command.data.errorMessage);
     await this.videoRepository.save(video);
+    await this.videoProgressService.applyProgressUpdate(
+      this.videoProgressService.createSnapshot({
+        videoId: command.data.videoId,
+        stage: 'failed',
+        percent: 100,
+        message: command.data.errorMessage || 'Video processing failed',
+        terminal: true,
+      }),
+    );
   }
 
   private async markEventProcessed(eventId: string): Promise<boolean> {
