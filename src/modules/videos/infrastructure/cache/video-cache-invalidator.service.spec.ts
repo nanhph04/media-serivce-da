@@ -43,5 +43,9 @@ describe('VideoCacheInvalidator', () => {
       2,
       VIDEO_CACHE_KEYS.categoryLatestVersion(),
     );
+    expect(cacheService.increment).toHaveBeenNthCalledWith(
+      3,
+      VIDEO_CACHE_KEYS.publicSearchVersion(),
+    );
   });
 });

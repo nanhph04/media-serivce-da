@@ -22,6 +22,9 @@ import {
 } from '../interfaces/video-moderation-outcome-publisher.interface';
 import { VideoProgressService } from '../services/video-progress.service';
 
+const EVENT_PROCESSED_TTL_SECONDS = 60 * 60 * 24;
+const EVENT_PROCESSING_LOCK_TTL_SECONDS = 300;
+
 @Injectable()
 export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
   HandleVideoModerationCompletedCommand,
@@ -44,10 +47,38 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
   }
 
   async execute(command: HandleVideoModerationCompletedCommand): Promise<void> {
-    if (!(await this.markEventProcessed(command.eventId))) {
+    const processedKey = this.getProcessedKey(command.eventId);
+    const processingKey = this.getProcessingKey(command.eventId);
+    if (await this.idempotencyStore.exists(processedKey)) {
       return;
     }
 
+    const hasProcessingLock = await this.idempotencyStore.setIfNotExists(
+      processingKey,
+      '1',
+      EVENT_PROCESSING_LOCK_TTL_SECONDS,
+    );
+    if (!hasProcessingLock) {
+      return;
+    }
+
+    let shouldReleaseProcessingLock = true;
+    try {
+      await this.processModerationResult(command);
+      shouldReleaseProcessingLock = false;
+      await this.markEventProcessed(processedKey);
+      await this.idempotencyStore.delete(processingKey);
+    } catch (error: unknown) {
+      if (shouldReleaseProcessingLock) {
+        await this.releaseProcessingLock(processingKey);
+      }
+      throw error;
+    }
+  }
+
+  private async processModerationResult(
+    command: HandleVideoModerationCompletedCommand,
+  ): Promise<void> {
     const video = await this.videoRepository.findById(command.data.videoId);
     if (!video) {
       return;
@@ -157,12 +188,31 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
     );
   }
 
-  private async markEventProcessed(eventId: string): Promise<boolean> {
-    return this.idempotencyStore.setIfNotExists(
-      `media:event:${eventId}`,
+  private async markEventProcessed(processedKey: string): Promise<void> {
+    await this.idempotencyStore.setIfNotExists(
+      processedKey,
       '1',
-      60 * 60 * 24,
+      EVENT_PROCESSED_TTL_SECONDS,
     );
+  }
+
+  private async releaseProcessingLock(processingKey: string): Promise<void> {
+    try {
+      await this.idempotencyStore.delete(processingKey);
+    } catch (error: unknown) {
+      this.loggerService.logWarn('Failed to release moderation event lock', {
+        processingKey,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  private getProcessedKey(eventId: string): string {
+    return `media:event:processed:${eventId}`;
+  }
+
+  private getProcessingKey(eventId: string): string {
+    return `media:event:processing:${eventId}`;
   }
 
   private async publishOutcome(

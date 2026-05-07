@@ -73,6 +73,10 @@ export class CacheService implements ITextCache, IIdempotencyStore {
     return (await this.redis.exists(key)) === 1;
   }
 
+  async delete(key: string): Promise<void> {
+    await this.del(key);
+  }
+
   async setIfNotExists(
     key: string,
     value: unknown,

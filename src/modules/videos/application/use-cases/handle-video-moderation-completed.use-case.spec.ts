@@ -14,7 +14,9 @@ describe('HandleVideoModerationCompletedUseCase', () => {
     enqueueTranscodeJob: jest.fn(),
   };
   const idempotencyStore = {
+    exists: jest.fn(),
     setIfNotExists: jest.fn(),
+    delete: jest.fn(),
   };
   const moderationOutcomePublisher = {
     publishModerationOutcome: jest.fn(),
@@ -22,6 +24,7 @@ describe('HandleVideoModerationCompletedUseCase', () => {
   const logger = {
     setContext: jest.fn(),
     logInfo: jest.fn(),
+    logWarn: jest.fn(),
   };
   const videoProgressService = {
     applyProgressUpdate: jest.fn(),
@@ -32,7 +35,17 @@ describe('HandleVideoModerationCompletedUseCase', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    idempotencyStore.exists.mockResolvedValue(false);
     idempotencyStore.setIfNotExists.mockResolvedValue(true);
+    idempotencyStore.delete.mockResolvedValue(undefined);
+    videoRepository.save.mockResolvedValue(undefined);
+    videoProcessingJobDispatcher.enqueueTranscodeJob.mockResolvedValue(
+      undefined,
+    );
+    moderationOutcomePublisher.publishModerationOutcome.mockResolvedValue(
+      undefined,
+    );
+    videoProgressService.applyProgressUpdate.mockResolvedValue(undefined);
     useCase = new HandleVideoModerationCompletedUseCase(
       videoRepository as never,
       videoProcessingJobDispatcher as never,
@@ -84,6 +97,26 @@ describe('HandleVideoModerationCompletedUseCase', () => {
         stage: 'processing',
         percent: 5,
       }),
+    );
+    expect(idempotencyStore.setIfNotExists).toHaveBeenNthCalledWith(
+      1,
+      'media:event:processing:event-1',
+      '1',
+      300,
+    );
+    expect(idempotencyStore.setIfNotExists).toHaveBeenNthCalledWith(
+      2,
+      'media:event:processed:event-1',
+      '1',
+      60 * 60 * 24,
+    );
+    expect(idempotencyStore.delete).toHaveBeenCalledWith(
+      'media:event:processing:event-1',
+    );
+    expect(
+      videoProgressService.applyProgressUpdate.mock.invocationCallOrder[0],
+    ).toBeLessThan(
+      idempotencyStore.setIfNotExists.mock.invocationCallOrder[1],
     );
   });
 
@@ -208,6 +241,30 @@ describe('HandleVideoModerationCompletedUseCase', () => {
   });
 
   it('skips duplicate moderation events', async () => {
+    idempotencyStore.exists.mockResolvedValue(true);
+
+    await useCase.execute({
+      eventId: 'event-1',
+      data: {
+        videoId: 'video-1',
+        status: 'SAFE',
+        isSafe: true,
+        reason: 'safe',
+        confidence: 0.1,
+        evidenceTimestampSeconds: null,
+        rawFileKey: 'uploads/raw/channel-1/video.mp4',
+        resolutions: ['720p'],
+        userId: 'owner-1',
+      },
+    });
+
+    expect(videoRepository.findById).not.toHaveBeenCalled();
+    expect(videoProcessingJobDispatcher.enqueueTranscodeJob).not.toHaveBeenCalled();
+    expect(moderationOutcomePublisher.publishModerationOutcome).not.toHaveBeenCalled();
+    expect(idempotencyStore.setIfNotExists).not.toHaveBeenCalled();
+  });
+
+  it('skips events that are already being processed', async () => {
     idempotencyStore.setIfNotExists.mockResolvedValue(false);
 
     await useCase.execute({
@@ -228,6 +285,96 @@ describe('HandleVideoModerationCompletedUseCase', () => {
     expect(videoRepository.findById).not.toHaveBeenCalled();
     expect(videoProcessingJobDispatcher.enqueueTranscodeJob).not.toHaveBeenCalled();
     expect(moderationOutcomePublisher.publishModerationOutcome).not.toHaveBeenCalled();
+    expect(idempotencyStore.delete).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {
+      name: 'enqueue failure',
+      fail: () => {
+        videoProcessingJobDispatcher.enqueueTranscodeJob.mockRejectedValueOnce(
+          new Error('queue down'),
+        );
+      },
+    },
+    {
+      name: 'outcome publish failure',
+      fail: () => {
+        moderationOutcomePublisher.publishModerationOutcome.mockRejectedValueOnce(
+          new Error('kafka down'),
+        );
+      },
+    },
+    {
+      name: 'progress update failure',
+      fail: () => {
+        videoProgressService.applyProgressUpdate.mockRejectedValueOnce(
+          new Error('redis down'),
+        );
+      },
+    },
+  ])(
+    'releases processing lock and does not mark processed on $name',
+    async ({ fail }) => {
+      videoRepository.findById.mockResolvedValue(buildVideo());
+      fail();
+
+      await expect(
+        useCase.execute({
+          eventId: 'event-1',
+          data: {
+            videoId: 'video-1',
+            status: 'SAFE',
+            isSafe: true,
+            reason: 'safe',
+            confidence: 0.1,
+            evidenceTimestampSeconds: null,
+            rawFileKey: 'uploads/raw/channel-1/video.mp4',
+            resolutions: ['720p'],
+            userId: 'owner-1',
+          },
+        }),
+      ).rejects.toThrow();
+
+      expect(idempotencyStore.setIfNotExists).toHaveBeenCalledTimes(1);
+      expect(idempotencyStore.setIfNotExists).toHaveBeenCalledWith(
+        'media:event:processing:event-1',
+        '1',
+        300,
+      );
+      expect(idempotencyStore.delete).toHaveBeenCalledWith(
+        'media:event:processing:event-1',
+      );
+    },
+  );
+
+  it('keeps processing lock when processed marker cannot be written', async () => {
+    videoRepository.findById.mockResolvedValue(buildVideo());
+    idempotencyStore.setIfNotExists
+      .mockResolvedValueOnce(true)
+      .mockRejectedValueOnce(new Error('redis down'));
+
+    await expect(
+      useCase.execute({
+        eventId: 'event-1',
+        data: {
+          videoId: 'video-1',
+          status: 'SAFE',
+          isSafe: true,
+          reason: 'safe',
+          confidence: 0.1,
+          evidenceTimestampSeconds: null,
+          rawFileKey: 'uploads/raw/channel-1/video.mp4',
+          resolutions: ['720p'],
+          userId: 'owner-1',
+        },
+      }),
+    ).rejects.toThrow('redis down');
+
+    expect(videoProcessingJobDispatcher.enqueueTranscodeJob).toHaveBeenCalled();
+    expect(moderationOutcomePublisher.publishModerationOutcome).toHaveBeenCalled();
+    expect(videoProgressService.applyProgressUpdate).toHaveBeenCalled();
+    expect(idempotencyStore.delete).not.toHaveBeenCalled();
   });
 });
 

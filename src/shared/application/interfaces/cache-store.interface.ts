@@ -7,9 +7,11 @@ export interface ITextCache {
 }
 
 export interface IIdempotencyStore {
+  exists(key: string): Promise<boolean>;
   setIfNotExists(
     key: string,
     value: string,
     ttlSeconds?: number,
   ): Promise<boolean>;
+  delete(key: string): Promise<void>;
 }

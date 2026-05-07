@@ -126,10 +126,14 @@ export class UpdateVideoProgressUseCase extends BaseUseCase<
     const minPercent = this.videoViewConfig.getVideoViewMinPercent();
     const percentThreshold =
       durationSeconds !== null ? (durationSeconds * minPercent) / 100 : null;
-    const thresholdSeconds =
+    const requiredSeconds =
       percentThreshold !== null
-        ? Math.min(minSeconds, percentThreshold)
+        ? Math.max(minSeconds, percentThreshold)
         : minSeconds;
+    const thresholdSeconds =
+      durationSeconds !== null
+        ? Math.min(requiredSeconds, durationSeconds)
+        : requiredSeconds;
 
     return positionSeconds >= Math.max(thresholdSeconds, 0);
   }

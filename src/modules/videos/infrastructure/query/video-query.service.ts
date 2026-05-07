@@ -206,7 +206,11 @@ export class VideoQueryService implements IVideoQueryService {
   async searchPublicVideos(
     query: SearchPublicVideosQuery,
   ): Promise<VideoListItemResponse[]> {
+    const version = await this.getCacheVersion(
+      VIDEO_CACHE_KEYS.publicSearchVersion(),
+    );
     const cacheKey = VIDEO_CACHE_KEYS.publicSearch(
+      version,
       query.q,
       query.category,
       query.limit,

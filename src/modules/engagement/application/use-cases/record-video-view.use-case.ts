@@ -35,26 +35,35 @@ export class RecordVideoViewUseCase {
       return;
     }
 
-    await this.eventPublisher.emit(
-      this.videoViewConfig.getVideoViewTopic(),
-      [
-        {
-          key: input.videoId,
-          value: {
-            eventId: crypto.randomUUID(),
-            eventType: 'video.viewed',
-            aggregateId: input.videoId,
-            timestamp: new Date().toISOString(),
-            version: 1,
-            traceId: crypto.randomUUID(),
-            sourceService: 'media-service',
-            data: {
-              videoId: input.videoId,
-              userId: input.userId,
+    try {
+      await this.eventPublisher.emit(
+        this.videoViewConfig.getVideoViewTopic(),
+        [
+          {
+            key: input.videoId,
+            value: {
+              eventId: crypto.randomUUID(),
+              eventType: 'video.viewed',
+              aggregateId: input.videoId,
+              timestamp: new Date().toISOString(),
+              version: 1,
+              traceId: crypto.randomUUID(),
+              sourceService: 'media-service',
+              data: {
+                videoId: input.videoId,
+                userId: input.userId,
+              },
             },
           },
-        },
-      ],
-    );
+        ],
+      );
+    } catch (error: unknown) {
+      try {
+        await this.idempotencyStore.delete(dedupeKey);
+      } catch {
+        // Preserve the original publish failure for retry decisions upstream.
+      }
+      throw error;
+    }
   }
 }

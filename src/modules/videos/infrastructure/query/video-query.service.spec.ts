@@ -237,7 +237,7 @@ describe('VideoQueryService', () => {
   });
 
   it('searches public videos by keyword and category with short-lived cache', async () => {
-    cacheService.get.mockResolvedValue(null);
+    cacheService.get.mockResolvedValueOnce(4).mockResolvedValueOnce(null);
     videoRepository.searchPublic.mockResolvedValue([buildVideo()]);
 
     await expect(
@@ -273,14 +273,16 @@ describe('VideoQueryService', () => {
       limit: 5,
     });
     expect(cacheService.set).toHaveBeenCalledWith(
-      VIDEO_CACHE_KEYS.publicSearch('piano', 'music', 5),
+      VIDEO_CACHE_KEYS.publicSearch(4, 'piano', 'music', 5),
       [buildCachedListItem()],
       VIDEO_CACHE_TTL_SECONDS.publicSearch,
     );
   });
 
   it('returns search results from cache without querying repository', async () => {
-    cacheService.get.mockResolvedValue([buildCachedListItem()]);
+    cacheService.get
+      .mockResolvedValueOnce(2)
+      .mockResolvedValueOnce([buildCachedListItem()]);
 
     const result = await service.searchPublicVideos({
       q: 'piano',
@@ -289,6 +291,14 @@ describe('VideoQueryService', () => {
 
     expect(result[0].updatedAt).toEqual(new Date('2026-01-02T00:00:00.000Z'));
     expect(videoRepository.searchPublic).not.toHaveBeenCalled();
+    expect(cacheService.get).toHaveBeenNthCalledWith(
+      1,
+      VIDEO_CACHE_KEYS.publicSearchVersion(),
+    );
+    expect(cacheService.get).toHaveBeenNthCalledWith(
+      2,
+      VIDEO_CACHE_KEYS.publicSearch(2, 'piano', undefined, 3),
+    );
   });
 
   it('returns studio videos directly from repository without discovery cache', async () => {

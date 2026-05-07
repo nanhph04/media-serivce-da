@@ -1,12 +1,12 @@
-import type { EachMessagePayload } from 'kafkajs';
+import type { Admin, Consumer, EachMessagePayload, Producer } from 'kafkajs';
 import {
   Injectable,
   OnApplicationBootstrap,
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
-import { Kafka, Producer, Consumer, Admin } from 'kafkajs';
-import type { IKafkaConfig } from '../../application/interfaces/kafka-config.interface';
+import { Kafka } from 'kafkajs';
+import type { IKafkaModuleOptions } from '../../application/interfaces/kafka-config.interface';
 import { LoggerService } from '../logger/logger.service';
 import type { IEventPublisher } from '../../application/interfaces/event-publisher.interface';
 
@@ -34,7 +34,7 @@ export class KafkaService
   >();
 
   constructor(
-    private readonly config: IKafkaConfig,
+    private readonly config: IKafkaModuleOptions,
     private readonly logger: LoggerService,
   ) {
     this.kafka = new Kafka({
@@ -44,6 +44,12 @@ export class KafkaService
   }
 
   async onModuleInit(): Promise<void> {
+    if (!this.isEnabled()) {
+      this.logger.setContext('KafkaService');
+      this.logger.logInfo('Kafka disabled, skipping connection');
+      return;
+    }
+
     await this.connectProducer();
     await this.connectConsumer();
     await this.connectAdmin();
@@ -51,10 +57,18 @@ export class KafkaService
   }
 
   async onApplicationBootstrap(): Promise<void> {
+    if (!this.isEnabled()) {
+      return;
+    }
+
     await this.startConsumerRun();
   }
 
   async onModuleDestroy(): Promise<void> {
+    if (!this.isEnabled()) {
+      return;
+    }
+
     await this.disconnectProducer();
     await this.disconnectConsumer();
     await this.disconnectAdmin();
@@ -137,6 +151,15 @@ export class KafkaService
     topic: string,
     messages: Array<{ key?: string; value: T }>,
   ): Promise<void> {
+    if (!this.isEnabled()) {
+      this.logger.setContext('KafkaService');
+      this.logger.logWarn('Kafka disabled, skipping emit', {
+        topic,
+        messageCount: messages.length,
+      });
+      return;
+    }
+
     if (!this.producer) {
       throw new Error('Kafka producer not initialized');
     }
@@ -161,6 +184,12 @@ export class KafkaService
       headers: Record<string, string>;
     }) => Promise<void>,
   ): Promise<void> {
+    if (!this.isEnabled()) {
+      this.logger.setContext('KafkaService');
+      this.logger.logWarn('Kafka disabled, skipping subscription', { topic });
+      return;
+    }
+
     if (!this.consumer || !this.config.consumer) {
       throw new Error('Kafka consumer not configured');
     }
@@ -307,5 +336,9 @@ export class KafkaService
           error instanceof Error ? error.message : 'Unknown Kafka admin error',
       });
     }
+  }
+
+  private isEnabled(): boolean {
+    return this.config.enable;
   }
 }

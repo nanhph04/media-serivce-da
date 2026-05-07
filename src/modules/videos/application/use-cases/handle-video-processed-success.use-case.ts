@@ -12,8 +12,14 @@ import {
   type IVideoRepository,
   VIDEO_REPOSITORY,
 } from '../../domain/repositories/video.repository';
+import { VideoStatus } from '../../domain/entities/video.entity';
 import type { HandleVideoProcessedSuccessCommand } from '../dtos/handle-video-processed-success.command';
 import { VideoProgressService } from '../services/video-progress.service';
+import { LoggerService } from '@shared/infrastructure/logger/logger.service';
+import {
+  type IVideoCacheInvalidator,
+  VIDEO_CACHE_INVALIDATOR,
+} from '../interfaces/video-cache-invalidator.interface';
 
 @Injectable()
 export class HandleVideoProcessedSuccessUseCase extends BaseUseCase<
@@ -28,8 +34,12 @@ export class HandleVideoProcessedSuccessUseCase extends BaseUseCase<
     @Inject(IDEMPOTENCY_STORE)
     private readonly idempotencyStore: IIdempotencyStore,
     private readonly videoProgressService: VideoProgressService,
+    private readonly loggerService: LoggerService,
+    @Inject(VIDEO_CACHE_INVALIDATOR)
+    private readonly videoCacheInvalidator: IVideoCacheInvalidator,
   ) {
     super();
+    this.loggerService.setContext(HandleVideoProcessedSuccessUseCase.name);
   }
 
   async execute(command: HandleVideoProcessedSuccessCommand): Promise<void> {
@@ -42,6 +52,15 @@ export class HandleVideoProcessedSuccessUseCase extends BaseUseCase<
       return;
     }
 
+    if (video.status !== VideoStatus.PROCESSING) {
+      this.loggerService.logWarn('Ignoring stale video processed success event', {
+        eventId: command.eventId,
+        videoId: command.data.videoId,
+        currentStatus: video.status,
+      });
+      return;
+    }
+
     video.markReady({
       masterPlaylistKey: command.data.masterPlaylistKey,
       durationSeconds: command.data.durationSeconds ?? null,
@@ -50,6 +69,8 @@ export class HandleVideoProcessedSuccessUseCase extends BaseUseCase<
     });
 
     await this.videoRepository.save(video);
+    await this.videoCacheInvalidator.invalidateMetadata(video.id);
+    await this.videoCacheInvalidator.invalidateDiscoveryLists();
     await this.channelMembershipEligibilityService.syncChannelEligibility(
       video.channelId,
     );

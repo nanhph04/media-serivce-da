@@ -142,6 +142,112 @@ describe('UpdateVideoProgressUseCase', () => {
     expect(recordVideoViewUseCase.execute).not.toHaveBeenCalled();
   });
 
+  it('does not record a view at min seconds when long video percent threshold is higher', async () => {
+    videoRepository.findBasicById.mockResolvedValue(
+      buildVideo({ durationSeconds: 600 }),
+    );
+    watchProgressRepository.findByUserIdAndVideoId.mockResolvedValue(null);
+    watchProgressRepository.save.mockResolvedValue(undefined);
+    videoWatchAccessService.assertCanWatch.mockResolvedValue(undefined);
+
+    await useCase.execute({
+      userId: 'viewer-1',
+      videoId: 'video-1',
+      positionSeconds: 10,
+      durationSeconds: 600,
+      state: 'watching',
+    });
+
+    expect(recordVideoViewUseCase.execute).not.toHaveBeenCalled();
+  });
+
+  it('records a view when long video percent threshold is reached', async () => {
+    videoRepository.findBasicById.mockResolvedValue(
+      buildVideo({ durationSeconds: 600 }),
+    );
+    watchProgressRepository.findByUserIdAndVideoId.mockResolvedValue(null);
+    watchProgressRepository.save.mockResolvedValue(undefined);
+    videoWatchAccessService.assertCanWatch.mockResolvedValue(undefined);
+
+    await useCase.execute({
+      userId: 'viewer-1',
+      videoId: 'video-1',
+      positionSeconds: 120,
+      durationSeconds: 600,
+      state: 'watching',
+    });
+
+    expect(recordVideoViewUseCase.execute).toHaveBeenCalledWith({
+      userId: 'viewer-1',
+      videoId: 'video-1',
+    });
+  });
+
+  it('uses min seconds when percent threshold is lower', async () => {
+    videoRepository.findBasicById.mockResolvedValue(
+      buildVideo({ durationSeconds: 30 }),
+    );
+    watchProgressRepository.findByUserIdAndVideoId.mockResolvedValue(null);
+    watchProgressRepository.save.mockResolvedValue(undefined);
+    videoWatchAccessService.assertCanWatch.mockResolvedValue(undefined);
+
+    await useCase.execute({
+      userId: 'viewer-1',
+      videoId: 'video-1',
+      positionSeconds: 10,
+      durationSeconds: 30,
+      state: 'watching',
+    });
+
+    expect(recordVideoViewUseCase.execute).toHaveBeenCalledWith({
+      userId: 'viewer-1',
+      videoId: 'video-1',
+    });
+  });
+
+  it('caps threshold at duration for videos shorter than min seconds', async () => {
+    videoRepository.findBasicById.mockResolvedValue(
+      buildVideo({ durationSeconds: 5 }),
+    );
+    watchProgressRepository.findByUserIdAndVideoId.mockResolvedValue(null);
+    watchProgressRepository.save.mockResolvedValue(undefined);
+    videoWatchAccessService.assertCanWatch.mockResolvedValue(undefined);
+
+    await useCase.execute({
+      userId: 'viewer-1',
+      videoId: 'video-1',
+      positionSeconds: 5,
+      durationSeconds: 5,
+      state: 'watching',
+    });
+
+    expect(recordVideoViewUseCase.execute).toHaveBeenCalledWith({
+      userId: 'viewer-1',
+      videoId: 'video-1',
+    });
+  });
+
+  it('falls back to min seconds when duration is unknown', async () => {
+    videoRepository.findBasicById.mockResolvedValue(
+      buildVideo({ durationSeconds: null }),
+    );
+    watchProgressRepository.findByUserIdAndVideoId.mockResolvedValue(null);
+    watchProgressRepository.save.mockResolvedValue(undefined);
+    videoWatchAccessService.assertCanWatch.mockResolvedValue(undefined);
+
+    await useCase.execute({
+      userId: 'viewer-1',
+      videoId: 'video-1',
+      positionSeconds: 10,
+      state: 'watching',
+    });
+
+    expect(recordVideoViewUseCase.execute).toHaveBeenCalledWith({
+      userId: 'viewer-1',
+      videoId: 'video-1',
+    });
+  });
+
   it('does not fail progress persistence when view recording fails', async () => {
     videoRepository.findBasicById.mockResolvedValue(buildVideo());
     watchProgressRepository.findByUserIdAndVideoId.mockResolvedValue(null);
@@ -179,7 +285,9 @@ describe('UpdateVideoProgressUseCase', () => {
   });
 });
 
-function buildVideo(): VideoEntity {
+function buildVideo(
+  overrides: Partial<{ durationSeconds: number | null }> = {},
+): VideoEntity {
   return new VideoEntity({
     id: 'video-1',
     channelId: 'channel-1',
@@ -194,7 +302,10 @@ function buildVideo(): VideoEntity {
     rawFileKey: 'raw/video.mp4',
     masterPlaylistKey: 'processed/master.m3u8',
     thumbnailUrl: null,
-    durationSeconds: 120,
+    durationSeconds:
+      overrides.durationSeconds === undefined
+        ? 120
+        : overrides.durationSeconds,
     resolutions: ['720p'],
     errorMessage: null,
     viewCount: 0,
