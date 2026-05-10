@@ -7,6 +7,7 @@ import type {
 import type { ChannelResponseDto } from '../dtos/channel.response';
 import type { CurrentChannelResponseDto } from '../dtos/current-channel.response';
 import type { MembershipTierResponseDto } from '../dtos/membership-tier.response';
+import type { MyMembershipItemResponseDto } from '../dtos/my-membership-item.response';
 
 interface ChannelResponseSource {
   id: string;
@@ -65,6 +66,24 @@ interface CurrentChannelResponseSource {
   status: string;
   isEligibleForMembership: boolean;
   isMembershipClosedByAdmin: boolean;
+}
+
+interface MyMembershipItemResponseSource {
+  membershipId: string;
+  channelId: string;
+  channelName: string;
+  channelAvatarUrl: string | null;
+  tierId: string;
+  tierName: string;
+  tierLevel: number;
+  priceCoin: number;
+  startedAt: Date;
+  expiryDate: Date | null;
+  isActive: boolean;
+  canRenew: boolean;
+  canUpgrade: boolean;
+  isMembershipClosedByAdmin: boolean;
+  membershipBlockedReason: string | null;
 }
 
 export function toChannelResponseDto(
@@ -155,5 +174,27 @@ export function toCurrentChannelResponseDto(
     status: source.status,
     isEligibleForMembership: source.isEligibleForMembership,
     isMembershipClosedByAdmin: source.isMembershipClosedByAdmin,
+  };
+}
+
+export function toMyMembershipItemResponseDto(
+  source: MyMembershipItemResponseSource,
+): MyMembershipItemResponseDto {
+  return {
+    membershipId: source.membershipId,
+    channelId: source.channelId,
+    channelName: source.channelName,
+    channelAvatarUrl: source.channelAvatarUrl,
+    tierId: source.tierId,
+    tierName: source.tierName,
+    tierLevel: source.tierLevel,
+    priceCoin: source.priceCoin,
+    startedAt: source.startedAt.toISOString(),
+    expiryDate: source.expiryDate?.toISOString() ?? null,
+    isActive: source.isActive,
+    canRenew: source.canRenew,
+    canUpgrade: source.canUpgrade,
+    isMembershipClosedByAdmin: source.isMembershipClosedByAdmin,
+    membershipBlockedReason: source.membershipBlockedReason,
   };
 }

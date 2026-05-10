@@ -40,7 +40,7 @@ describe('LoggerInterceptor', () => {
   it('does not include body for streaming routes', () => {
     const context = createContext({
       method: 'GET',
-      url: '/api/media/stream/video-1/master.m3u8',
+      url: '/api/media/stream/video-1/master.m3u8?token=secret-token',
       body: {
         token: 'secret-token',
       },
@@ -48,11 +48,13 @@ describe('LoggerInterceptor', () => {
 
     interceptor.intercept(context as ExecutionContext, createNext());
 
-    expect(logger.logInfo).toHaveBeenCalledWith(
+    expect(logger.logInfo).not.toHaveBeenCalledWith(
       'Incoming request',
-      expect.not.objectContaining({
-        body: expect.anything(),
-      }),
+      expect.anything(),
+    );
+    expect(logger.logInfo).not.toHaveBeenCalledWith(
+      'Response sent',
+      expect.anything(),
     );
   });
 
@@ -74,6 +76,23 @@ describe('LoggerInterceptor', () => {
           truncated: true,
           originalSize: expect.any(Number),
         }),
+      }),
+    );
+  });
+
+  it('redacts token when logging non-stream routes', () => {
+    const context = createContext({
+      method: 'POST',
+      url: '/api/media/videos/video-1/playback-token/refresh?token=secret-token',
+      body: {},
+    });
+
+    interceptor.intercept(context as ExecutionContext, createNext());
+
+    expect(logger.logInfo).toHaveBeenCalledWith(
+      'Incoming request',
+      expect.objectContaining({
+        url: '/api/media/videos/video-1/playback-token/refresh?token=%5Bredacted%5D',
       }),
     );
   });

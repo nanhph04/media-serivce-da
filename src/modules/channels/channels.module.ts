@@ -8,6 +8,7 @@ import { GetCurrentChannelUseCase } from './application/use-cases/get-current-ch
 import { UpdateChannelUseCase } from './application/use-cases/update-channel.use-case';
 import { GetChannelDetailUseCase } from './application/use-cases/get-channel-detail.use-case';
 import { GetMembershipStatusUseCase } from './application/use-cases/get-membership-status.use-case';
+import { GetMyMembershipsUseCase } from './application/use-cases/get-my-memberships.use-case';
 import { CreateMembershipTierUseCase } from './application/use-cases/create-membership-tier.use-case';
 import { GetMembershipTiersUseCase } from './application/use-cases/get-membership-tiers.use-case';
 import { GetMembershipTierUseCase } from './application/use-cases/get-membership-tier.use-case';
@@ -16,6 +17,7 @@ import { DisableMembershipTierUseCase } from './application/use-cases/disable-me
 import { HandleMembershipPaymentSuccessUseCase } from './application/use-cases/handle-membership-payment-success.use-case';
 import { ModerateChannelMembershipUseCase } from './application/use-cases/moderate-channel-membership.use-case';
 import { ChannelController } from './presentation/controllers/channel.controller';
+import { MembershipController } from './presentation/controllers/membership.controller';
 import { MembershipTierController } from './presentation/controllers/membership-tier.controller';
 import { CHANNEL_SEARCH_QUERY_SERVICE } from './application/interfaces/channel-search-query.service.interface';
 import { ChannelRepositoryImpl } from './infrastructure/persistence/channel.repository.impl';
@@ -28,6 +30,7 @@ import { ChannelMembershipMapper } from './infrastructure/mappers/channel-member
 import { MembershipPaymentConsumer } from './infrastructure/consumers/membership-payment.consumer';
 import { MembershipCoinCompensationPublisher } from './infrastructure/messaging/membership-coin-compensation.publisher';
 import { ChannelSearchQueryService } from './infrastructure/query/channel-search-query.service';
+import { UserMembershipQueryService } from './infrastructure/query/user-membership-query.service';
 import { ConfigModule } from '@shared/infrastructure/config/config.module';
 import { ConfigService } from '@shared/infrastructure/config/config.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -38,6 +41,7 @@ import { CHANNEL_REPOSITORY } from './domain/repositories/channel.repository';
 import { CHANNEL_MEMBERSHIP_REPOSITORY } from './domain/repositories/channel-membership.repository';
 import { MEMBERSHIP_TIER_REPOSITORY } from './domain/repositories/membership-tier.repository';
 import { MEMBERSHIP_COIN_COMPENSATION_PUBLISHER } from './application/interfaces/membership-coin-compensation.publisher.interface';
+import { USER_MEMBERSHIP_QUERY_SERVICE } from './application/interfaces/user-membership-query.service.interface';
 
 @Module({
   imports: [
@@ -49,12 +53,13 @@ import { MEMBERSHIP_COIN_COMPENSATION_PUBLISHER } from './application/interfaces
       MembershipTierOrmEntity,
     ]),
   ],
-  controllers: [ChannelController, MembershipTierController],
+  controllers: [ChannelController, MembershipController, MembershipTierController],
   providers: [
     ChannelRepositoryImpl,
     ChannelMembershipRepositoryImpl,
     MembershipTierRepositoryImpl,
     ChannelSearchQueryService,
+    UserMembershipQueryService,
     ChannelAccessService,
     ChannelMembershipEligibilityService,
     ChannelMembershipMapper,
@@ -63,6 +68,7 @@ import { MEMBERSHIP_COIN_COMPENSATION_PUBLISHER } from './application/interfaces
     UpdateChannelUseCase,
     GetChannelDetailUseCase,
     GetMembershipStatusUseCase,
+    GetMyMembershipsUseCase,
     CreateMembershipTierUseCase,
     GetMembershipTiersUseCase,
     GetMembershipTierUseCase,
@@ -99,6 +105,10 @@ import { MEMBERSHIP_COIN_COMPENSATION_PUBLISHER } from './application/interfaces
     {
       provide: CHANNEL_SEARCH_QUERY_SERVICE,
       useExisting: ChannelSearchQueryService,
+    },
+    {
+      provide: USER_MEMBERSHIP_QUERY_SERVICE,
+      useExisting: UserMembershipQueryService,
     },
     {
       provide: CHANNEL_MEMBERSHIP_ELIGIBILITY_SERVICE,

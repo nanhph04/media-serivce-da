@@ -6,6 +6,7 @@ import { EngagementModule } from '../engagement/engagement.module';
 import { ConfirmVideoUploadUseCase } from './application/use-cases/confirm-video-upload.use-case';
 import { GetContinueWatchingUseCase } from './application/use-cases/get-continue-watching.use-case';
 import { GetLatestVideosUseCase } from './application/use-cases/get-latest-videos.use-case';
+import { GetPurchasedVideosUseCase } from './application/use-cases/get-purchased-videos.use-case';
 import { GetStudioVideosUseCase } from './application/use-cases/get-studio-videos.use-case';
 import { GetSubscribedVideosUseCase } from './application/use-cases/get-subscribed-videos.use-case';
 import { GetVideoMetadataUseCase } from './application/use-cases/get-video-metadata.use-case';
@@ -91,6 +92,7 @@ import { VideoProgressService } from './application/services/video-progress.serv
     GetVideoMetadataUseCase,
     UpdateVideoMetadataUseCase,
     GetLatestVideosUseCase,
+    GetPurchasedVideosUseCase,
     GetStudioVideosUseCase,
     GetVideosByCategoryUseCase,
     GetSubscribedVideosUseCase,

@@ -27,6 +27,9 @@ describe('VideosController', () => {
   const getLatestVideosUseCase = {
     execute: jest.fn(),
   };
+  const getPurchasedVideosUseCase = {
+    execute: jest.fn(),
+  };
   const getStudioVideosUseCase = {
     execute: jest.fn(),
   };
@@ -56,6 +59,7 @@ describe('VideosController', () => {
     refreshPlaybackTokenUseCase as never,
     getContinueWatchingUseCase as never,
     getLatestVideosUseCase as never,
+    getPurchasedVideosUseCase as never,
     getStudioVideosUseCase as never,
     getVideosByCategoryUseCase as never,
     getSubscribedVideosUseCase as never,
@@ -262,6 +266,96 @@ describe('VideosController', () => {
         total: 25,
         totalPages: 3,
       },
+    });
+  });
+
+  it('returns paginated purchased videos for the current user', async () => {
+    getPurchasedVideosUseCase.execute.mockResolvedValue({
+      items: [
+        {
+          id: 'video-1',
+          channelId: 'channel-1',
+          title: 'Premium Video',
+          description: 'Description',
+          categories: ['music'],
+          status: VideoStatus.READY,
+          price: 500,
+          requiredTierLevel: null,
+          thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
+          durationSeconds: 120,
+          resolutions: ['720p'],
+          errorMessage: null,
+          viewCount: 10,
+          publishedAt: new Date('2026-01-01T00:00:00.000Z'),
+          createdAt: new Date('2026-01-01T00:00:00.000Z'),
+          updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+        },
+      ],
+      pagination: {
+        page: 2,
+        limit: 10,
+        total: 25,
+        totalPages: 3,
+      },
+    });
+
+    const result = await controller.purchased('viewer-1', '2', '10');
+
+    expect(getPurchasedVideosUseCase.execute).toHaveBeenCalledWith({
+      userId: 'viewer-1',
+      page: 2,
+      limit: 10,
+    });
+    expect(result).toEqual({
+      success: true,
+      code: 200,
+      data: [
+        {
+          id: 'video-1',
+          channelId: 'channel-1',
+          title: 'Premium Video',
+          description: 'Description',
+          categories: ['music'],
+          status: VideoStatus.READY,
+          price: 500,
+          requiredTierLevel: null,
+          thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
+          durationSeconds: 120,
+          resolutions: ['720p'],
+          errorMessage: null,
+          viewCount: 10,
+          publishedAt: '2026-01-01T00:00:00.000Z',
+          createdAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-02T00:00:00.000Z',
+        },
+      ],
+      mess: undefined,
+      pagination: {
+        page: 2,
+        limit: 10,
+        total: 25,
+        totalPages: 3,
+      },
+    });
+  });
+
+  it('uses default page and clamps limit for purchased videos', async () => {
+    getPurchasedVideosUseCase.execute.mockResolvedValue({
+      items: [],
+      pagination: {
+        page: 1,
+        limit: 50,
+        total: 0,
+        totalPages: 0,
+      },
+    });
+
+    await controller.purchased('viewer-1', undefined, '999');
+
+    expect(getPurchasedVideosUseCase.execute).toHaveBeenCalledWith({
+      userId: 'viewer-1',
+      page: 1,
+      limit: 50,
     });
   });
 

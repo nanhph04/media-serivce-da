@@ -8,10 +8,8 @@ import {
   CHANNEL_REPOSITORY,
   type IChannelRepository,
 } from '../../domain/repositories/channel.repository';
-import {
-  MEMBERSHIP_BLOCKED_REASON,
-  type MembershipBlockedReason,
-} from '../interfaces/membership-coin-compensation.publisher.interface';
+import type { MembershipBlockedReason } from '../interfaces/membership-coin-compensation.publisher.interface';
+import { resolveMembershipState } from '../services/membership-state.service';
 
 interface GetMembershipStatusResponse {
   isActive: boolean;
@@ -49,17 +47,18 @@ export class GetMembershipStatusUseCase extends BaseUseCase<
       );
     const isMembershipClosedByAdmin =
       channel?.isMembershipClosedByAdmin ?? false;
-    const membershipBlockedReason = isMembershipClosedByAdmin
-      ? MEMBERSHIP_BLOCKED_REASON.ADMIN_CLOSED
-      : null;
+    const state = resolveMembershipState({
+      membership,
+      isMembershipClosedByAdmin,
+    });
 
     return {
-      isActive: membership?.isCurrentlyActive() ?? false,
+      isActive: state.isActive,
       membershipId: membership?.membershipId ?? null,
       expiryDate: membership?.expiryDate ?? null,
-      canRenew: !isMembershipClosedByAdmin && (membership?.isCurrentlyActive() ?? false),
-      canUpgrade: !isMembershipClosedByAdmin && (membership?.isCurrentlyActive() ?? false),
-      membershipBlockedReason,
+      canRenew: state.canRenew,
+      canUpgrade: state.canUpgrade,
+      membershipBlockedReason: state.membershipBlockedReason,
       isMembershipClosedByAdmin,
     };
   }

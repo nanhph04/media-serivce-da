@@ -1,9 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, type SelectQueryBuilder } from 'typeorm';
+import { Category } from '../../../categories/domain/entities/category.entity';
+import {
+  VideoEntity,
+  VideoStatus,
+} from '../../domain/entities/video.entity';
 import { VideoPurchaseUnlockEntity } from '../../domain/entities/video-purchase-unlock.entity';
-import type { IVideoPurchaseUnlockRepository } from '../../domain/repositories/video-purchase-unlock.repository';
+import type {
+  IVideoPurchaseUnlockRepository,
+  PurchasedVideosPageFilters,
+  PurchasedVideosPageResult,
+} from '../../domain/repositories/video-purchase-unlock.repository';
 import { VideoPurchaseUnlockOrmEntity } from './video-purchase-unlock.orm-entity';
+import { VideoOrmEntity } from './video.orm-entity';
 
 @Injectable()
 export class VideoPurchaseUnlockRepository implements IVideoPurchaseUnlockRepository {
@@ -28,5 +38,108 @@ export class VideoPurchaseUnlockRepository implements IVideoPurchaseUnlockReposi
         where: { videoId, userId },
       })) > 0
     );
+  }
+
+  async findPurchasedByUserId(
+    filters: PurchasedVideosPageFilters,
+  ): Promise<PurchasedVideosPageResult> {
+    const offset = (filters.page - 1) * filters.limit;
+    const baseQueryBuilder = this.ormRepository.manager
+      .createQueryBuilder(VideoPurchaseUnlockOrmEntity, 'unlock')
+      .innerJoin(
+        VideoOrmEntity,
+        'video',
+        'video.id = unlock.video_id',
+      )
+      .where('unlock.userId = :userId', { userId: filters.userId })
+      .andWhere('video.status = :status', { status: VideoStatus.READY })
+      .andWhere('video.price > 0')
+      .orderBy('unlock.createdAt', 'DESC')
+      .addOrderBy('video.createdAt', 'DESC');
+
+    const [idRows, total] = await Promise.all([
+      baseQueryBuilder
+        .clone()
+        .select('video.id', 'videoId')
+        .skip(offset)
+        .take(filters.limit)
+        .getRawMany<{ videoId: string }>(),
+      this.countPurchasedByUserId(baseQueryBuilder),
+    ]);
+
+    const videoIds = idRows.map((row) => row.videoId);
+
+    if (videoIds.length === 0) {
+      return {
+        items: [],
+        total,
+      };
+    }
+
+    const rows = await this.ormRepository.manager
+      .createQueryBuilder(VideoOrmEntity, 'video')
+      .leftJoinAndSelect('video.videoCategories', 'videoCategory')
+      .leftJoinAndSelect('videoCategory.category', 'category')
+      .where('video.id IN (:...videoIds)', { videoIds })
+      .getMany();
+
+    const rowsById = new Map(rows.map((row) => [row.id, row]));
+
+    return {
+      items: videoIds
+        .map((videoId) => rowsById.get(videoId))
+        .filter((row): row is VideoOrmEntity => row !== undefined)
+        .map((row) => this.toVideoDomain(row)),
+      total,
+    };
+  }
+
+  private async countPurchasedByUserId(
+    baseQueryBuilder: SelectQueryBuilder<VideoPurchaseUnlockOrmEntity>,
+  ): Promise<number> {
+    const raw = await baseQueryBuilder
+      .clone()
+      .select('COUNT(*)', 'total')
+      .getRawOne<{ total: string }>();
+
+    return Number(raw?.total ?? 0);
+  }
+
+  private toVideoDomain(row: VideoOrmEntity): VideoEntity {
+    const videoCategories = row.videoCategories ?? [];
+
+    return new VideoEntity({
+      id: row.id,
+      channelId: row.channelId,
+      ownerId: row.ownerId,
+      title: row.title,
+      description: row.description,
+      category: videoCategories.map(
+        (item) =>
+          new Category({
+            id: item.category.id,
+            name: item.category.name,
+            slug: item.category.slug,
+            description: item.category.description,
+            status: item.category.status,
+            createdAt: item.category.createdAt,
+            updatedAt: item.category.updatedAt,
+          }),
+      ),
+      visibility: row.visibility,
+      status: row.status,
+      price: row.price,
+      requiredTierLevel: row.requiredTierLevel,
+      rawFileKey: row.rawFileKey,
+      masterPlaylistKey: row.masterPlaylistKey,
+      thumbnailUrl: row.thumbnailUrl,
+      durationSeconds: row.durationSeconds,
+      resolutions: row.resolutions.filter((value) => value.length > 0),
+      errorMessage: row.errorMessage,
+      viewCount: row.viewCount,
+      publishedAt: row.publishedAt,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    });
   }
 }

@@ -15,6 +15,8 @@ interface RequestWithId extends Request {
 
 const BODY_LOG_METHODS = new Set(['POST', 'PATCH']);
 const MAX_LOGGED_BODY_LENGTH = 2048;
+const STREAM_ROUTE_SEGMENT = '/stream/';
+const REDACTED_TOKEN = '[redacted]';
 
 @Injectable()
 export class LoggerInterceptor implements NestInterceptor {
@@ -24,6 +26,7 @@ export class LoggerInterceptor implements NestInterceptor {
     const request = context.switchToHttp().getRequest<RequestWithId>();
     const response = context.switchToHttp().getResponse<Response>();
     const { method, url, ip } = request;
+    const safeUrl = this.buildSafeUrl(url);
     const body = request.body as Record<string, unknown> | undefined;
     const requestId = this.resolveRequestId(request);
     const startTime = Date.now();
@@ -32,26 +35,30 @@ export class LoggerInterceptor implements NestInterceptor {
 
     const safeBody = this.buildSafeBody(body, method, url);
 
-    this.logger.logInfo('Incoming request', {
-      requestId,
-      method,
-      url,
-      ip,
-      ...(safeBody ? { body: safeBody } : {}),
-    });
+    if (this.shouldLogRequestLifecycle(method, url)) {
+      this.logger.logInfo('Incoming request', {
+        requestId,
+        method,
+        url: safeUrl,
+        ip,
+        ...(safeBody ? { body: safeBody } : {}),
+      });
+    }
 
     return next.handle().pipe(
       tap({
         next: () => {
           const duration = Date.now() - startTime;
 
-          this.logger.logInfo(`Response sent`, {
-            requestId,
-            method,
-            url,
-            statusCode: response.statusCode,
-            duration: `${duration}ms`,
-          });
+          if (this.shouldLogRequestLifecycle(method, url)) {
+            this.logger.logInfo(`Response sent`, {
+              requestId,
+              method,
+              url: safeUrl,
+              statusCode: response.statusCode,
+              duration: `${duration}ms`,
+            });
+          }
         },
         error: (error: unknown) => {
           const duration = Date.now() - startTime;
@@ -59,7 +66,7 @@ export class LoggerInterceptor implements NestInterceptor {
           this.logger.logError(`Request failed`, error, {
             requestId,
             method,
-            url,
+            url: safeUrl,
             duration: `${duration}ms`,
           });
         },
@@ -121,6 +128,28 @@ export class LoggerInterceptor implements NestInterceptor {
   }
 
   private shouldLogBody(method: string, url: string): boolean {
-    return BODY_LOG_METHODS.has(method.toUpperCase()) && !url.includes('/stream/');
+    return BODY_LOG_METHODS.has(method.toUpperCase()) && !this.isStreamRoute(url);
+  }
+
+  private shouldLogRequestLifecycle(method: string, url: string): boolean {
+    return !(method.toUpperCase() === 'GET' && this.isStreamRoute(url));
+  }
+
+  private isStreamRoute(url: string): boolean {
+    return url.includes(STREAM_ROUTE_SEGMENT);
+  }
+
+  private buildSafeUrl(url: string): string {
+    try {
+      const parsed = new URL(url, 'http://localhost');
+      if (parsed.searchParams.has('token')) {
+        parsed.searchParams.set('token', REDACTED_TOKEN);
+      }
+
+      const query = parsed.searchParams.toString();
+      return query.length > 0 ? `${parsed.pathname}?${query}` : parsed.pathname;
+    } catch {
+      return url.replace(/([?&]token=)[^&]+/i, `$1${REDACTED_TOKEN}`);
+    }
   }
 }

@@ -181,7 +181,47 @@ Ghi chu chung
     - `membershipBlockedReason` (string | null)
     - `isMembershipClosedByAdmin` (boolean)
 
-2.5) PATCH /api/media/channels/:id/admin/membership
+2.5) GET /api/media/memberships/me?page=1&limit=20
+- Muc dich: lay danh sach membership/gói hoi vien cua user hien tai tren tat ca channel.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-internal-secret`: He thong tu set
+- Query:
+  - `page` (number, optional, default 1, min 1)
+  - `limit` (number, optional, default 20, min 1, max 50)
+- He thong tu set them khi xu ly:
+  - `userId`: lay tu header `x-user-id`
+- Ghi chu:
+  - API nay tra ve CAC membership record hien co cua user, khong chi rieng membership active.
+  - Frontend dung `isActive` de phan biet membership con hieu luc hay da het han/khong kha dung.
+  - `membershipId` trong response la id cua membership record.
+  - `tierId` la id cua membership tier hien dang gan voi membership record.
+  - `startedAt` hien tai map tu `createdAt` cua membership record.
+  - `membershipBlockedReason` hien tai chi co gia tri `ADMIN_CLOSED` khi channel bi admin dong membership; cac truong hop khac la `null`.
+- Response HTTP 200:
+  - Envelope `data`: array, moi object gom:
+    - `membershipId` (string)
+    - `channelId` (string)
+    - `channelName` (string)
+    - `channelAvatarUrl` (string | null)
+    - `tierId` (string)
+    - `tierName` (string)
+    - `tierLevel` (number)
+    - `priceCoin` (number)
+    - `startedAt` (string ISO)
+    - `expiryDate` (string ISO | null)
+    - `isActive` (boolean)
+    - `canRenew` (boolean)
+    - `canUpgrade` (boolean)
+    - `isMembershipClosedByAdmin` (boolean)
+    - `membershipBlockedReason` (string | null)
+  - Envelope `pagination`:
+    - `page` (number)
+    - `limit` (number)
+    - `total` (number)
+    - `totalPages` (number)
+
+2.6) PATCH /api/media/channels/:id/admin/membership
 - Muc dich: admin dong/mo kha nang nhan membership cua channel.
 - Header:
   - `x-user-id`: He thong tu set

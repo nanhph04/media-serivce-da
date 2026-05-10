@@ -35,6 +35,7 @@ import type { VideoListItemResponse } from '../../application/dtos/video-list-it
 import { ConfirmVideoUploadUseCase } from '../../application/use-cases/confirm-video-upload.use-case';
 import { GetContinueWatchingUseCase } from '../../application/use-cases/get-continue-watching.use-case';
 import { GetLatestVideosUseCase } from '../../application/use-cases/get-latest-videos.use-case';
+import { GetPurchasedVideosUseCase } from '../../application/use-cases/get-purchased-videos.use-case';
 import { GetStudioVideosUseCase } from '../../application/use-cases/get-studio-videos.use-case';
 import { GetSubscribedVideosUseCase } from '../../application/use-cases/get-subscribed-videos.use-case';
 import { GetVideoMetadataUseCase } from '../../application/use-cases/get-video-metadata.use-case';
@@ -84,6 +85,7 @@ export class VideosController {
     private readonly refreshPlaybackTokenUseCase: RefreshPlaybackTokenUseCase,
     private readonly getContinueWatchingUseCase: GetContinueWatchingUseCase,
     private readonly getLatestVideosUseCase: GetLatestVideosUseCase,
+    private readonly getPurchasedVideosUseCase: GetPurchasedVideosUseCase,
     private readonly getStudioVideosUseCase: GetStudioVideosUseCase,
     private readonly getVideosByCategoryUseCase: GetVideosByCategoryUseCase,
     private readonly getSubscribedVideosUseCase: GetSubscribedVideosUseCase,
@@ -290,6 +292,28 @@ export class VideosController {
       limit: this.parseLimit(limit),
     });
     return apiResponseContract(rows.map((row) => this.toVideoListItemDto(row)));
+  }
+
+  @Get('library/purchased')
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiSuccessResponse(VideoListItemResponseDto, { isArray: true })
+  async purchased(
+    @CurrentUserId() userId: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ): Promise<ApiResponse<VideoListItemResponseDto[]>> {
+    const result = await this.getPurchasedVideosUseCase.execute({
+      userId,
+      page: this.parsePage(page),
+      limit: this.parseLimit(limit),
+    });
+
+    return ApiResponse.success(
+      result.items.map((row) => this.toVideoListItemDto(row)),
+      undefined,
+      result.pagination,
+    );
   }
 
   @Get('discovery/by-category')
