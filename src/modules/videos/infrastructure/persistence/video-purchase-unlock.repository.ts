@@ -16,7 +16,9 @@ import { VideoPurchaseUnlockOrmEntity } from './video-purchase-unlock.orm-entity
 import { VideoOrmEntity } from './video.orm-entity';
 
 @Injectable()
-export class VideoPurchaseUnlockRepository implements IVideoPurchaseUnlockRepository {
+export class VideoPurchaseUnlockRepository
+  implements IVideoPurchaseUnlockRepository
+{
   constructor(
     @InjectRepository(VideoPurchaseUnlockOrmEntity)
     private readonly ormRepository: Repository<VideoPurchaseUnlockOrmEntity>,
@@ -44,26 +46,24 @@ export class VideoPurchaseUnlockRepository implements IVideoPurchaseUnlockReposi
     filters: PurchasedVideosPageFilters,
   ): Promise<PurchasedVideosPageResult> {
     const offset = (filters.page - 1) * filters.limit;
-    const baseQueryBuilder = this.ormRepository.manager
-      .createQueryBuilder(VideoPurchaseUnlockOrmEntity, 'unlock')
-      .innerJoin(
-        VideoOrmEntity,
-        'video',
-        'video.id = unlock.video_id',
-      )
-      .where('unlock.userId = :userId', { userId: filters.userId })
-      .andWhere('video.status = :status', { status: VideoStatus.READY })
-      .andWhere('video.price > 0')
-      .orderBy('unlock.createdAt', 'DESC')
-      .addOrderBy('video.createdAt', 'DESC');
+
+    const baseQueryBuilder = this.createPurchasedVideosBaseQueryBuilder(
+      filters.userId,
+    );
 
     const [idRows, total] = await Promise.all([
       baseQueryBuilder
         .clone()
         .select('video.id', 'videoId')
-        .skip(offset)
-        .take(filters.limit)
-        .getRawMany<{ videoId: string }>(),
+        .addSelect('MAX(unlock.created_at)', 'lastUnlockedAt')
+        .groupBy('video.id')
+        .addGroupBy('video.created_at')
+        .orderBy('MAX(unlock.created_at)', 'DESC')
+        .addOrderBy('video.created_at', 'DESC')
+        .offset(offset)
+        .limit(filters.limit)
+        .getRawMany<{ videoId: string; lastUnlockedAt: Date }>(),
+
       this.countPurchasedByUserId(baseQueryBuilder),
     ]);
 
@@ -94,12 +94,24 @@ export class VideoPurchaseUnlockRepository implements IVideoPurchaseUnlockReposi
     };
   }
 
+  private createPurchasedVideosBaseQueryBuilder(
+    userId: string,
+  ): SelectQueryBuilder<VideoPurchaseUnlockOrmEntity> {
+    return this.ormRepository.manager
+      .createQueryBuilder(VideoPurchaseUnlockOrmEntity, 'unlock')
+      .innerJoin(VideoOrmEntity, 'video', 'video.id = unlock.video_id')
+      .where('unlock.user_id = :userId', { userId })
+      .andWhere('video.status = :status', { status: VideoStatus.READY })
+      .andWhere('video.price > 0');
+  }
+
   private async countPurchasedByUserId(
     baseQueryBuilder: SelectQueryBuilder<VideoPurchaseUnlockOrmEntity>,
   ): Promise<number> {
     const raw = await baseQueryBuilder
       .clone()
-      .select('COUNT(*)', 'total')
+      .orderBy()
+      .select('COUNT(DISTINCT video.id)', 'total')
       .getRawOne<{ total: string }>();
 
     return Number(raw?.total ?? 0);

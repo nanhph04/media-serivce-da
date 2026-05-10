@@ -15,8 +15,8 @@ describe('VideoPurchaseUnlockRepository', () => {
   const andWhere = jest.fn();
   const orderBy = jest.fn();
   const addOrderBy = jest.fn();
-  const skip = jest.fn();
-  const take = jest.fn();
+  const offset = jest.fn();
+  const limit = jest.fn();
   const pageSelect = jest.fn();
   const countSelect = jest.fn();
   const getRawMany = jest.fn();
@@ -31,14 +31,12 @@ describe('VideoPurchaseUnlockRepository', () => {
     andWhere,
     orderBy,
     addOrderBy,
-    skip,
-    take,
     clone,
   };
   const clonedPageQueryBuilder = {
     select: pageSelect,
-    skip,
-    take,
+    offset,
+    limit,
     getRawMany,
   };
   const clonedCountQueryBuilder = {
@@ -70,8 +68,8 @@ describe('VideoPurchaseUnlockRepository', () => {
     andWhere.mockReturnValue(queryBuilder);
     orderBy.mockReturnValue(queryBuilder);
     addOrderBy.mockReturnValue(queryBuilder);
-    skip.mockReturnValue(clonedPageQueryBuilder);
-    take.mockReturnValue(clonedPageQueryBuilder);
+    offset.mockReturnValue(clonedPageQueryBuilder);
+    limit.mockReturnValue(clonedPageQueryBuilder);
     pageSelect.mockReturnValue(clonedPageQueryBuilder);
     countSelect.mockReturnValue(clonedCountQueryBuilder);
     clone
@@ -108,8 +106,8 @@ describe('VideoPurchaseUnlockRepository', () => {
     expect(andWhere).toHaveBeenCalledWith('video.price > 0');
     expect(orderBy).toHaveBeenCalledWith('unlock.createdAt', 'DESC');
     expect(addOrderBy).toHaveBeenCalledWith('video.createdAt', 'DESC');
-    expect(skip).toHaveBeenCalledWith(10);
-    expect(take).toHaveBeenCalledWith(10);
+    expect(offset).toHaveBeenCalledWith(10);
+    expect(limit).toHaveBeenCalledWith(10);
     expect(clone).toHaveBeenCalled();
     expect(videoWhere).toHaveBeenCalledWith('video.id IN (:...videoIds)', {
       videoIds: ['video-1'],
