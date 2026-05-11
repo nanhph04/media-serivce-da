@@ -10,9 +10,7 @@ import { ChannelMembershipOrmEntity } from './channel-membership.orm-entity';
 import { ChannelMembershipMapper } from '../mappers/channel-membership.mapper';
 
 @Injectable()
-export class ChannelMembershipRepositoryImpl
-  implements IChannelMembershipRepository
-{
+export class ChannelMembershipRepositoryImpl implements IChannelMembershipRepository {
   constructor(
     @InjectRepository(ChannelMembershipOrmEntity)
     private readonly ormRepository: Repository<ChannelMembershipOrmEntity>,
@@ -76,9 +74,7 @@ export class ChannelMembershipRepositoryImpl
     return this.mapper.toDomain(ormEntity);
   }
 
-  async findByChannelId(
-    channelId: string,
-  ): Promise<ChannelMembershipEntity[]> {
+  async findByChannelId(channelId: string): Promise<ChannelMembershipEntity[]> {
     const ormEntities = await this.ormRepository.find({
       where: { channelId },
     });

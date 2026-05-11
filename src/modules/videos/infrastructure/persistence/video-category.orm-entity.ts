@@ -1,4 +1,11 @@
-import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  Index,
+  JoinColumn,
+  ManyToOne,
+  PrimaryColumn,
+} from 'typeorm';
 import { CategoryOrmEntity } from '../../../categories/infrastructure/persistence/category.orm-entity';
 import { VideoOrmEntity } from './video.orm-entity';
 

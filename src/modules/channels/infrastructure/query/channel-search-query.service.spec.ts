@@ -91,9 +91,12 @@ describe('ChannelSearchQueryService', () => {
 
     await service.searchChannels({ q: 'piano', limit: 20 });
 
-    expect(queryBuilder.where).toHaveBeenCalledWith('channel.status = :status', {
-      status: ChannelStatus.ACTIVE,
-    });
+    expect(queryBuilder.where).toHaveBeenCalledWith(
+      'channel.status = :status',
+      {
+        status: ChannelStatus.ACTIVE,
+      },
+    );
     expect(queryBuilder.take).toHaveBeenCalledWith(20);
     expect(cacheService.set).toHaveBeenCalledWith(
       'media_service:search:global:q:piano:limit:20:channels',

@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
+import type { TransformFnParams } from 'class-transformer';
 import {
   ArrayMinSize,
   ArrayUnique,
@@ -34,9 +35,11 @@ export class InitVideoUploadRequestDto {
   description = '';
 
   @ApiProperty({ type: [String], minItems: 1 })
-  @Transform(({ value }) =>
+  @Transform(({ value }: TransformFnParams): unknown =>
     Array.isArray(value)
-      ? value.map((item) => (typeof item === 'string' ? item.trim() : item))
+      ? value.map((item: unknown) =>
+          typeof item === 'string' ? item.trim() : item,
+        )
       : value,
   )
   @IsArray()

@@ -20,11 +20,10 @@ export class UnsubscribeChannelUseCase extends BaseUseCase<
   async execute(
     command: UnsubscribeChannelCommand,
   ): Promise<ChannelMembershipResponse> {
-    const membership =
-      await this.membershipRepository.findByUserIdAndChannelId(
-        command.userId,
-        command.channelId,
-      );
+    const membership = await this.membershipRepository.findByUserIdAndChannelId(
+      command.userId,
+      command.channelId,
+    );
 
     if (!membership) {
       throw new NotFoundException('Membership not found');

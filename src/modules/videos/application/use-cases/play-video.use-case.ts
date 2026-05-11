@@ -5,9 +5,7 @@ import {
 } from '@shared/application/interfaces/playback-token.service.interface';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import { NotFoundException } from '@shared/domain/exceptions/domain.exception';
-import {
-  VideoWatchAccessService,
-} from '../services/video-watch-access.service';
+import { VideoWatchAccessService } from '../services/video-watch-access.service';
 import {
   type IVideoRepository,
   VIDEO_REPOSITORY,

@@ -22,55 +22,60 @@ describe('VideoViewAggregationService', () => {
     state.dirty.clear();
     state.events.clear();
 
-    redis.eval.mockImplementation(async (script: string, _keys: number, ...args: string[]) => {
-      if (script.includes("SADD', KEYS[3], ARGV[2]")) {
-        const [eventKey, pendingKey, _dirtyKey, _ttl, videoId] = args;
-        if (state.events.has(eventKey)) {
-          return 0;
+    redis.eval.mockImplementation(
+      async (script: string, _keys: number, ...args: string[]) => {
+        if (script.includes("SADD', KEYS[3], ARGV[2]")) {
+          const [eventKey, pendingKey, _dirtyKey, _ttl, videoId] = args;
+          if (state.events.has(eventKey)) {
+            return 0;
+          }
+
+          state.events.add(eventKey);
+          state.values.set(pendingKey, (state.values.get(pendingKey) ?? 0) + 1);
+          state.dirty.add(videoId);
+          return 1;
         }
 
-        state.events.add(eventKey);
-        state.values.set(pendingKey, (state.values.get(pendingKey) ?? 0) + 1);
-        state.dirty.add(videoId);
-        return 1;
-      }
+        if (script.includes("RENAME', KEYS[1], KEYS[2]")) {
+          const [pendingKey, inflightKey] = args;
+          if (state.values.has(inflightKey) || !state.values.has(pendingKey)) {
+            return 0;
+          }
 
-      if (script.includes("RENAME', KEYS[1], KEYS[2]")) {
-        const [pendingKey, inflightKey] = args;
-        if (state.values.has(inflightKey) || !state.values.has(pendingKey)) {
-          return 0;
+          const value = state.values.get(pendingKey) ?? 0;
+          state.values.delete(pendingKey);
+          state.values.set(inflightKey, value);
+          return value;
         }
 
-        const value = state.values.get(pendingKey) ?? 0;
-        state.values.delete(pendingKey);
-        state.values.set(inflightKey, value);
-        return value;
-      }
-
-      if (script.includes("SREM', KEYS[3], ARGV[1]")) {
-        const [pendingKey, inflightKey, _dirtyKey, videoId] = args;
-        state.values.delete(inflightKey);
-        if (!state.values.has(pendingKey)) {
-          state.dirty.delete(videoId);
-        }
-        return 1;
-      }
-
-      if (script.includes("INCRBY', KEYS[1], inflight")) {
-        const [pendingKey, inflightKey, _dirtyKey, videoId] = args;
-        const inflight = state.values.get(inflightKey);
-        if (inflight === undefined) {
-          return 0;
+        if (script.includes("SREM', KEYS[3], ARGV[1]")) {
+          const [pendingKey, inflightKey, _dirtyKey, videoId] = args;
+          state.values.delete(inflightKey);
+          if (!state.values.has(pendingKey)) {
+            state.dirty.delete(videoId);
+          }
+          return 1;
         }
 
-        state.values.set(pendingKey, (state.values.get(pendingKey) ?? 0) + inflight);
-        state.values.delete(inflightKey);
-        state.dirty.add(videoId);
-        return inflight;
-      }
+        if (script.includes("INCRBY', KEYS[1], inflight")) {
+          const [pendingKey, inflightKey, _dirtyKey, videoId] = args;
+          const inflight = state.values.get(inflightKey);
+          if (inflight === undefined) {
+            return 0;
+          }
 
-      throw new Error(`Unhandled script: ${script}`);
-    });
+          state.values.set(
+            pendingKey,
+            (state.values.get(pendingKey) ?? 0) + inflight,
+          );
+          state.values.delete(inflightKey);
+          state.dirty.add(videoId);
+          return inflight;
+        }
+
+        throw new Error(`Unhandled script: ${script}`);
+      },
+    );
     redis.smembers.mockImplementation(async () => [...state.dirty]);
     service = new VideoViewAggregationService(
       redis as never,

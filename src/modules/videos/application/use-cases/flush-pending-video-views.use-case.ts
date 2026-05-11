@@ -31,9 +31,8 @@ export class FlushPendingVideoViewsUseCase {
     const dirtyVideoIds = await this.videoViewAggregation.getDirtyVideoIds();
 
     for (const videoId of dirtyVideoIds) {
-      const delta = await this.videoViewAggregation.claimPendingViewDelta(
-        videoId,
-      );
+      const delta =
+        await this.videoViewAggregation.claimPendingViewDelta(videoId);
 
       if (delta === null) {
         continue;

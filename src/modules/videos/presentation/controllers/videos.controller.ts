@@ -25,7 +25,6 @@ import {
   ApiResponse,
   apiResponseContract,
 } from '@shared/presentation/dto/api-response.dto';
-import { PaginationDto } from '@shared/presentation/dto/pagination.dto';
 import { InternalGatewayGuard } from '@shared/presentation/guards/internal-gateway.guard';
 import {
   VideoStatus,
@@ -232,19 +231,23 @@ export class VideosController {
     @Param('id') videoId: string,
     @Req() request: Request,
   ): Promise<Observable<MessageEvent>> {
-    const initialSnapshot =
-      await this.videoProgressService.getSnapshotForOwner(videoId, userId);
+    const initialSnapshot = await this.videoProgressService.getSnapshotForOwner(
+      videoId,
+      userId,
+    );
     const disconnect$ = merge(
       fromEvent(request, 'close'),
       fromEvent(request, 'aborted'),
     ).pipe(take(1));
 
     const initial$ = of(this.toSseMessage('snapshot', initialSnapshot));
-    const live$ = this.videoProgressStream.observe(videoId).pipe(
-      map((snapshot) =>
-        this.toSseMessage(snapshot.terminal ? 'end' : 'progress', snapshot),
-      ),
-    );
+    const live$ = this.videoProgressStream
+      .observe(videoId)
+      .pipe(
+        map((snapshot) =>
+          this.toSseMessage(snapshot.terminal ? 'end' : 'progress', snapshot),
+        ),
+      );
     const heartbeat$ = interval(15000).pipe(
       map(() => ({
         type: 'ping',
@@ -335,7 +338,7 @@ export class VideosController {
     return ApiResponse.success(
       result.items.map((row) => this.toVideoListItemDto(row)),
       undefined,
-      result.pagination as PaginationDto,
+      result.pagination,
     );
   }
 

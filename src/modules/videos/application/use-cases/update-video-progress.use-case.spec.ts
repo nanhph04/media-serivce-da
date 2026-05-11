@@ -1,7 +1,11 @@
 import { NotFoundException } from '@shared/domain/exceptions/domain.exception';
 import { RecordVideoViewUseCase } from '../../../engagement/application/use-cases/record-video-view.use-case';
 import { UpdateVideoProgressUseCase } from './update-video-progress.use-case';
-import { VideoEntity, VideoStatus, VideoVisibility } from '../../domain/entities/video.entity';
+import {
+  VideoEntity,
+  VideoStatus,
+  VideoVisibility,
+} from '../../domain/entities/video.entity';
 import { VideoWatchProgressEntity } from '../../domain/entities/video-watch-progress.entity';
 
 describe('UpdateVideoProgressUseCase', () => {
@@ -303,9 +307,7 @@ function buildVideo(
     masterPlaylistKey: 'processed/master.m3u8',
     thumbnailUrl: null,
     durationSeconds:
-      overrides.durationSeconds === undefined
-        ? 120
-        : overrides.durationSeconds,
+      overrides.durationSeconds === undefined ? 120 : overrides.durationSeconds,
     resolutions: ['720p'],
     errorMessage: null,
     viewCount: 0,

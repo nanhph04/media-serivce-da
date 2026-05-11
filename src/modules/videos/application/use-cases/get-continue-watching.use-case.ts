@@ -22,6 +22,9 @@ export class GetContinueWatchingUseCase extends BaseUseCase<
   async execute(
     query: ContinueWatchingQuery,
   ): Promise<ContinueWatchingResponse> {
-    return this.videoQueryService.getContinueWatching(query.userId, query.limit);
+    return this.videoQueryService.getContinueWatching(
+      query.userId,
+      query.limit,
+    );
   }
 }

@@ -1,4 +1,7 @@
-import { Category, CategoryStatus } from '../../../categories/domain/entities/category.entity';
+import {
+  Category,
+  CategoryStatus,
+} from '../../../categories/domain/entities/category.entity';
 import {
   VideoEntity,
   VideoStatus,
@@ -34,9 +37,9 @@ describe('GetSubscribedVideosUseCase', () => {
       }),
     ).resolves.toEqual([]);
 
-    expect(channelAccessService.getActiveMembershipChannelIds).toHaveBeenCalledWith(
-      'user-1',
-    );
+    expect(
+      channelAccessService.getActiveMembershipChannelIds,
+    ).toHaveBeenCalledWith('user-1');
     expect(videoRepository.findByChannelIds).toHaveBeenCalledWith([], 20);
   });
 
@@ -60,9 +63,9 @@ describe('GetSubscribedVideosUseCase', () => {
       buildVideoListItem({ id: 'video-2', channelId: 'channel-2' }),
     ]);
 
-    expect(channelAccessService.getActiveMembershipChannelIds).toHaveBeenCalledWith(
-      'user-1',
-    );
+    expect(
+      channelAccessService.getActiveMembershipChannelIds,
+    ).toHaveBeenCalledWith('user-1');
     expect(videoRepository.findByChannelIds).toHaveBeenCalledWith(
       ['channel-1', 'channel-2'],
       10,

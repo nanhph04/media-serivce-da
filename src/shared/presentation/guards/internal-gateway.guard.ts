@@ -28,8 +28,9 @@ export class InternalGatewayGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest<Request>();
     const gatewaySecret = request.headers['x-internal-secret'];
-    const expectedSecret =
-      this.configService.getOrThrow<string>('INTERNAL_GATEWAY_SECRET');
+    const expectedSecret = this.configService.getOrThrow<string>(
+      'INTERNAL_GATEWAY_SECRET',
+    );
 
     if (
       typeof gatewaySecret !== 'string' ||

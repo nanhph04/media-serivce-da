@@ -5,9 +5,7 @@ describe('MembershipController', () => {
     execute: jest.fn(),
   };
 
-  const controller = new MembershipController(
-    getMyMembershipsUseCase as never,
-  );
+  const controller = new MembershipController(getMyMembershipsUseCase as never);
 
   beforeEach(() => {
     jest.clearAllMocks();

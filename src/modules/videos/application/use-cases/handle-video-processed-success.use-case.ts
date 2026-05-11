@@ -53,11 +53,14 @@ export class HandleVideoProcessedSuccessUseCase extends BaseUseCase<
     }
 
     if (video.status !== VideoStatus.PROCESSING) {
-      this.loggerService.logWarn('Ignoring stale video processed success event', {
-        eventId: command.eventId,
-        videoId: command.data.videoId,
-        currentStatus: video.status,
-      });
+      this.loggerService.logWarn(
+        'Ignoring stale video processed success event',
+        {
+          eventId: command.eventId,
+          videoId: command.data.videoId,
+          currentStatus: video.status,
+        },
+      );
       return;
     }
 

@@ -23,11 +23,13 @@ export class GetMyMembershipsUseCase extends BaseUseCase<
   }
 
   async execute(query: GetMyMembershipsQuery): Promise<MyMembershipsResponse> {
-    const result = await this.userMembershipQueryService.getMembershipsByUserId({
-      userId: query.userId,
-      page: query.page,
-      limit: query.limit,
-    });
+    const result = await this.userMembershipQueryService.getMembershipsByUserId(
+      {
+        userId: query.userId,
+        page: query.page,
+        limit: query.limit,
+      },
+    );
 
     return {
       items: result.items.map(
@@ -37,7 +39,8 @@ export class GetMyMembershipsUseCase extends BaseUseCase<
         page: query.page,
         limit: query.limit,
         total: result.total,
-        totalPages: result.total === 0 ? 0 : Math.ceil(result.total / query.limit),
+        totalPages:
+          result.total === 0 ? 0 : Math.ceil(result.total / query.limit),
       },
     };
   }

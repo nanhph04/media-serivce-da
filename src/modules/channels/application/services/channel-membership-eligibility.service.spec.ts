@@ -1,5 +1,8 @@
 import { NotFoundException } from '@shared/domain/exceptions/domain.exception';
-import { ChannelEntity, ChannelStatus } from '../../domain/entities/channel.entity';
+import {
+  ChannelEntity,
+  ChannelStatus,
+} from '../../domain/entities/channel.entity';
 import { ChannelMembershipEligibilityService } from './channel-membership-eligibility.service';
 
 describe('ChannelMembershipEligibilityService', () => {
@@ -34,9 +37,7 @@ describe('ChannelMembershipEligibilityService', () => {
       totalVideoViews: 1000,
     });
 
-    await expect(
-      service.getChannelEligibility('channel-1'),
-    ).resolves.toEqual({
+    await expect(service.getChannelEligibility('channel-1')).resolves.toEqual({
       isEligible: true,
       readyVideoCount: 5,
       minReadyVideoCount: 5,
@@ -53,9 +54,7 @@ describe('ChannelMembershipEligibilityService', () => {
       totalVideoViews: 999,
     });
 
-    await expect(
-      service.getChannelEligibility('channel-1'),
-    ).resolves.toEqual({
+    await expect(service.getChannelEligibility('channel-1')).resolves.toEqual({
       isEligible: false,
       readyVideoCount: 4,
       minReadyVideoCount: 5,

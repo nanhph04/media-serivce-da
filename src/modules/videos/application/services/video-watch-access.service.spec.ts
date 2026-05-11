@@ -3,7 +3,11 @@ import {
   NotFoundException,
 } from '@shared/domain/exceptions/domain.exception';
 import { ChannelStatus } from '../../../channels/domain/entities/channel.entity';
-import { VideoEntity, VideoStatus, VideoVisibility } from '../../domain/entities/video.entity';
+import {
+  VideoEntity,
+  VideoStatus,
+  VideoVisibility,
+} from '../../domain/entities/video.entity';
 import { VideoWatchAccessService } from './video-watch-access.service';
 
 describe('VideoWatchAccessService', () => {
@@ -82,7 +86,9 @@ describe('VideoWatchAccessService', () => {
       activeMembershipTierLevel: null,
     });
 
-    await expect(service.assertCanWatch(buildVideo(), 'viewer-1')).resolves.toBeUndefined();
+    await expect(
+      service.assertCanWatch(buildVideo(), 'viewer-1'),
+    ).resolves.toBeUndefined();
   });
 
   it('allows viewers with a qualifying membership tier', async () => {

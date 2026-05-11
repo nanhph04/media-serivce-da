@@ -134,11 +134,7 @@ export class ChannelSearchQueryService implements IChannelSearchQueryService {
 
   private async setCachedValue(key: string, value: unknown): Promise<void> {
     try {
-      await this.cacheService.set(
-        key,
-        value,
-        CHANNEL_SEARCH_CACHE_TTL_SECONDS,
-      );
+      await this.cacheService.set(key, value, CHANNEL_SEARCH_CACHE_TTL_SECONDS);
     } catch {
       // Cache write failure must not fail reads.
     }

@@ -21,7 +21,9 @@ export class VideoProgressConsumer implements OnModuleInit {
   ) {}
 
   async onModuleInit(): Promise<void> {
-    await this.kafkaService.on<IIntegrationEvent<VideoProgressUpdatedEventData>>(
+    await this.kafkaService.on<
+      IIntegrationEvent<VideoProgressUpdatedEventData>
+    >(
       this.configService.get<string>(
         'KAFKA_VIDEO_PROGRESS_UPDATED_TOPIC',
         'video.progress.updated',

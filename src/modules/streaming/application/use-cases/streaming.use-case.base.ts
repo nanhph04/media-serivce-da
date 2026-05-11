@@ -4,9 +4,7 @@ import {
 } from '@shared/domain/exceptions/domain.exception';
 import type { IStreamConfig } from '@shared/application/interfaces/stream-config.interface';
 import type { ITextCache } from '@shared/application/interfaces/cache-store.interface';
-import type {
-  IObjectStorageService,
-} from '@shared/application/interfaces/object-storage.service.interface';
+import type { IObjectStorageService } from '@shared/application/interfaces/object-storage.service.interface';
 import type { IPlaybackTokenVerifier } from '@shared/application/interfaces/playback-token.service.interface';
 import type { IVideoRepository } from '../../../videos/domain/repositories/video.repository';
 
@@ -26,7 +24,9 @@ export abstract class StreamingUseCaseBase {
     return this.playbackTokenVerifier.verifyToken(token, videoId);
   }
 
-  protected async getMasterPlaylistKeyOrThrow(videoId: string): Promise<string> {
+  protected async getMasterPlaylistKeyOrThrow(
+    videoId: string,
+  ): Promise<string> {
     const cacheKey = this.getMasterPlaylistCacheKey(videoId);
     const cachedMasterPlaylistKey = await this.getCachedString(cacheKey);
     if (cachedMasterPlaylistKey) {
@@ -99,7 +99,9 @@ export abstract class StreamingUseCaseBase {
         }
 
         if (trimmed.includes('://')) {
-          throw new ForbiddenException('External playlist URLs are not allowed');
+          throw new ForbiddenException(
+            'External playlist URLs are not allowed',
+          );
         }
 
         let resolvedPath = this.resolvePlaylistReference(
@@ -179,7 +181,10 @@ export abstract class StreamingUseCaseBase {
     );
   }
 
-  private resolvePlaylistReference(basePath: string, reference: string): string {
+  private resolvePlaylistReference(
+    basePath: string,
+    reference: string,
+  ): string {
     if (reference.startsWith('/')) {
       throw new ForbiddenException('Absolute playlist paths are not allowed');
     }

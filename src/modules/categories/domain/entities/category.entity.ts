@@ -74,9 +74,7 @@ export class Category {
     return toSlug(name);
   }
 
-  update(
-    props: Partial<Pick<CategoryProps, 'name' | 'description'>>,
-  ): void {
+  update(props: Partial<Pick<CategoryProps, 'name' | 'description'>>): void {
     if (props.name !== undefined) {
       const normalizedName = props.name.trim();
       const slug = Category.convertNameToSlug(normalizedName);

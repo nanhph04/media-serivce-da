@@ -41,7 +41,8 @@ export class GetPurchasedVideosUseCase extends BaseUseCase<
         page: query.page,
         limit: query.limit,
         total: result.total,
-        totalPages: result.total === 0 ? 0 : Math.ceil(result.total / query.limit),
+        totalPages:
+          result.total === 0 ? 0 : Math.ceil(result.total / query.limit),
       },
     };
   }

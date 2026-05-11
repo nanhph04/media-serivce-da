@@ -6,9 +6,7 @@ import type { IVideoWatchProgressRepository } from '../../domain/repositories/vi
 import { VideoWatchProgressOrmEntity } from './video-watch-progress.orm-entity';
 
 @Injectable()
-export class VideoWatchProgressRepository
-  implements IVideoWatchProgressRepository
-{
+export class VideoWatchProgressRepository implements IVideoWatchProgressRepository {
   constructor(
     @InjectRepository(VideoWatchProgressOrmEntity)
     private readonly ormRepository: Repository<VideoWatchProgressOrmEntity>,
@@ -43,9 +41,7 @@ export class VideoWatchProgressRepository
     });
   }
 
-  private toDomain(
-    row: VideoWatchProgressOrmEntity,
-  ): VideoWatchProgressEntity {
+  private toDomain(row: VideoWatchProgressOrmEntity): VideoWatchProgressEntity {
     return new VideoWatchProgressEntity({
       id: row.id,
       userId: row.userId,

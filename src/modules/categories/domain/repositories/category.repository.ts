@@ -1,6 +1,6 @@
 import type { Category } from '../entities/category.entity';
 
-export const CATEGORY_REPOSITORY = Symbol('CATEGORY_REPOSITORY');   
+export const CATEGORY_REPOSITORY = Symbol('CATEGORY_REPOSITORY');
 
 export interface ICategoryRepository {
   save(category: Category): Promise<void>;

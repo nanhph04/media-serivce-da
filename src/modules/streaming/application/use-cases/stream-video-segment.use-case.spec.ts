@@ -50,7 +50,9 @@ describe('StreamVideoSegmentUseCase', () => {
       channelId: 'channel-1',
     });
     videoRepository.findBasicById.mockResolvedValue(buildVideo());
-    objectStorageService.getObjectText.mockResolvedValue('#EXTM3U\n720p_000.ts');
+    objectStorageService.getObjectText.mockResolvedValue(
+      '#EXTM3U\n720p_000.ts',
+    );
 
     await expect(
       useCase.execute({
@@ -109,7 +111,9 @@ describe('StreamVideoSegmentUseCase', () => {
       channelId: 'channel-1',
     });
     videoRepository.findBasicById.mockResolvedValue(buildVideo());
-    objectStorageService.getObjectText.mockResolvedValue('#EXTM3U\n720p_000.ts');
+    objectStorageService.getObjectText.mockResolvedValue(
+      '#EXTM3U\n720p_000.ts',
+    );
 
     await expect(
       useCase.execute({

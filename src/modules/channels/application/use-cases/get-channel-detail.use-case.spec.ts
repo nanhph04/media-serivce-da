@@ -1,4 +1,7 @@
-import { ChannelEntity, ChannelStatus } from '../../domain/entities/channel.entity';
+import {
+  ChannelEntity,
+  ChannelStatus,
+} from '../../domain/entities/channel.entity';
 import { MembershipTierEntity } from '../../domain/entities/membership-tier.entity';
 import { GetChannelDetailUseCase } from './get-channel-detail.use-case';
 
@@ -84,7 +87,9 @@ function buildChannel(): ChannelEntity {
 }
 
 function buildTier(
-  overrides: Partial<ConstructorParameters<typeof MembershipTierEntity>[0]> = {},
+  overrides: Partial<
+    ConstructorParameters<typeof MembershipTierEntity>[0]
+  > = {},
 ): MembershipTierEntity {
   return new MembershipTierEntity({
     id: 'tier-1',

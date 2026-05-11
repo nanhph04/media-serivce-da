@@ -8,9 +8,7 @@ import type { VideoModerationOutcomeEventData } from '../../application/dtos/vid
 import type { IVideoModerationOutcomePublisher } from '../../application/interfaces/video-moderation-outcome-publisher.interface';
 
 @Injectable()
-export class VideoModerationOutcomePublisher
-  implements IVideoModerationOutcomePublisher
-{
+export class VideoModerationOutcomePublisher implements IVideoModerationOutcomePublisher {
   constructor(
     private readonly configService: ConfigService,
     @Inject(KAFKA_SERVICE) private readonly kafkaService: KafkaService,

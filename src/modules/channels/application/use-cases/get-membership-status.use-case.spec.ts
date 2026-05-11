@@ -1,4 +1,7 @@
-import { ChannelEntity, ChannelStatus } from '../../domain/entities/channel.entity';
+import {
+  ChannelEntity,
+  ChannelStatus,
+} from '../../domain/entities/channel.entity';
 import { ChannelMembershipEntity } from '../../domain/entities/channel-membership.entity';
 import { GetMembershipStatusUseCase } from './get-membership-status.use-case';
 

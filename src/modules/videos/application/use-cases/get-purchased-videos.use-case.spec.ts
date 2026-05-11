@@ -1,4 +1,7 @@
-import { VideoStatus, VideoVisibility } from '../../domain/entities/video.entity';
+import {
+  VideoStatus,
+  VideoVisibility,
+} from '../../domain/entities/video.entity';
 import type { IVideoPurchaseUnlockRepository } from '../../domain/repositories/video-purchase-unlock.repository';
 import { Category } from '../../../categories/domain/entities/category.entity';
 import { CategoryStatus } from '../../../categories/domain/entities/category.entity';

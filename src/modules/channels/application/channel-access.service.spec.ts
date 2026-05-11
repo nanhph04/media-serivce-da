@@ -3,7 +3,10 @@ import {
   NotFoundException,
 } from '@shared/domain/exceptions/domain.exception';
 import { ChannelAccessService } from './channel-access.service';
-import { ChannelEntity, ChannelStatus } from '../domain/entities/channel.entity';
+import {
+  ChannelEntity,
+  ChannelStatus,
+} from '../domain/entities/channel.entity';
 import { ChannelMembershipEntity } from '../domain/entities/channel-membership.entity';
 import { MembershipTierEntity } from '../domain/entities/membership-tier.entity';
 
@@ -58,7 +61,9 @@ describe('ChannelAccessService', () => {
     membershipRepository.findByUserIdAndChannelIdActive.mockResolvedValue(
       buildMembership(),
     );
-    membershipTierRepository.findById.mockResolvedValue(buildTier({ level: 2 }));
+    membershipTierRepository.findById.mockResolvedValue(
+      buildTier({ level: 2 }),
+    );
 
     await expect(
       service.getViewerAccessContext('channel-1', 'user-1'),
@@ -138,7 +143,9 @@ function buildChannel(
 }
 
 function buildMembership(
-  overrides: Partial<ConstructorParameters<typeof ChannelMembershipEntity>[0]> = {},
+  overrides: Partial<
+    ConstructorParameters<typeof ChannelMembershipEntity>[0]
+  > = {},
 ): ChannelMembershipEntity {
   return new ChannelMembershipEntity({
     id: 'membership-1',
@@ -155,7 +162,9 @@ function buildMembership(
 }
 
 function buildTier(
-  overrides: Partial<ConstructorParameters<typeof MembershipTierEntity>[0]> = {},
+  overrides: Partial<
+    ConstructorParameters<typeof MembershipTierEntity>[0]
+  > = {},
 ): MembershipTierEntity {
   return new MembershipTierEntity({
     id: 'tier-1',

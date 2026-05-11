@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CacheService } from '@shared/infrastructure/cache/cache.service';
 import { In, Repository } from 'typeorm';
-import { Category, CategoryStatus } from '../../domain/entities/category.entity';
+import {
+  Category,
+  CategoryStatus,
+} from '../../domain/entities/category.entity';
 import type { ICategoryRepository } from '../../domain/repositories/category.repository';
 import {
   CATEGORY_CACHE_KEYS,

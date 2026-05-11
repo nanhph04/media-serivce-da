@@ -1,8 +1,6 @@
 import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class RenameVideoStatusPublicToReady1745620000000
-  implements MigrationInterface
-{
+export class RenameVideoStatusPublicToReady1745620000000 implements MigrationInterface {
   public readonly name = 'RenameVideoStatusPublicToReady1745620000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

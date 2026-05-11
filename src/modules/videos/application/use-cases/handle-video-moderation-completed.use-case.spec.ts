@@ -76,13 +76,17 @@ describe('HandleVideoModerationCompletedUseCase', () => {
 
     const savedVideo = videoRepository.save.mock.calls[0][0] as VideoEntity;
     expect(savedVideo.status).toBe(VideoStatus.PROCESSING);
-    expect(videoProcessingJobDispatcher.enqueueTranscodeJob).toHaveBeenCalledWith({
+    expect(
+      videoProcessingJobDispatcher.enqueueTranscodeJob,
+    ).toHaveBeenCalledWith({
       videoId: 'video-1',
       rawFileKey: 'uploads/raw/channel-1/video.mp4',
       resolution: ['480p', '720p'],
       userId: 'owner-1',
     });
-    expect(moderationOutcomePublisher.publishModerationOutcome).toHaveBeenCalledWith({
+    expect(
+      moderationOutcomePublisher.publishModerationOutcome,
+    ).toHaveBeenCalledWith({
       videoId: 'video-1',
       moderationStatus: 'SAFE',
       videoStatus: VideoStatus.PROCESSING,
@@ -115,9 +119,7 @@ describe('HandleVideoModerationCompletedUseCase', () => {
     );
     expect(
       videoProgressService.applyProgressUpdate.mock.invocationCallOrder[0],
-    ).toBeLessThan(
-      idempotencyStore.setIfNotExists.mock.invocationCallOrder[1],
-    );
+    ).toBeLessThan(idempotencyStore.setIfNotExists.mock.invocationCallOrder[1]);
   });
 
   it('marks yellow moderation result as pending manual review without transcoding', async () => {
@@ -141,8 +143,12 @@ describe('HandleVideoModerationCompletedUseCase', () => {
     const savedVideo = videoRepository.save.mock.calls[0][0] as VideoEntity;
     expect(savedVideo.status).toBe(VideoStatus.PENDING_MANUAL_REVIEW);
     expect(savedVideo.errorMessage).toBe('NSFW score 0.72 at 00:12');
-    expect(videoProcessingJobDispatcher.enqueueTranscodeJob).not.toHaveBeenCalled();
-    expect(moderationOutcomePublisher.publishModerationOutcome).toHaveBeenCalledWith({
+    expect(
+      videoProcessingJobDispatcher.enqueueTranscodeJob,
+    ).not.toHaveBeenCalled();
+    expect(
+      moderationOutcomePublisher.publishModerationOutcome,
+    ).toHaveBeenCalledWith({
       videoId: 'video-1',
       moderationStatus: 'PENDING_MANUAL_REVIEW',
       videoStatus: VideoStatus.PENDING_MANUAL_REVIEW,
@@ -181,8 +187,12 @@ describe('HandleVideoModerationCompletedUseCase', () => {
     const savedVideo = videoRepository.save.mock.calls[0][0] as VideoEntity;
     expect(savedVideo.status).toBe(VideoStatus.REJECTED);
     expect(savedVideo.errorMessage).toBe('NSFW detected at 00:45');
-    expect(videoProcessingJobDispatcher.enqueueTranscodeJob).not.toHaveBeenCalled();
-    expect(moderationOutcomePublisher.publishModerationOutcome).toHaveBeenCalledWith({
+    expect(
+      videoProcessingJobDispatcher.enqueueTranscodeJob,
+    ).not.toHaveBeenCalled();
+    expect(
+      moderationOutcomePublisher.publishModerationOutcome,
+    ).toHaveBeenCalledWith({
       videoId: 'video-1',
       moderationStatus: 'REJECTED',
       videoStatus: VideoStatus.REJECTED,
@@ -221,8 +231,12 @@ describe('HandleVideoModerationCompletedUseCase', () => {
     const savedVideo = videoRepository.save.mock.calls[0][0] as VideoEntity;
     expect(savedVideo.status).toBe(VideoStatus.FAILED);
     expect(savedVideo.errorMessage).toBe('MinIO download failed');
-    expect(videoProcessingJobDispatcher.enqueueTranscodeJob).not.toHaveBeenCalled();
-    expect(moderationOutcomePublisher.publishModerationOutcome).toHaveBeenCalledWith({
+    expect(
+      videoProcessingJobDispatcher.enqueueTranscodeJob,
+    ).not.toHaveBeenCalled();
+    expect(
+      moderationOutcomePublisher.publishModerationOutcome,
+    ).toHaveBeenCalledWith({
       videoId: 'video-1',
       moderationStatus: 'ERROR',
       videoStatus: VideoStatus.FAILED,
@@ -259,8 +273,12 @@ describe('HandleVideoModerationCompletedUseCase', () => {
     });
 
     expect(videoRepository.findById).not.toHaveBeenCalled();
-    expect(videoProcessingJobDispatcher.enqueueTranscodeJob).not.toHaveBeenCalled();
-    expect(moderationOutcomePublisher.publishModerationOutcome).not.toHaveBeenCalled();
+    expect(
+      videoProcessingJobDispatcher.enqueueTranscodeJob,
+    ).not.toHaveBeenCalled();
+    expect(
+      moderationOutcomePublisher.publishModerationOutcome,
+    ).not.toHaveBeenCalled();
     expect(idempotencyStore.setIfNotExists).not.toHaveBeenCalled();
   });
 
@@ -283,8 +301,12 @@ describe('HandleVideoModerationCompletedUseCase', () => {
     });
 
     expect(videoRepository.findById).not.toHaveBeenCalled();
-    expect(videoProcessingJobDispatcher.enqueueTranscodeJob).not.toHaveBeenCalled();
-    expect(moderationOutcomePublisher.publishModerationOutcome).not.toHaveBeenCalled();
+    expect(
+      videoProcessingJobDispatcher.enqueueTranscodeJob,
+    ).not.toHaveBeenCalled();
+    expect(
+      moderationOutcomePublisher.publishModerationOutcome,
+    ).not.toHaveBeenCalled();
     expect(idempotencyStore.delete).not.toHaveBeenCalled();
   });
 
@@ -372,7 +394,9 @@ describe('HandleVideoModerationCompletedUseCase', () => {
     ).rejects.toThrow('redis down');
 
     expect(videoProcessingJobDispatcher.enqueueTranscodeJob).toHaveBeenCalled();
-    expect(moderationOutcomePublisher.publishModerationOutcome).toHaveBeenCalled();
+    expect(
+      moderationOutcomePublisher.publishModerationOutcome,
+    ).toHaveBeenCalled();
     expect(videoProgressService.applyProgressUpdate).toHaveBeenCalled();
     expect(idempotencyStore.delete).not.toHaveBeenCalled();
   });

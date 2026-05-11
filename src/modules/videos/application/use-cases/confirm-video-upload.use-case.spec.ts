@@ -103,14 +103,18 @@ describe('ConfirmVideoUploadUseCase', () => {
     });
 
     expect(videoRepository.save).toHaveBeenCalledTimes(1);
-    expect(videoModerationRequestPublisher.publishModerationRequested).toHaveBeenCalledWith({
+    expect(
+      videoModerationRequestPublisher.publishModerationRequested,
+    ).toHaveBeenCalledWith({
       videoId: 'video-1',
       rawFileKey: 'uploads/raw/channel-1/video.mp4',
       rawBucket: 'media-raw',
       resolution: ['480p', '720p', '1080p'],
       userId: 'owner-1',
     });
-    expect(videoProcessingJobDispatcher.enqueueTranscodeJob).not.toHaveBeenCalled();
+    expect(
+      videoProcessingJobDispatcher.enqueueTranscodeJob,
+    ).not.toHaveBeenCalled();
     expect(videoProgressService.applyProgressUpdate).toHaveBeenCalled();
     expect(result.status).toBe(VideoStatus.PENDING_MODERATION);
   });

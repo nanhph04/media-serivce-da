@@ -2,7 +2,10 @@ import {
   ForbiddenException,
   type BadRequestException,
 } from '@shared/domain/exceptions/domain.exception';
-import { ChannelEntity, ChannelStatus } from '../../domain/entities/channel.entity';
+import {
+  ChannelEntity,
+  ChannelStatus,
+} from '../../domain/entities/channel.entity';
 import { MembershipTierEntity } from '../../domain/entities/membership-tier.entity';
 import { CreateMembershipTierUseCase } from './create-membership-tier.use-case';
 

@@ -47,10 +47,11 @@ export class UpdateVideoProgressUseCase extends BaseUseCase<
 
     await this.videoWatchAccessService.assertCanWatch(video, command.userId);
 
-    const existingProgress = await this.watchProgressRepository.findByUserIdAndVideoId(
-      command.userId,
-      command.videoId,
-    );
+    const existingProgress =
+      await this.watchProgressRepository.findByUserIdAndVideoId(
+        command.userId,
+        command.videoId,
+      );
     const progress =
       existingProgress ??
       VideoWatchProgressEntity.create({

@@ -122,8 +122,7 @@ export class VideoWatchProgressEntity {
     this.props.lastWatchedAt = new Date();
     this.props.updatedAt = this.props.lastWatchedAt;
 
-    const completionThresholdSeconds =
-      input.completionThresholdSeconds ?? 30;
+    const completionThresholdSeconds = input.completionThresholdSeconds ?? 30;
     const effectiveDurationSeconds = this.props.durationSeconds;
     const shouldMarkCompleted =
       nextState === 'completed' ||

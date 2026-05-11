@@ -1,6 +1,10 @@
 import { PlaybackTokenService } from '@shared/infrastructure/security/playback-token.service';
 import { PlayVideoUseCase } from './play-video.use-case';
-import { VideoEntity, VideoStatus, VideoVisibility } from '../../domain/entities/video.entity';
+import {
+  VideoEntity,
+  VideoStatus,
+  VideoVisibility,
+} from '../../domain/entities/video.entity';
 import { NotFoundException } from '@shared/domain/exceptions/domain.exception';
 
 describe('PlayVideoUseCase', () => {

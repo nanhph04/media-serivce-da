@@ -219,7 +219,9 @@ export class VideoRepository implements IVideoRepository {
     };
   }
 
-  async searchPublic(filters: PublicVideoSearchFilters): Promise<VideoEntity[]> {
+  async searchPublic(
+    filters: PublicVideoSearchFilters,
+  ): Promise<VideoEntity[]> {
     const queryBuilder = this.ormRepository
       .createQueryBuilder('video')
       .leftJoinAndSelect('video.videoCategories', 'videoCategory')

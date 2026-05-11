@@ -1,4 +1,7 @@
-import { ChannelEntity, ChannelStatus } from '../../domain/entities/channel.entity';
+import {
+  ChannelEntity,
+  ChannelStatus,
+} from '../../domain/entities/channel.entity';
 import { ChannelMembershipEntity } from '../../domain/entities/channel-membership.entity';
 import { MembershipTierEntity } from '../../domain/entities/membership-tier.entity';
 import { HandleMembershipPaymentSuccessUseCase } from './handle-membership-payment-success.use-case';
@@ -7,11 +10,17 @@ class FakeChannelMembershipRepository {
   public readonly items = new Map<string, ChannelMembershipEntity>();
 
   async create(membership: ChannelMembershipEntity): Promise<void> {
-    this.items.set(this.key(membership.userId, membership.channelId), membership);
+    this.items.set(
+      this.key(membership.userId, membership.channelId),
+      membership,
+    );
   }
 
   async update(membership: ChannelMembershipEntity): Promise<void> {
-    this.items.set(this.key(membership.userId, membership.channelId), membership);
+    this.items.set(
+      this.key(membership.userId, membership.channelId),
+      membership,
+    );
   }
 
   async findById(): Promise<ChannelMembershipEntity | null> {
@@ -45,7 +54,10 @@ class FakeChannelMembershipRepository {
   }
 
   async upsert(membership: ChannelMembershipEntity): Promise<void> {
-    this.items.set(this.key(membership.userId, membership.channelId), membership);
+    this.items.set(
+      this.key(membership.userId, membership.channelId),
+      membership,
+    );
   }
 
   private key(userId: string, channelId: string): string {
@@ -108,7 +120,9 @@ describe('HandleMembershipPaymentSuccessUseCase', () => {
     expect(membership?.expiryDate?.toISOString()).toBe(
       '2026-06-04T00:00:00.000Z',
     );
-    expect(compensationPublisher.publishCompensationRequest).not.toHaveBeenCalled();
+    expect(
+      compensationPublisher.publishCompensationRequest,
+    ).not.toHaveBeenCalled();
     dateNowSpy.mockRestore();
   });
 
@@ -124,7 +138,9 @@ describe('HandleMembershipPaymentSuccessUseCase', () => {
       expiryDate: new Date('2026-06-15T00:00:00.000Z'),
     });
     await repository.upsert(existing);
-    channelRepository.findById.mockResolvedValue(buildChannel({ id: 'channel-2' }));
+    channelRepository.findById.mockResolvedValue(
+      buildChannel({ id: 'channel-2' }),
+    );
     membershipTierRepository.findById.mockResolvedValue(
       buildTier({ id: 'tier-2', channelId: 'channel-2' }),
     );
@@ -186,7 +202,9 @@ describe('HandleMembershipPaymentSuccessUseCase', () => {
     });
 
     expect(repository.items.size).toBe(0);
-    expect(compensationPublisher.publishCompensationRequest).toHaveBeenCalledWith({
+    expect(
+      compensationPublisher.publishCompensationRequest,
+    ).toHaveBeenCalledWith({
       sourcePaymentEventId: 'event-closed',
       userId: 'user-3',
       channelId: 'channel-1',
@@ -221,7 +239,9 @@ describe('HandleMembershipPaymentSuccessUseCase', () => {
     });
 
     expect(repository.items.size).toBe(0);
-    expect(compensationPublisher.publishCompensationRequest).not.toHaveBeenCalled();
+    expect(
+      compensationPublisher.publishCompensationRequest,
+    ).not.toHaveBeenCalled();
   });
 });
 
@@ -245,7 +265,9 @@ function buildChannel(
 }
 
 function buildTier(
-  overrides: Partial<ConstructorParameters<typeof MembershipTierEntity>[0]> = {},
+  overrides: Partial<
+    ConstructorParameters<typeof MembershipTierEntity>[0]
+  > = {},
 ): MembershipTierEntity {
   return new MembershipTierEntity({
     id: 'tier-1',

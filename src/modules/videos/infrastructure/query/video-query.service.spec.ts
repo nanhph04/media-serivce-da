@@ -217,12 +217,10 @@ describe('VideoQueryService', () => {
   });
 
   it('returns paginated category discovery from cache', async () => {
-    cacheService.get
-      .mockResolvedValueOnce(0)
-      .mockResolvedValueOnce({
-        items: [buildCachedListItem()],
-        total: 1,
-      });
+    cacheService.get.mockResolvedValueOnce(0).mockResolvedValueOnce({
+      items: [buildCachedListItem()],
+      total: 1,
+    });
 
     const result = await service.getVideosByCategory('music', 1, 20);
 

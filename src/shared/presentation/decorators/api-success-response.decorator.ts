@@ -101,7 +101,9 @@ function isPrimitiveModel(model: ResponseModel): model is PrimitiveModel {
   return model === String || model === Number || model === Boolean;
 }
 
-function getPrimitiveType(model: PrimitiveModel): 'string' | 'number' | 'boolean' {
+function getPrimitiveType(
+  model: PrimitiveModel,
+): 'string' | 'number' | 'boolean' {
   if (model === String) {
     return 'string';
   }

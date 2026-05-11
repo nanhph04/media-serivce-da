@@ -3,7 +3,10 @@ import {
   Category,
   CategoryStatus,
 } from '../../../categories/domain/entities/category.entity';
-import { VideoStatus, VideoVisibility } from '../../domain/entities/video.entity';
+import {
+  VideoStatus,
+  VideoVisibility,
+} from '../../domain/entities/video.entity';
 import { InitVideoUploadUseCase } from './init-video-upload.use-case';
 
 describe('InitVideoUploadUseCase', () => {
@@ -40,7 +43,9 @@ describe('InitVideoUploadUseCase', () => {
   it('succeeds with one valid category', async () => {
     categoryRepository.findBySlugs.mockResolvedValue([buildCategory()]);
 
-    const result = await useCase.execute(buildCommand({ categories: ['music'] }));
+    const result = await useCase.execute(
+      buildCommand({ categories: ['music'] }),
+    );
 
     expect(categoryRepository.findBySlugs).toHaveBeenCalledWith(['music']);
     expect(videoRepository.save).toHaveBeenCalledWith(

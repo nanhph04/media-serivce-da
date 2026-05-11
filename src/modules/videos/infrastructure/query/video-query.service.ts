@@ -168,7 +168,12 @@ export class VideoQueryService implements IVideoQueryService {
     const version = await this.getCacheVersion(
       VIDEO_CACHE_KEYS.categoryLatestVersion(),
     );
-    const cacheKey = VIDEO_CACHE_KEYS.categoryPage(version, category, page, limit);
+    const cacheKey = VIDEO_CACHE_KEYS.categoryPage(
+      version,
+      category,
+      page,
+      limit,
+    );
     const cached = await this.getCachedValue<{
       items: CachedVideoListItem[];
       total: number;
@@ -365,7 +370,11 @@ export class VideoQueryService implements IVideoQueryService {
     };
   }
 
-  private toPagination(page: number, limit: number, total: number): {
+  private toPagination(
+    page: number,
+    limit: number,
+    total: number,
+  ): {
     page: number;
     limit: number;
     total: number;

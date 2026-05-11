@@ -28,10 +28,11 @@ export class VideoWatchAccessService {
   ) {}
 
   async assertCanWatch(video: VideoEntity, userId: string): Promise<void> {
-    const accessContext = await this.channelAccessService.getViewerAccessContext(
-      video.channelId,
-      userId,
-    );
+    const accessContext =
+      await this.channelAccessService.getViewerAccessContext(
+        video.channelId,
+        userId,
+      );
 
     if (accessContext.channelOwnerId === userId) {
       this.assertOwnerCanWatch(video);

@@ -60,8 +60,7 @@ export class VideoViewFlushWorker
       {
         jobId: 'flush-video-views',
         repeat: {
-          every:
-            this.configService.getVideoViewFlushIntervalSeconds() * 1000,
+          every: this.configService.getVideoViewFlushIntervalSeconds() * 1000,
         },
         removeOnComplete: true,
         removeOnFail: 100,

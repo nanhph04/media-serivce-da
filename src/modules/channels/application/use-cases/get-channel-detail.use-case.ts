@@ -37,7 +37,9 @@ export class GetChannelDetailUseCase extends BaseUseCase<
     super();
   }
 
-  async execute(command: { channelId: string }): Promise<ChannelDetailResponse> {
+  async execute(command: {
+    channelId: string;
+  }): Promise<ChannelDetailResponse> {
     const channel = await this.channelRepository.findById(command.channelId);
 
     if (!channel) {

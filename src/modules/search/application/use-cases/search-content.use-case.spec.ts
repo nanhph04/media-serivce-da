@@ -27,7 +27,9 @@ describe('SearchContentUseCase', () => {
   });
 
   it('returns videos and channels for keyword search', async () => {
-    videoSearchQueryService.searchPublicVideos.mockResolvedValue([{ id: 'v1' }]);
+    videoSearchQueryService.searchPublicVideos.mockResolvedValue([
+      { id: 'v1' },
+    ]);
     channelSearchQueryService.searchChannels.mockResolvedValue([{ id: 'c1' }]);
 
     await expect(
@@ -56,7 +58,9 @@ describe('SearchContentUseCase', () => {
   });
 
   it('returns only videos for category-only search', async () => {
-    videoSearchQueryService.searchPublicVideos.mockResolvedValue([{ id: 'v1' }]);
+    videoSearchQueryService.searchPublicVideos.mockResolvedValue([
+      { id: 'v1' },
+    ]);
 
     await expect(
       useCase.execute({

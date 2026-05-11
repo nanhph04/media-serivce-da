@@ -2,10 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, type SelectQueryBuilder } from 'typeorm';
 import { Category } from '../../../categories/domain/entities/category.entity';
-import {
-  VideoEntity,
-  VideoStatus,
-} from '../../domain/entities/video.entity';
+import { VideoEntity, VideoStatus } from '../../domain/entities/video.entity';
 import { VideoPurchaseUnlockEntity } from '../../domain/entities/video-purchase-unlock.entity';
 import type {
   IVideoPurchaseUnlockRepository,
@@ -16,9 +13,7 @@ import { VideoPurchaseUnlockOrmEntity } from './video-purchase-unlock.orm-entity
 import { VideoOrmEntity } from './video.orm-entity';
 
 @Injectable()
-export class VideoPurchaseUnlockRepository
-  implements IVideoPurchaseUnlockRepository
-{
+export class VideoPurchaseUnlockRepository implements IVideoPurchaseUnlockRepository {
   constructor(
     @InjectRepository(VideoPurchaseUnlockOrmEntity)
     private readonly ormRepository: Repository<VideoPurchaseUnlockOrmEntity>,

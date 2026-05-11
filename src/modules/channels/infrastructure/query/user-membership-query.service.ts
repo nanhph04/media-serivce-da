@@ -9,6 +9,22 @@ import type {
   UserMembershipQuery,
   UserMembershipQueryResult,
 } from '../../application/interfaces/user-membership-query.service.interface';
+import type { ChannelMembershipStatus } from '../../domain/entities/channel-membership.entity';
+
+interface UserMembershipRawRow {
+  membershipId: string;
+  channelId: string;
+  channelName: string;
+  channelAvatarUrl: string | null;
+  tierId: string;
+  tierName: string;
+  tierLevel: number | string;
+  priceCoin: number | string;
+  startedAt: Date | string;
+  expiryDate: Date | string | null;
+  status: ChannelMembershipStatus;
+  isMembershipClosedByAdmin: boolean | string;
+}
 
 @Injectable()
 export class UserMembershipQueryService implements IUserMembershipQueryService {
@@ -52,7 +68,10 @@ export class UserMembershipQueryService implements IUserMembershipQueryService {
       .addOrderBy('membership.createdAt', 'DESC');
 
     const [rows, total] = await Promise.all([
-      baseQueryBuilder.skip(offset).take(query.limit).getRawMany(),
+      baseQueryBuilder
+        .skip(offset)
+        .take(query.limit)
+        .getRawMany<UserMembershipRawRow>(),
       baseQueryBuilder.clone().getCount(),
     ]);
 
@@ -62,7 +81,8 @@ export class UserMembershipQueryService implements IUserMembershipQueryService {
         channelId: row.channelId,
         channelName: row.channelName,
         channelAvatarUrl:
-          typeof row.channelAvatarUrl === 'string' && row.channelAvatarUrl.length > 0
+          typeof row.channelAvatarUrl === 'string' &&
+          row.channelAvatarUrl.length > 0
             ? row.channelAvatarUrl
             : null,
         tierId: row.tierId,

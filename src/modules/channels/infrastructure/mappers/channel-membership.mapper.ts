@@ -32,7 +32,7 @@ export class ChannelMembershipMapper {
       existing.membershipId = domainEntity.membershipId;
       existing.expiryDate = domainEntity.expiryDate;
       existing.retryCount = domainEntity.retryCount;
-      existing.status = domainEntity.status as ChannelMembershipStatus;
+      existing.status = domainEntity.status;
       existing.updatedAt = domainEntity.updatedAt;
       return existing;
     }
@@ -44,7 +44,7 @@ export class ChannelMembershipMapper {
     ormEntity.membershipId = domainEntity.membershipId;
     ormEntity.expiryDate = domainEntity.expiryDate;
     ormEntity.retryCount = domainEntity.retryCount;
-    ormEntity.status = domainEntity.status as ChannelMembershipStatus;
+    ormEntity.status = domainEntity.status;
     ormEntity.createdAt = domainEntity.createdAt;
     ormEntity.updatedAt = domainEntity.updatedAt;
     return ormEntity;

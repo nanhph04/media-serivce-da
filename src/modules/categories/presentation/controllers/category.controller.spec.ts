@@ -68,10 +68,7 @@ describe('CategoryController', () => {
     const category = buildCategoryResponse(CategoryStatus.DELETED);
     getAllCategoriesUseCase.execute.mockResolvedValue([category]);
 
-    const result = await controller.getAllCategoriesForAdmin(
-      'user-1',
-      'admin',
-    );
+    const result = await controller.getAllCategoriesForAdmin('user-1', 'admin');
 
     expect(getAllCategoriesUseCase.execute).toHaveBeenCalled();
     expect(result).toEqual([

@@ -106,7 +106,9 @@ describe('HandleVideoProcessedSuccessUseCase', () => {
 
     expect(videoRepository.save).not.toHaveBeenCalled();
     expect(videoCacheInvalidator.invalidateMetadata).not.toHaveBeenCalled();
-    expect(videoCacheInvalidator.invalidateDiscoveryLists).not.toHaveBeenCalled();
+    expect(
+      videoCacheInvalidator.invalidateDiscoveryLists,
+    ).not.toHaveBeenCalled();
     expect(eligibilityService.syncChannelEligibility).not.toHaveBeenCalled();
     expect(videoProgressService.applyProgressUpdate).not.toHaveBeenCalled();
     expect(logger.logWarn).toHaveBeenCalledWith(
@@ -136,7 +138,9 @@ describe('HandleVideoProcessedSuccessUseCase', () => {
     expect(videoRepository.findById).not.toHaveBeenCalled();
     expect(videoRepository.save).not.toHaveBeenCalled();
     expect(videoCacheInvalidator.invalidateMetadata).not.toHaveBeenCalled();
-    expect(videoCacheInvalidator.invalidateDiscoveryLists).not.toHaveBeenCalled();
+    expect(
+      videoCacheInvalidator.invalidateDiscoveryLists,
+    ).not.toHaveBeenCalled();
   });
 
   it('returns without side effects when video is missing', async () => {
@@ -155,7 +159,9 @@ describe('HandleVideoProcessedSuccessUseCase', () => {
 
     expect(videoRepository.save).not.toHaveBeenCalled();
     expect(videoCacheInvalidator.invalidateMetadata).not.toHaveBeenCalled();
-    expect(videoCacheInvalidator.invalidateDiscoveryLists).not.toHaveBeenCalled();
+    expect(
+      videoCacheInvalidator.invalidateDiscoveryLists,
+    ).not.toHaveBeenCalled();
     expect(eligibilityService.syncChannelEligibility).not.toHaveBeenCalled();
     expect(videoProgressService.applyProgressUpdate).not.toHaveBeenCalled();
   });

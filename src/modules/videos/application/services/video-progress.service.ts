@@ -51,7 +51,8 @@ export class VideoProgressService {
   async applyProgressUpdate(
     snapshot: VideoProgressSnapshot,
   ): Promise<VideoProgressSnapshot | null> {
-    const accepted = await this.videoProgressStore.applyProgressUpdate(snapshot);
+    const accepted =
+      await this.videoProgressStore.applyProgressUpdate(snapshot);
     if (accepted) {
       this.videoProgressStream.publish(accepted);
     }

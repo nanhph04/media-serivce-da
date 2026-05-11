@@ -51,7 +51,9 @@ describe('FlushPendingVideoViewsUseCase', () => {
   it('restores the inflight delta when the database update fails', async () => {
     videoViewAggregation.getDirtyVideoIds.mockResolvedValue(['video-1']);
     videoViewAggregation.claimPendingViewDelta.mockResolvedValue(4);
-    videoRepository.incrementViewCountBy.mockRejectedValue(new Error('DB down'));
+    videoRepository.incrementViewCountBy.mockRejectedValue(
+      new Error('DB down'),
+    );
     videoViewAggregation.restoreInflightViewDelta.mockResolvedValue(undefined);
 
     await useCase.execute();

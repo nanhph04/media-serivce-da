@@ -46,9 +46,7 @@ export class HandleMembershipPaymentSuccessUseCase extends BaseUseCase<
     super();
   }
 
-  async execute(
-    command: HandleMembershipPaymentSuccessCommand,
-  ): Promise<void> {
+  async execute(command: HandleMembershipPaymentSuccessCommand): Promise<void> {
     if (!(await this.markEventProcessing(command.eventId))) {
       return;
     }
@@ -96,7 +94,9 @@ export class HandleMembershipPaymentSuccessUseCase extends BaseUseCase<
   private async resolvePolicyRejection(
     command: HandleMembershipPaymentSuccessCommand,
   ): Promise<MembershipBlockedReason | null> {
-    const channel = await this.channelRepository.findById(command.data.channelId);
+    const channel = await this.channelRepository.findById(
+      command.data.channelId,
+    );
     if (!channel) {
       return MEMBERSHIP_BLOCKED_REASON.CHANNEL_NOT_FOUND;
     }

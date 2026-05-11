@@ -155,9 +155,7 @@ describe('MinioService', () => {
   it('fails fast when the MinIO SSL config is invalid', () => {
     configService.getBooleanOrThrow.mockImplementation((key: string) => {
       if (key === 'MINIO_USE_SSL') {
-        throw new Error(
-          'Config key "MINIO_USE_SSL" must be "true" or "false"',
-        );
+        throw new Error('Config key "MINIO_USE_SSL" must be "true" or "false"');
       }
 
       return false;

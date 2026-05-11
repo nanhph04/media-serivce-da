@@ -18,9 +18,7 @@ interface VideoModerationRequestedEventData {
 }
 
 @Injectable()
-export class VideoModerationRequestPublisher
-  implements IVideoModerationRequestPublisher
-{
+export class VideoModerationRequestPublisher implements IVideoModerationRequestPublisher {
   constructor(
     private readonly configService: ConfigService,
     @Inject(KAFKA_SERVICE) private readonly kafkaService: KafkaService,

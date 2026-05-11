@@ -128,7 +128,9 @@ export class LoggerInterceptor implements NestInterceptor {
   }
 
   private shouldLogBody(method: string, url: string): boolean {
-    return BODY_LOG_METHODS.has(method.toUpperCase()) && !this.isStreamRoute(url);
+    return (
+      BODY_LOG_METHODS.has(method.toUpperCase()) && !this.isStreamRoute(url)
+    );
   }
 
   private shouldLogRequestLifecycle(method: string, url: string): boolean {

@@ -1,8 +1,12 @@
-import { Category, CategoryStatus } from '../../../categories/domain/entities/category.entity';
 import {
-  mapVideoEntityToListItem,
-} from './video-list-item.response';
-import { VideoEntity, VideoVisibility } from '../../domain/entities/video.entity';
+  Category,
+  CategoryStatus,
+} from '../../../categories/domain/entities/category.entity';
+import { mapVideoEntityToListItem } from './video-list-item.response';
+import {
+  VideoEntity,
+  VideoVisibility,
+} from '../../domain/entities/video.entity';
 
 describe('mapVideoEntityToListItem', () => {
   it('maps category entities into slug array', () => {

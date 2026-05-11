@@ -12,7 +12,11 @@ import type { IEventPublisher } from '../../application/interfaces/event-publish
 
 @Injectable()
 export class KafkaService
-  implements OnModuleInit, OnApplicationBootstrap, OnModuleDestroy, IEventPublisher
+  implements
+    OnModuleInit,
+    OnApplicationBootstrap,
+    OnModuleDestroy,
+    IEventPublisher
 {
   private kafka: Kafka;
   private producer: Producer | null = null;

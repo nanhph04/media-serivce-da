@@ -75,7 +75,9 @@ export class CreateMembershipTierUseCase extends BaseUseCase<
     const existingTiers = await this.membershipTierRepository.findByChannelId(
       command.channelId,
     );
-    const existingTier = existingTiers.find((tier) => tier.level === command.level);
+    const existingTier = existingTiers.find(
+      (tier) => tier.level === command.level,
+    );
 
     if (existingTier) {
       throw new ConflictException('Membership tier level already exists');

@@ -4,9 +4,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@shared/domain/exceptions/domain.exception';
-import {
-  CategoryStatus,
-} from '../../../categories/domain/entities/category.entity';
+import { CategoryStatus } from '../../../categories/domain/entities/category.entity';
 import {
   CATEGORY_REPOSITORY,
   type ICategoryRepository,

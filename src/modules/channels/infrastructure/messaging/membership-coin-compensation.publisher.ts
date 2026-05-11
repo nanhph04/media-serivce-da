@@ -10,9 +10,7 @@ import type {
 } from '../../application/interfaces/membership-coin-compensation.publisher.interface';
 
 @Injectable()
-export class MembershipCoinCompensationPublisher
-  implements IMembershipCoinCompensationPublisher
-{
+export class MembershipCoinCompensationPublisher implements IMembershipCoinCompensationPublisher {
   constructor(
     @Inject(EVENT_PUBLISHER)
     private readonly eventPublisher: IEventPublisher,

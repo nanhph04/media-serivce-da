@@ -99,10 +99,7 @@ function createHttpContext(response: Response): ExecutionContext {
   } as ExecutionContext;
 }
 
-function createResponse(
-  statusCode: number,
-  headersSent = false,
-): Response {
+function createResponse(statusCode: number, headersSent = false): Response {
   return {
     statusCode,
     headersSent,

@@ -1,5 +1,8 @@
 import { ForbiddenException } from '@shared/domain/exceptions/domain.exception';
-import { ChannelEntity, ChannelStatus } from '../../domain/entities/channel.entity';
+import {
+  ChannelEntity,
+  ChannelStatus,
+} from '../../domain/entities/channel.entity';
 import { MembershipTierEntity } from '../../domain/entities/membership-tier.entity';
 import { UpdateMembershipTierUseCase } from './update-membership-tier.use-case';
 
@@ -78,7 +81,9 @@ function buildChannel(
 }
 
 function buildTier(
-  overrides: Partial<ConstructorParameters<typeof MembershipTierEntity>[0]> = {},
+  overrides: Partial<
+    ConstructorParameters<typeof MembershipTierEntity>[0]
+  > = {},
 ): MembershipTierEntity {
   return new MembershipTierEntity({
     id: 'tier-1',

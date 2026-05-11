@@ -56,10 +56,7 @@ export class VideoViewAggregationService implements IVideoViewAggregation {
     private readonly videoViewConfig: IVideoViewConfig,
   ) {}
 
-  async recordViewedEvent(
-    eventId: string,
-    videoId: string,
-  ): Promise<boolean> {
+  async recordViewedEvent(eventId: string, videoId: string): Promise<boolean> {
     const result = await this.redis.eval(
       RECORD_VIEWED_EVENT_SCRIPT,
       3,
