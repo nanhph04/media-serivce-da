@@ -15,5 +15,5 @@ export interface IChannelAccessService {
     channelId: string,
     userId: string,
   ): Promise<ChannelViewerAccessContext>;
-  getActiveSubscribedChannelIds(userId: string): Promise<string[]>;
+  getActiveMembershipChannelIds(userId: string): Promise<string[]>;
 }

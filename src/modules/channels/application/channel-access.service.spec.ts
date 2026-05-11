@@ -94,6 +94,28 @@ describe('ChannelAccessService', () => {
       NotFoundException,
     );
   });
+
+  it('returns only currently active membership channel ids', async () => {
+    membershipRepository.findByUserId.mockResolvedValue([
+      buildMembership({
+        channelId: 'channel-active',
+        expiryDate: new Date('2099-01-01T00:00:00.000Z'),
+      }),
+      buildMembership({
+        channelId: 'channel-cancelled',
+        status: 'cancelled',
+        expiryDate: new Date('2099-01-01T00:00:00.000Z'),
+      }),
+      buildMembership({
+        channelId: 'channel-expired',
+        expiryDate: new Date('2020-01-01T00:00:00.000Z'),
+      }),
+    ]);
+
+    await expect(
+      service.getActiveMembershipChannelIds('user-1'),
+    ).resolves.toEqual(['channel-active']);
+  });
 });
 
 function buildChannel(
@@ -115,7 +137,9 @@ function buildChannel(
   });
 }
 
-function buildMembership(): ChannelMembershipEntity {
+function buildMembership(
+  overrides: Partial<ConstructorParameters<typeof ChannelMembershipEntity>[0]> = {},
+): ChannelMembershipEntity {
   return new ChannelMembershipEntity({
     id: 'membership-1',
     userId: 'user-1',
@@ -126,6 +150,7 @@ function buildMembership(): ChannelMembershipEntity {
     status: 'active',
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
     updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+    ...overrides,
   });
 }
 

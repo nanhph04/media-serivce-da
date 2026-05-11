@@ -31,8 +31,10 @@ export class GetSubscribedVideosUseCase extends BaseUseCase<
   async execute(
     query: GetSubscribedVideosQuery,
   ): Promise<VideoListItemResponse[]> {
+    // "Subscribed" discovery is currently backed by active memberships only.
+    // It is a feed of fresh public videos, not a source of membership details.
     const channelIds =
-      await this.channelAccessService.getActiveSubscribedChannelIds(
+      await this.channelAccessService.getActiveMembershipChannelIds(
         query.userId,
       );
 

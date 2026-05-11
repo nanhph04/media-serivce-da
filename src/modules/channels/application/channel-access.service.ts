@@ -91,7 +91,7 @@ export class ChannelAccessService implements IChannelAccessService {
     };
   }
 
-  async getActiveSubscribedChannelIds(userId: string): Promise<string[]> {
+  async getActiveMembershipChannelIds(userId: string): Promise<string[]> {
     const memberships = await this.membershipRepository.findByUserId(userId);
 
     return memberships

@@ -339,6 +339,56 @@ describe('VideosController', () => {
     });
   });
 
+  it('returns subscribed discovery videos for the current user', async () => {
+    getSubscribedVideosUseCase.execute.mockResolvedValue([
+      {
+        id: 'video-1',
+        channelId: 'channel-1',
+        title: 'Member Feed Video',
+        description: 'Description',
+        categories: ['music'],
+        status: VideoStatus.READY,
+        price: 0,
+        requiredTierLevel: null,
+        thumbnailUrl: null,
+        durationSeconds: 120,
+        resolutions: ['720p'],
+        errorMessage: null,
+        viewCount: 10,
+        publishedAt: new Date('2026-01-01T00:00:00.000Z'),
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+      },
+    ]);
+
+    const result = await controller.subscribed('viewer-1', '999');
+
+    expect(getSubscribedVideosUseCase.execute).toHaveBeenCalledWith({
+      userId: 'viewer-1',
+      limit: 50,
+    });
+    expect(result).toEqual([
+      {
+        id: 'video-1',
+        channelId: 'channel-1',
+        title: 'Member Feed Video',
+        description: 'Description',
+        categories: ['music'],
+        status: VideoStatus.READY,
+        price: 0,
+        requiredTierLevel: null,
+        thumbnailUrl: null,
+        durationSeconds: 120,
+        resolutions: ['720p'],
+        errorMessage: null,
+        viewCount: 10,
+        publishedAt: '2026-01-01T00:00:00.000Z',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-02T00:00:00.000Z',
+      },
+    ]);
+  });
+
   it('uses default page and clamps limit for purchased videos', async () => {
     getPurchasedVideosUseCase.execute.mockResolvedValue({
       items: [],

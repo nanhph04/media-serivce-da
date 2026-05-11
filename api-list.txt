@@ -654,7 +654,7 @@ Ghi chu chung
     - `totalPages` (number)
 
 4.12) GET /api/media/videos/discovery/subscribed?limit=20
-- Muc dich: lay video tu cac channel user dang subscribe.
+- Muc dich: lay video public moi tu cac channel ma user dang co membership active.
 - Header:
   - `x-user-id`: He thong tu set
   - `x-internal-secret`: He thong tu set
@@ -663,6 +663,11 @@ Ghi chu chung
 - He thong tu set them khi xu ly:
   - `userId`: lay tu header `x-user-id`
   - Neu thieu `limit` thi he thong dung `20`
+- Ghi chu:
+  - Endpoint nay phuc vu discovery/feed, co the dung cho section "Video moi tu kenh ban theo doi".
+  - Hien tai semantics la membership-only: nguon channel duoc suy ra tu active memberships, khong phai follow mien phi doc lap.
+  - Khong duoc dung endpoint nay de thay the `GET /api/media/memberships/me`.
+  - Response KHONG bao gom tier, expiryDate, canRenew, canUpgrade, hoac bat ky metadata membership nao.
 - Response HTTP 200:
   - Envelope `data`: array, moi object gom:
     - `id` (string)

@@ -340,6 +340,12 @@ export class VideosController {
   }
 
   @Get('discovery/subscribed')
+  @ApiOperation({
+    summary:
+      'Get recent public videos from channels where the current user has an active membership',
+    description:
+      'This discovery feed is membership-backed and does not replace the memberships list API. It returns videos only and does not include tier, expiry, renewal, or upgrade metadata.',
+  })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiSuccessResponse(VideoListItemResponseDto, { isArray: true })
   async subscribed(
