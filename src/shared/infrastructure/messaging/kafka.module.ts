@@ -1,4 +1,5 @@
 import { Module, Global } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '../config/config.module';
 import { ConfigService } from '../config/config.service';
 import { LoggerModule } from '../logger/logger.module';
@@ -7,10 +8,16 @@ import { KafkaService } from './kafka.service';
 import { KAFKA_SERVICE } from './kafka.constants';
 import type { IKafkaModuleOptions } from '../../application/interfaces/kafka-config.interface';
 import { EVENT_PUBLISHER } from '../../application/interfaces/event-publisher.interface';
+import { OutboxMessageOrmEntity } from './outbox-message.orm-entity';
+import { OutboxPublisherWorker } from './outbox-publisher.worker';
 
 @Global()
 @Module({
-  imports: [ConfigModule, LoggerModule],
+  imports: [
+    ConfigModule,
+    LoggerModule,
+    TypeOrmModule.forFeature([OutboxMessageOrmEntity]),
+  ],
   providers: [
     {
       provide: KAFKA_SERVICE,
@@ -48,6 +55,7 @@ import { EVENT_PUBLISHER } from '../../application/interfaces/event-publisher.in
       provide: EVENT_PUBLISHER,
       useExisting: KAFKA_SERVICE,
     },
+    OutboxPublisherWorker,
   ],
   exports: [KAFKA_SERVICE, EVENT_PUBLISHER],
 })

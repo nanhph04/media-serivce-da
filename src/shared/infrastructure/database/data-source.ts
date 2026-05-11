@@ -9,6 +9,7 @@ import { VideoCategoryOrmEntity } from '../../../modules/videos/infrastructure/p
 import { VideoPurchaseUnlockOrmEntity } from '../../../modules/videos/infrastructure/persistence/video-purchase-unlock.orm-entity';
 import { VideoOrmEntity } from '../../../modules/videos/infrastructure/persistence/video.orm-entity';
 import { VideoWatchProgressOrmEntity } from '../../../modules/videos/infrastructure/persistence/video-watch-progress.orm-entity';
+import { OutboxMessageOrmEntity } from '../messaging/outbox-message.orm-entity';
 
 const loadEnvironmentFile = (): void => {
   const envFilePath = join(process.cwd(), '.env');
@@ -66,6 +67,7 @@ export default new DataSource({
     VideoPurchaseUnlockOrmEntity,
     VideoCategoryOrmEntity,
     VideoWatchProgressOrmEntity,
+    OutboxMessageOrmEntity,
   ],
   migrations: [join(__dirname, 'migrations', '*.{ts,js}')],
 });

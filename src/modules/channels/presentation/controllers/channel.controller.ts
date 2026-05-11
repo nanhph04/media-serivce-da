@@ -11,6 +11,7 @@ import { ApiHeader, ApiTags } from '@nestjs/swagger';
 import { ForbiddenException } from '@shared/domain/exceptions/domain.exception';
 import { ApiCreatedSuccessResponse } from '@shared/presentation/decorators/api-success-response.decorator';
 import { ApiSuccessResponse } from '@shared/presentation/decorators/api-success-response.decorator';
+import { CurrentRequestId } from '@shared/presentation/decorators/request-id.decorator';
 import { CurrentUserId } from '@shared/presentation/decorators/user-id.decorator';
 import { CurrentUserRole } from '@shared/presentation/decorators/user-role.decorator';
 import { SkipInternalGatewayGuard } from '@shared/presentation/decorators/skip-internal-gateway.decorator';
@@ -59,10 +60,12 @@ export class ChannelController {
   @ApiCreatedSuccessResponse(ChannelResponseDto)
   async createChannel(
     @CurrentUserId() userId: string,
+    @CurrentRequestId() traceId: string,
     @Body() dto: CreateChannelRequestDto,
   ): Promise<ApiResponse<ChannelResponseDto>> {
     const channel = await this.createChannelUseCase.execute({
       userId,
+      traceId,
       name: dto.name,
       bio: dto.bio,
     });

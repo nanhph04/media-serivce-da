@@ -29,10 +29,12 @@ import { MembershipTierRepositoryImpl } from './infrastructure/persistence/membe
 import { ChannelMembershipMapper } from './infrastructure/mappers/channel-membership.mapper';
 import { MembershipPaymentConsumer } from './infrastructure/consumers/membership-payment.consumer';
 import { MembershipCoinCompensationPublisher } from './infrastructure/messaging/membership-coin-compensation.publisher';
+import { ChannelCreationTransactionService } from './infrastructure/persistence/channel-creation-transaction.service';
 import { ChannelSearchQueryService } from './infrastructure/query/channel-search-query.service';
 import { UserMembershipQueryService } from './infrastructure/query/user-membership-query.service';
 import { ConfigModule } from '@shared/infrastructure/config/config.module';
 import { ConfigService } from '@shared/infrastructure/config/config.service';
+import { OutboxMessageOrmEntity } from '@shared/infrastructure/messaging/outbox-message.orm-entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { VideosModule } from '../videos/videos.module';
 import { CHANNEL_ACCESS_SERVICE } from './application/interfaces/channel-access.service.interface';
@@ -42,6 +44,7 @@ import { CHANNEL_MEMBERSHIP_REPOSITORY } from './domain/repositories/channel-mem
 import { MEMBERSHIP_TIER_REPOSITORY } from './domain/repositories/membership-tier.repository';
 import { MEMBERSHIP_COIN_COMPENSATION_PUBLISHER } from './application/interfaces/membership-coin-compensation.publisher.interface';
 import { USER_MEMBERSHIP_QUERY_SERVICE } from './application/interfaces/user-membership-query.service.interface';
+import { CHANNEL_CREATION_TRANSACTION } from './application/interfaces/channel-creation-transaction.interface';
 
 @Module({
   imports: [
@@ -51,9 +54,14 @@ import { USER_MEMBERSHIP_QUERY_SERVICE } from './application/interfaces/user-mem
       ChannelOrmEntity,
       ChannelMembershipOrmEntity,
       MembershipTierOrmEntity,
+      OutboxMessageOrmEntity,
     ]),
   ],
-  controllers: [ChannelController, MembershipController, MembershipTierController],
+  controllers: [
+    ChannelController,
+    MembershipController,
+    MembershipTierController,
+  ],
   providers: [
     ChannelRepositoryImpl,
     ChannelMembershipRepositoryImpl,
@@ -63,6 +71,7 @@ import { USER_MEMBERSHIP_QUERY_SERVICE } from './application/interfaces/user-mem
     ChannelAccessService,
     ChannelMembershipEligibilityService,
     ChannelMembershipMapper,
+    ChannelCreationTransactionService,
     CreateChannelUseCase,
     GetCurrentChannelUseCase,
     UpdateChannelUseCase,
@@ -81,6 +90,10 @@ import { USER_MEMBERSHIP_QUERY_SERVICE } from './application/interfaces/user-mem
     {
       provide: CHANNEL_REPOSITORY,
       useExisting: ChannelRepositoryImpl,
+    },
+    {
+      provide: CHANNEL_CREATION_TRANSACTION,
+      useExisting: ChannelCreationTransactionService,
     },
     {
       provide: CHANNEL_MEMBERSHIP_REPOSITORY,
