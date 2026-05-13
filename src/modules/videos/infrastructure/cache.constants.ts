@@ -26,7 +26,8 @@ export const VIDEO_CACHE_KEYS = {
     version: number,
     q: string | undefined,
     category: string | undefined,
+    tags: string | undefined,
     limit: number,
   ): string =>
-    `media_service:search:global:v${version}:q:${q ?? ''}:category:${category ?? ''}:limit:${limit}:videos`,
+    `media_service:search:global:v${version}:q:${q ?? ''}:category:${category ?? ''}:tags:${tags ?? ''}:limit:${limit}:videos`,
 } as const;

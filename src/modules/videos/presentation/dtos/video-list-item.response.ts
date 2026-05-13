@@ -13,8 +13,14 @@ export class VideoListItemResponseDto {
   @ApiProperty()
   description!: string;
 
+  @ApiProperty()
+  category!: string;
+
   @ApiProperty({ type: [String] })
   categories!: string[];
+
+  @ApiProperty({ type: [String] })
+  tags!: string[];
 
   @ApiProperty()
   status!: string;

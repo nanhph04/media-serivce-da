@@ -5,6 +5,7 @@ import { SharedModule } from './shared/shared.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { ChannelsModule } from './modules/channels/channels.module';
 import { SearchModule } from './modules/search/search.module';
+import { TagsModule } from './modules/tags/tags.module';
 import { VideosModule } from './modules/videos/videos.module';
 import { StreamingModule } from './modules/streaming/streaming.module';
 
@@ -14,6 +15,7 @@ import { StreamingModule } from './modules/streaming/streaming.module';
     CategoriesModule,
     ChannelsModule,
     SearchModule,
+    TagsModule,
     VideosModule,
     StreamingModule,
   ],

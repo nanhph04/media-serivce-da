@@ -5,7 +5,9 @@ export interface StudioVideoListItemResponse {
   channelId: string;
   title: string;
   description: string;
+  category: string;
   categories: string[];
+  tags: string[];
   status: string;
   visibility: string;
   price: number;
@@ -28,7 +30,9 @@ export function mapVideoEntityToStudioListItem(
     channelId: video.channelId,
     title: video.title,
     description: video.description,
-    categories: video.category.map((category) => category.slug),
+    category: video.category.slug,
+    categories: [video.category.slug],
+    tags: video.tags.map((tag) => tag.slug),
     status: video.status,
     visibility: video.visibility,
     price: video.price,

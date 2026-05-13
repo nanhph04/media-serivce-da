@@ -13,6 +13,11 @@ import {
   CATEGORY_REPOSITORY,
   type ICategoryRepository,
 } from '../../../categories/domain/repositories/category.repository';
+import { TagStatus, type Tag } from '../../../tags/domain/entities/tag.entity';
+import {
+  TAG_REPOSITORY,
+  type ITagRepository,
+} from '../../../tags/domain/repositories/tag.repository';
 import {
   CHANNEL_ACCESS_SERVICE,
   type IChannelAccessService,
@@ -39,6 +44,8 @@ export class InitVideoUploadUseCase extends BaseUseCase<
     private readonly channelAccessService: IChannelAccessService,
     @Inject(OBJECT_STORAGE_SERVICE)
     private readonly objectStorageService: IObjectStorageService,
+    @Inject(TAG_REPOSITORY)
+    private readonly tagRepository: ITagRepository,
   ) {
     super();
   }
@@ -51,13 +58,15 @@ export class InitVideoUploadUseCase extends BaseUseCase<
     );
 
     const rawFileKey = `uploads/raw/${channelId}/${Date.now()}-${crypto.randomUUID()}.mp4`;
-    const categories = await this.resolveCategories(command.categories);
+    const category = await this.resolveCategory(command);
+    const tags = await this.resolveTags(command.tagIds);
     const video = VideoEntity.create({
       channelId,
       ownerId: command.userId,
       title: command.title,
       description: command.description,
-      category: categories,
+      category,
+      tags,
       visibility: command.visibility,
       price: command.price,
       requiredTierLevel: command.requiredTierLevel,
@@ -78,27 +87,64 @@ export class InitVideoUploadUseCase extends BaseUseCase<
     };
   }
 
-  private async resolveCategories(slugs: string[]): Promise<Category[]> {
+  private async resolveCategory(
+    command: InitVideoUploadCommand,
+  ): Promise<Category> {
+    if (command.categoryId) {
+      const category = await this.categoryRepository.findById(
+        command.categoryId,
+      );
+
+      if (!category || category.status !== CategoryStatus.ACTIVE) {
+        throw new BadRequestException('Category is invalid');
+      }
+
+      return category;
+    }
+
     const normalizedSlugs = [
-      ...new Set(slugs.map((slug) => slug.trim()).filter(Boolean)),
+      ...new Set(
+        (command.categories ?? []).map((slug) => slug.trim()).filter(Boolean),
+      ),
     ];
 
-    if (normalizedSlugs.length === 0) {
-      throw new BadRequestException('At least one category is required');
+    if (normalizedSlugs.length !== 1) {
+      throw new BadRequestException('Exactly one category is required');
     }
 
-    const matchedCategories =
+    const [category] =
       await this.categoryRepository.findBySlugs(normalizedSlugs);
 
-    if (
-      matchedCategories.length !== normalizedSlugs.length ||
-      matchedCategories.some(
-        (category) => category.status !== CategoryStatus.ACTIVE,
-      )
-    ) {
-      throw new BadRequestException('One or more categories are invalid');
+    if (!category || category.status !== CategoryStatus.ACTIVE) {
+      throw new BadRequestException('Category is invalid');
     }
 
-    return matchedCategories;
+    return category;
+  }
+
+  private async resolveTags(tagIds: string[]): Promise<Tag[]> {
+    const sourceTagIds = tagIds ?? [];
+    const normalizedTagIds = [
+      ...new Set(sourceTagIds.map((tagId) => tagId.trim()).filter(Boolean)),
+    ];
+
+    if (normalizedTagIds.length !== sourceTagIds.length) {
+      throw new BadRequestException('Duplicate tags are not allowed');
+    }
+
+    if (normalizedTagIds.length === 0) {
+      return [];
+    }
+
+    const tags = await this.tagRepository.findByIds(normalizedTagIds);
+
+    if (
+      tags.length !== normalizedTagIds.length ||
+      tags.some((tag) => tag.status !== TagStatus.ACTIVE)
+    ) {
+      throw new BadRequestException('One or more tags are invalid');
+    }
+
+    return tags;
   }
 }

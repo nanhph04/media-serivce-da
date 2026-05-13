@@ -4,7 +4,10 @@ import {
   ConflictException,
   NotFoundException,
 } from '@shared/domain/exceptions/domain.exception';
-import { Category } from '../../domain/entities/category.entity';
+import {
+  Category,
+  CategoryStatus,
+} from '../../domain/entities/category.entity';
 import {
   CATEGORY_REPOSITORY,
   type ICategoryRepository,
@@ -47,6 +50,11 @@ export class UpdateCategoryUseCase extends BaseUseCase<
         ? { description: input.description.trim() || null }
         : {}),
     });
+    category.updateSettings({
+      parentId: input.parentId,
+      displayOrder: input.displayOrder,
+      status: parseCategoryStatus(input.status),
+    });
 
     await this.categoryRepository.save(category);
 
@@ -55,9 +63,25 @@ export class UpdateCategoryUseCase extends BaseUseCase<
       name: category.name,
       slug: category.slug,
       description: category.description ?? undefined,
+      parentId: category.parentId,
       status: category.status,
+      displayOrder: category.displayOrder,
       createdAt: category.createdAt,
       updatedAt: category.updatedAt,
     };
   }
+}
+
+function parseCategoryStatus(
+  status: string | undefined,
+): CategoryStatus | undefined {
+  if (status === undefined) {
+    return undefined;
+  }
+
+  if (!Object.values(CategoryStatus).includes(status as CategoryStatus)) {
+    throw new ConflictException('Invalid category status');
+  }
+
+  return status as CategoryStatus;
 }

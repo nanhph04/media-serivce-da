@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { CategoriesModule } from '../categories/categories.module';
 import { ChannelsModule } from '../channels/channels.module';
 import { EngagementModule } from '../engagement/engagement.module';
+import { TagsModule } from '../tags/tags.module';
 import { ConfirmVideoUploadUseCase } from './application/use-cases/confirm-video-upload.use-case';
 import { GetContinueWatchingUseCase } from './application/use-cases/get-continue-watching.use-case';
 import { GetLatestVideosUseCase } from './application/use-cases/get-latest-videos.use-case';
@@ -19,6 +20,7 @@ import { HandleVideoViewedUseCase } from './application/use-cases/handle-video-v
 import { InitVideoUploadUseCase } from './application/use-cases/init-video-upload.use-case';
 import { PlayVideoUseCase } from './application/use-cases/play-video.use-case';
 import { RefreshPlaybackTokenUseCase } from './application/use-cases/refresh-playback-token.use-case';
+import { SearchPublicVideosUseCase } from './application/use-cases/search-public-videos.use-case';
 import { FlushPendingVideoViewsUseCase } from './application/use-cases/flush-pending-video-views.use-case';
 import { UpdateVideoProgressUseCase } from './application/use-cases/update-video-progress.use-case';
 import { UpdateVideoMetadataUseCase } from './application/use-cases/update-video-metadata.use-case';
@@ -37,6 +39,7 @@ import { VideoViewAggregationService } from './infrastructure/cache/video-view-a
 import { VideoPurchaseUnlockOrmEntity } from './infrastructure/persistence/video-purchase-unlock.orm-entity';
 import { VideoCategoryOrmEntity } from './infrastructure/persistence/video-category.orm-entity';
 import { VideoPurchaseUnlockRepository } from './infrastructure/persistence/video-purchase-unlock.repository';
+import { VideoTagOrmEntity } from './infrastructure/persistence/video-tag.orm-entity';
 import { VideoOrmEntity } from './infrastructure/persistence/video.orm-entity';
 import { VideoRepository } from './infrastructure/persistence/video.repository';
 import { VideoWatchProgressOrmEntity } from './infrastructure/persistence/video-watch-progress.orm-entity';
@@ -45,6 +48,7 @@ import { VideoQueryService } from './infrastructure/query/video-query.service';
 import { VideoProgressStoreService } from './infrastructure/progress/video-progress-store.service';
 import { VideoProgressStreamService } from './infrastructure/progress/video-progress-stream.service';
 import { VideosController } from './presentation/controllers/videos.controller';
+import { CategoryVideosController } from './presentation/controllers/category-videos.controller';
 import { VIDEO_CACHE_INVALIDATOR } from './application/interfaces/video-cache-invalidator.interface';
 import { VIDEO_MODERATION_REQUEST_PUBLISHER } from './application/interfaces/video-moderation-request-publisher.interface';
 import { VIDEO_MODERATION_OUTCOME_PUBLISHER } from './application/interfaces/video-moderation-outcome-publisher.interface';
@@ -63,14 +67,16 @@ import { VideoProgressService } from './application/services/video-progress.serv
     TypeOrmModule.forFeature([
       VideoOrmEntity,
       VideoCategoryOrmEntity,
+      VideoTagOrmEntity,
       VideoPurchaseUnlockOrmEntity,
       VideoWatchProgressOrmEntity,
     ]),
     CategoriesModule,
+    TagsModule,
     forwardRef(() => ChannelsModule),
     EngagementModule,
   ],
-  controllers: [VideosController],
+  controllers: [VideosController, CategoryVideosController],
   providers: [
     VideoRepository,
     VideoPurchaseUnlockRepository,
@@ -87,6 +93,7 @@ import { VideoProgressService } from './application/services/video-progress.serv
     PlayVideoUseCase,
     UpdateVideoProgressUseCase,
     RefreshPlaybackTokenUseCase,
+    SearchPublicVideosUseCase,
     UnlockVideoUseCase,
     GetContinueWatchingUseCase,
     GetVideoMetadataUseCase,

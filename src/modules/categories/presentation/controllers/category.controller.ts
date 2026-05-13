@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -83,6 +84,8 @@ export class CategoryController {
     const category = await this.createCategoryUseCase.execute({
       name: dto.name,
       description: dto.description,
+      parentId: dto.parentId ?? null,
+      displayOrder: dto.displayOrder,
     });
 
     return apiResponseContract(toCategoryResponseDto(category));
@@ -105,6 +108,29 @@ export class CategoryController {
       categoryId,
       name: dto.name,
       description: dto.description,
+      parentId: dto.parentId,
+      status: dto.status,
+      displayOrder: dto.displayOrder,
+    });
+
+    return apiResponseContract(toCategoryResponseDto(category));
+  }
+
+  @Delete(':id')
+  @ApiHeader({ name: 'x-user-id', required: true })
+  @ApiHeader({ name: 'x-user-role', required: true })
+  @ApiHeader({ name: 'x-internal-secret', required: true })
+  @ApiSuccessResponse(CategoryResponseDto)
+  async deleteCategory(
+    @CurrentUserId() _userId: string,
+    @CurrentUserRole() role: string | undefined,
+    @Param('id') categoryId: string,
+  ): Promise<ApiResponse<CategoryResponseDto>> {
+    this.assertAdmin(role);
+
+    const category = await this.updateCategoryUseCase.execute({
+      categoryId,
+      status: 'inactive',
     });
 
     return apiResponseContract(toCategoryResponseDto(category));

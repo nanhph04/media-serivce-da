@@ -18,7 +18,7 @@ export class VideoCategoryOrmEntity {
   @PrimaryColumn({ type: 'varchar', length: 36, name: 'category_id' })
   categoryId!: string;
 
-  @ManyToOne(() => VideoOrmEntity, (video) => video.videoCategories, {
+  @ManyToOne(() => VideoOrmEntity, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'video_id' })

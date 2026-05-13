@@ -16,6 +16,7 @@ export interface StudioVideoFilters {
 export interface PublicVideoSearchFilters {
   q?: string;
   category?: string;
+  tags?: string[];
   limit: number;
 }
 

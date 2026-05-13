@@ -1,5 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 export class CreateCategoryRequestDto {
   @ApiProperty()
@@ -12,4 +19,15 @@ export class CreateCategoryRequestDto {
   @IsString()
   @IsOptional()
   description?: string;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsString()
+  @IsOptional()
+  parentId?: string | null;
+
+  @ApiPropertyOptional({ default: 0 })
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  displayOrder?: number;
 }

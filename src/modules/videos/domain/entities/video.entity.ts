@@ -3,6 +3,7 @@ import {
   ConflictException,
 } from '@shared/domain/exceptions/domain.exception';
 import { Category } from '../../../categories/domain/entities/category.entity';
+import { Tag } from '../../../tags/domain/entities/tag.entity';
 
 export enum VideoStatus {
   DRAFT = 'draft',
@@ -25,7 +26,8 @@ export interface VideoProps {
   ownerId: string;
   title: string;
   description: string;
-  category: Category[];
+  category: Category;
+  tags: Tag[];
   visibility: VideoVisibility;
   status: VideoStatus;
   price: number;
@@ -65,8 +67,13 @@ export class VideoEntity {
     return this.props.description;
   }
 
-  get category(): Category[] {
-    return this.props.category;
+  get category(): Category {
+    const category = this.props.category as Category | Category[];
+    return Array.isArray(category) ? category[0] : category;
+  }
+
+  get tags(): Tag[] {
+    return this.props.tags ?? [];
   }
 
   get visibility(): VideoVisibility {
@@ -130,7 +137,8 @@ export class VideoEntity {
     ownerId: string;
     title: string;
     description: string;
-    category: Category[];
+    category: Category;
+    tags: Tag[];
     visibility: VideoVisibility;
     price: number;
     requiredTierLevel: number | null;
@@ -146,6 +154,7 @@ export class VideoEntity {
       title: input.title,
       description: input.description,
       category: input.category,
+      tags: input.tags,
       visibility: input.visibility,
       status: VideoStatus.DRAFT,
       price: input.price,
@@ -216,6 +225,8 @@ export class VideoEntity {
     title?: string;
     description?: string;
     thumbnailUrl?: string | null;
+    category?: Category;
+    tags?: Tag[];
   }): void {
     if (input.title !== undefined) {
       VideoEntity.validateTitle(input.title);
@@ -228,6 +239,14 @@ export class VideoEntity {
 
     if (input.thumbnailUrl !== undefined) {
       this.props.thumbnailUrl = input.thumbnailUrl;
+    }
+
+    if (input.category !== undefined) {
+      this.props.category = input.category;
+    }
+
+    if (input.tags !== undefined) {
+      this.props.tags = input.tags;
     }
 
     this.touch();

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, type SelectQueryBuilder } from 'typeorm';
 import { Category } from '../../../categories/domain/entities/category.entity';
+import { Tag } from '../../../tags/domain/entities/tag.entity';
 import { VideoEntity, VideoStatus } from '../../domain/entities/video.entity';
 import { VideoPurchaseUnlockEntity } from '../../domain/entities/video-purchase-unlock.entity';
 import type {
@@ -73,8 +74,9 @@ export class VideoPurchaseUnlockRepository implements IVideoPurchaseUnlockReposi
 
     const rows = await this.ormRepository.manager
       .createQueryBuilder(VideoOrmEntity, 'video')
-      .leftJoinAndSelect('video.videoCategories', 'videoCategory')
-      .leftJoinAndSelect('videoCategory.category', 'category')
+      .leftJoinAndSelect('video.category', 'category')
+      .leftJoinAndSelect('video.videoTags', 'videoTag')
+      .leftJoinAndSelect('videoTag.tag', 'tag')
       .where('video.id IN (:...videoIds)', { videoIds })
       .getMany();
 
@@ -113,7 +115,17 @@ export class VideoPurchaseUnlockRepository implements IVideoPurchaseUnlockReposi
   }
 
   private toVideoDomain(row: VideoOrmEntity): VideoEntity {
-    const videoCategories = row.videoCategories ?? [];
+    const legacyVideoCategories =
+      (
+        row as VideoOrmEntity & {
+          videoCategories?: { category: typeof row.category }[];
+        }
+      ).videoCategories ?? [];
+    const category = row.category ?? legacyVideoCategories[0]?.category;
+
+    if (!category) {
+      throw new Error(`Video ${row.id} is missing category relation`);
+    }
 
     return new VideoEntity({
       id: row.id,
@@ -121,16 +133,26 @@ export class VideoPurchaseUnlockRepository implements IVideoPurchaseUnlockReposi
       ownerId: row.ownerId,
       title: row.title,
       description: row.description,
-      category: videoCategories.map(
+      category: new Category({
+        id: category.id,
+        name: category.name,
+        slug: category.slug,
+        description: category.description,
+        parentId: category.parentId ?? null,
+        status: category.status,
+        displayOrder: category.displayOrder ?? 0,
+        createdAt: category.createdAt,
+        updatedAt: category.updatedAt,
+      }),
+      tags: (row.videoTags ?? []).map(
         (item) =>
-          new Category({
-            id: item.category.id,
-            name: item.category.name,
-            slug: item.category.slug,
-            description: item.category.description,
-            status: item.category.status,
-            createdAt: item.category.createdAt,
-            updatedAt: item.category.updatedAt,
+          new Tag({
+            id: item.tag.id,
+            name: item.tag.name,
+            slug: item.tag.slug,
+            status: item.tag.status,
+            createdAt: item.tag.createdAt,
+            updatedAt: item.tag.updatedAt,
           }),
       ),
       visibility: row.visibility,

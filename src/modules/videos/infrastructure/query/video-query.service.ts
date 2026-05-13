@@ -66,7 +66,7 @@ export class VideoQueryService implements IVideoQueryService {
     return videos.map((video) => ({
       id: video.id,
       title: video.title,
-      categories: video.category.map((category) => category.slug),
+      categories: [video.category.slug],
       status: video.status,
       thumbnailUrl: video.thumbnailUrl,
       publishedAt: video.publishedAt,
@@ -102,6 +102,8 @@ export class VideoQueryService implements IVideoQueryService {
       id: video.id,
       title: video.title,
       description: video.description,
+      category: video.category.slug,
+      tags: video.tags.map((tag) => tag.slug),
       thumbnailUrl: video.thumbnailUrl,
       viewCount: video.viewCount,
       status: video.status,
@@ -218,6 +220,7 @@ export class VideoQueryService implements IVideoQueryService {
       version,
       query.q,
       query.category,
+      query.tags?.join(','),
       query.limit,
     );
     const cached = await this.getCachedValue<CachedVideoListItem[]>(cacheKey);

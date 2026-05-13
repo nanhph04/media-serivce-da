@@ -10,6 +10,12 @@ export class VideoMetadataResponseDto {
   @ApiProperty()
   description!: string;
 
+  @ApiProperty()
+  category!: string;
+
+  @ApiProperty({ type: [String] })
+  tags!: string[];
+
   @ApiProperty({ nullable: true })
   thumbnailUrl!: string | null;
 

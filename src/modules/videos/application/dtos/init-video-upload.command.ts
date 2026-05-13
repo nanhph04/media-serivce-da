@@ -4,7 +4,9 @@ export interface InitVideoUploadCommand {
   userId: string;
   title: string;
   description: string;
-  categories: string[];
+  categoryId?: string;
+  categories?: string[];
+  tagIds: string[];
   visibility: VideoVisibility;
   price: number;
   requiredTierLevel: number | null;

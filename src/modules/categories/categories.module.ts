@@ -9,10 +9,11 @@ import { DefaultCategoryBootstrap } from './infrastructure/default-category.boot
 import { CategoryOrmEntity } from './infrastructure/persistence/category.orm-entity';
 import { CategoryRepositoryImpl } from './infrastructure/persistence/category.repository.impl';
 import { CategoryController } from './presentation/controllers/category.controller';
+import { AdminCategoryController } from './presentation/controllers/admin-category.controller';
 
 @Module({
   imports: [TypeOrmModule.forFeature([CategoryOrmEntity])],
-  controllers: [CategoryController],
+  controllers: [CategoryController, AdminCategoryController],
   providers: [
     CategoryRepositoryImpl,
     CreateCategoryUseCase,

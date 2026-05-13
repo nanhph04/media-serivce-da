@@ -19,6 +19,8 @@ type CachedCategory = {
   slug: string;
   description: string | null;
   status: CategoryStatus;
+  parentId: string | null;
+  displayOrder: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -41,6 +43,15 @@ export class CategoryRepositoryImpl implements ICategoryRepository {
     return row ? this.toDomain(row) : null;
   }
 
+  async findByIds(ids: string[]): Promise<Category[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const rows = await this.ormRepository.find({ where: { id: In(ids) } });
+    return rows.map((row) => this.toDomain(row));
+  }
+
   async findBySlug(slug: string): Promise<Category | null> {
     const row = await this.ormRepository.findOne({ where: { slug } });
     return row ? this.toDomain(row) : null;
@@ -48,7 +59,7 @@ export class CategoryRepositoryImpl implements ICategoryRepository {
 
   async findAll(): Promise<Category[]> {
     const rows = await this.ormRepository.find({
-      order: { name: 'ASC', createdAt: 'ASC' },
+      order: { displayOrder: 'ASC', name: 'ASC', createdAt: 'ASC' },
     });
     return rows.map((row) => this.toDomain(row));
   }
@@ -62,7 +73,7 @@ export class CategoryRepositoryImpl implements ICategoryRepository {
 
     const rows = await this.ormRepository.find({
       where: { status: CategoryStatus.ACTIVE },
-      order: { name: 'ASC', createdAt: 'ASC' },
+      order: { displayOrder: 'ASC', name: 'ASC', createdAt: 'ASC' },
     });
 
     await this.setActiveCategoriesCache(rows);
@@ -114,9 +125,13 @@ export class CategoryRepositoryImpl implements ICategoryRepository {
       name: category.name,
       slug: category.slug,
       description: category.description,
+      parentId: category.parentId,
       status: category.status,
+      displayOrder: category.displayOrder,
       createdAt: category.createdAt,
       updatedAt: category.updatedAt,
+      parent: null,
+      children: [],
     };
   }
 
@@ -151,7 +166,9 @@ export class CategoryRepositoryImpl implements ICategoryRepository {
       name: row.name,
       slug: row.slug,
       description: row.description,
+      parentId: row.parentId,
       status: row.status,
+      displayOrder: row.displayOrder,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     });
@@ -163,7 +180,9 @@ export class CategoryRepositoryImpl implements ICategoryRepository {
       name: row.name,
       slug: row.slug,
       description: row.description,
+      parentId: row.parentId,
       status: row.status,
+      displayOrder: row.displayOrder,
       createdAt: new Date(row.createdAt),
       updatedAt: new Date(row.updatedAt),
     });
@@ -176,6 +195,8 @@ export class CategoryRepositoryImpl implements ICategoryRepository {
       slug: row.slug,
       description: row.description,
       status: row.status,
+      parentId: row.parentId,
+      displayOrder: row.displayOrder,
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
     };

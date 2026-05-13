@@ -2,12 +2,10 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import type { TransformFnParams } from 'class-transformer';
 import {
-  ArrayMinSize,
   ArrayUnique,
   IsInt,
   IsArray,
   IsIn,
-  IsNotEmpty,
   IsString,
   MaxLength,
   Min,
@@ -34,7 +32,19 @@ export class InitVideoUploadRequestDto {
   @IsOptional()
   description = '';
 
-  @ApiProperty({ type: [String], minItems: 1 })
+  @ApiPropertyOptional({
+    description:
+      'Primary category id. Preferred over the deprecated categories field.',
+  })
+  @IsString()
+  @IsOptional()
+  categoryId?: string;
+
+  @ApiPropertyOptional({
+    type: [String],
+    deprecated: true,
+    description: 'Deprecated: use categoryId. Only one slug is accepted.',
+  })
   @Transform(({ value }: TransformFnParams): unknown =>
     Array.isArray(value)
       ? value.map((item: unknown) =>
@@ -43,11 +53,24 @@ export class InitVideoUploadRequestDto {
       : value,
   )
   @IsArray()
-  @ArrayMinSize(1)
   @ArrayUnique()
   @IsString({ each: true })
-  @IsNotEmpty({ each: true })
-  categories!: string[];
+  @IsOptional()
+  categories?: string[];
+
+  @ApiPropertyOptional({ type: [String], default: [] })
+  @Transform(({ value }: TransformFnParams): unknown =>
+    Array.isArray(value)
+      ? value.map((item: unknown) =>
+          typeof item === 'string' ? item.trim() : item,
+        )
+      : value,
+  )
+  @IsArray()
+  @ArrayUnique()
+  @IsString({ each: true })
+  @IsOptional()
+  tagIds: string[] = [];
 
   @ApiPropertyOptional({ enum: ['public', 'private'], default: 'public' })
   @IsIn(['public', 'private'])

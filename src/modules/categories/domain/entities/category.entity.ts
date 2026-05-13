@@ -12,7 +12,9 @@ export interface CategoryProps {
   name: string;
   slug: string;
   description: string | null;
+  parentId: string | null;
   status: CategoryStatus;
+  displayOrder: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -36,8 +38,16 @@ export class Category {
     return this.props.description;
   }
 
+  get parentId(): string | null {
+    return this.props.parentId;
+  }
+
   get status(): CategoryStatus {
     return this.props.status;
+  }
+
+  get displayOrder(): number {
+    return this.props.displayOrder;
   }
 
   get createdAt(): Date {
@@ -59,6 +69,7 @@ export class Category {
 
     Category.validateName(normalizedName);
     Category.validateSlug(slug);
+    Category.validateDisplayOrder(props.displayOrder);
 
     return new Category({
       id,
@@ -88,6 +99,25 @@ export class Category {
 
     if (props.description !== undefined) {
       this.props.description = props.description;
+    }
+
+    this.props.updatedAt = new Date();
+  }
+
+  updateSettings(
+    props: Partial<Pick<CategoryProps, 'parentId' | 'displayOrder' | 'status'>>,
+  ): void {
+    if (props.parentId !== undefined) {
+      this.props.parentId = props.parentId;
+    }
+
+    if (props.displayOrder !== undefined) {
+      Category.validateDisplayOrder(props.displayOrder);
+      this.props.displayOrder = props.displayOrder;
+    }
+
+    if (props.status !== undefined) {
+      this.props.status = props.status;
     }
 
     this.props.updatedAt = new Date();
@@ -123,6 +153,14 @@ export class Category {
   private static validateSlug(slug: string): void {
     if (!slug) {
       throw new BadRequestException('Category slug cannot be empty');
+    }
+  }
+
+  private static validateDisplayOrder(displayOrder: number): void {
+    if (!Number.isInteger(displayOrder) || displayOrder < 0) {
+      throw new BadRequestException(
+        'Display order must be a non-negative integer',
+      );
     }
   }
 }

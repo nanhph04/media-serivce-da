@@ -5,6 +5,19 @@ import {
   type ICategoryRepository,
 } from '../domain/repositories/category.repository';
 
+const DEFAULT_CATEGORIES = [
+  'Anime',
+  'Am nhac',
+  'Phim ngan',
+  'Truyen audio',
+  'Podcast',
+  'Vlog',
+  'Giao duc',
+  'Review',
+  'Giai tri',
+  'Khac',
+];
+
 @Injectable()
 export class DefaultCategoryBootstrap implements OnModuleInit {
   constructor(
@@ -13,19 +26,23 @@ export class DefaultCategoryBootstrap implements OnModuleInit {
   ) {}
 
   async onModuleInit(): Promise<void> {
-    const defaultSlug = Category.convertNameToSlug('Khác');
-    const existing = await this.categoryRepository.findBySlug(defaultSlug);
+    for (const [index, name] of DEFAULT_CATEGORIES.entries()) {
+      const slug = Category.convertNameToSlug(name);
+      const existing = await this.categoryRepository.findBySlug(slug);
 
-    if (existing) {
-      return;
+      if (existing) {
+        continue;
+      }
+
+      await this.categoryRepository.save(
+        Category.create({
+          name,
+          description: null,
+          parentId: null,
+          status: CategoryStatus.ACTIVE,
+          displayOrder: index,
+        }),
+      );
     }
-
-    await this.categoryRepository.save(
-      Category.create({
-        name: 'Khác',
-        description: 'Danh mục mặc định cho video không khớp thể loại có sẵn',
-        status: CategoryStatus.ACTIVE,
-      }),
-    );
   }
 }

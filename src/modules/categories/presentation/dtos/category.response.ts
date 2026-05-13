@@ -13,8 +13,14 @@ export class CategoryResponseDto {
   @ApiPropertyOptional()
   description?: string;
 
+  @ApiPropertyOptional({ nullable: true })
+  parentId!: string | null;
+
   @ApiProperty()
   status!: string;
+
+  @ApiProperty()
+  displayOrder!: number;
 
   @ApiProperty()
   createdAt!: string;

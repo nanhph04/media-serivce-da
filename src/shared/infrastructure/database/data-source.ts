@@ -5,8 +5,10 @@ import { CategoryOrmEntity } from '../../../modules/categories/infrastructure/pe
 import { ChannelMembershipOrmEntity } from '../../../modules/channels/infrastructure/persistence/channel-membership.orm-entity';
 import { ChannelOrmEntity } from '../../../modules/channels/infrastructure/persistence/channel.orm-entity';
 import { MembershipTierOrmEntity } from '../../../modules/channels/infrastructure/persistence/membership-tier.orm-entity';
+import { TagOrmEntity } from '../../../modules/tags/infrastructure/persistence/tag.orm-entity';
 import { VideoCategoryOrmEntity } from '../../../modules/videos/infrastructure/persistence/video-category.orm-entity';
 import { VideoPurchaseUnlockOrmEntity } from '../../../modules/videos/infrastructure/persistence/video-purchase-unlock.orm-entity';
+import { VideoTagOrmEntity } from '../../../modules/videos/infrastructure/persistence/video-tag.orm-entity';
 import { VideoOrmEntity } from '../../../modules/videos/infrastructure/persistence/video.orm-entity';
 import { VideoWatchProgressOrmEntity } from '../../../modules/videos/infrastructure/persistence/video-watch-progress.orm-entity';
 import { OutboxMessageOrmEntity } from '../messaging/outbox-message.orm-entity';
@@ -63,9 +65,11 @@ export default new DataSource({
     ChannelMembershipOrmEntity,
     MembershipTierOrmEntity,
     CategoryOrmEntity,
+    TagOrmEntity,
     VideoOrmEntity,
     VideoPurchaseUnlockOrmEntity,
     VideoCategoryOrmEntity,
+    VideoTagOrmEntity,
     VideoWatchProgressOrmEntity,
     OutboxMessageOrmEntity,
   ],

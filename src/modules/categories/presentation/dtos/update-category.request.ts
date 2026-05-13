@@ -1,5 +1,12 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 export class UpdateCategoryRequestDto {
   @ApiPropertyOptional()
@@ -12,4 +19,20 @@ export class UpdateCategoryRequestDto {
   @IsString()
   @IsOptional()
   description?: string;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsString()
+  @IsOptional()
+  parentId?: string | null;
+
+  @ApiPropertyOptional({ enum: ['active', 'inactive', 'deleted'] })
+  @IsIn(['active', 'inactive', 'deleted'])
+  @IsOptional()
+  status?: string;
+
+  @ApiPropertyOptional()
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  displayOrder?: number;
 }

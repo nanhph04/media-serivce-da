@@ -3,6 +3,8 @@ import {
   CreateDateColumn,
   Entity,
   Index,
+  JoinColumn,
+  ManyToOne,
   OneToMany,
   PrimaryColumn,
   UpdateDateColumn,
@@ -11,7 +13,8 @@ import {
   VideoStatus,
   VideoVisibility,
 } from '../../domain/entities/video.entity';
-import { VideoCategoryOrmEntity } from './video-category.orm-entity';
+import { CategoryOrmEntity } from '../../../categories/infrastructure/persistence/category.orm-entity';
+import { VideoTagOrmEntity } from './video-tag.orm-entity';
 
 @Entity('videos')
 @Index(['channelId', 'status'])
@@ -30,6 +33,9 @@ export class VideoOrmEntity {
 
   @Column({ type: 'text', default: '' })
   description!: string;
+
+  @Column({ type: 'varchar', length: 36, name: 'category_id', nullable: true })
+  categoryId!: string | null;
 
   @Column({
     type: 'enum',
@@ -87,12 +93,12 @@ export class VideoOrmEntity {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt!: Date;
 
-  @OneToMany(
-    () => VideoCategoryOrmEntity,
-    (videoCategory) => videoCategory.video,
-    {
-      cascade: true,
-    },
-  )
-  videoCategories!: VideoCategoryOrmEntity[];
+  @ManyToOne(() => CategoryOrmEntity, { eager: true, nullable: true })
+  @JoinColumn({ name: 'category_id' })
+  category!: CategoryOrmEntity | null;
+
+  @OneToMany(() => VideoTagOrmEntity, (videoTag) => videoTag.video, {
+    cascade: true,
+  })
+  videoTags!: VideoTagOrmEntity[];
 }

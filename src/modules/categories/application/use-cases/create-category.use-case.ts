@@ -38,7 +38,9 @@ export class CreateCategoryUseCase extends BaseUseCase<
     const category = Category.create({
       name: normalizedName,
       description: normalizedDescription,
+      parentId: input.parentId ?? null,
       status: CategoryStatus.ACTIVE,
+      displayOrder: input.displayOrder ?? 0,
     });
 
     await this.categoryRepository.save(category);
@@ -48,7 +50,9 @@ export class CreateCategoryUseCase extends BaseUseCase<
       name: category.name,
       slug: category.slug,
       description: category.description ?? undefined,
+      parentId: category.parentId,
       status: category.status,
+      displayOrder: category.displayOrder,
       createdAt: category.createdAt,
       updatedAt: category.updatedAt,
     };

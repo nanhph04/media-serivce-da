@@ -1,12 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository, type FindOptionsWhere } from 'typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, In, Repository, type FindOptionsWhere } from 'typeorm';
 import {
   VideoEntity,
   VideoStatus,
   VideoVisibility,
 } from '../../domain/entities/video.entity';
 import { Category } from '../../../categories/domain/entities/category.entity';
+import { Tag } from '../../../tags/domain/entities/tag.entity';
 import type {
   PublicVideoSearchFilters,
   PublicVideosByCategoryPageFilters,
@@ -14,7 +15,7 @@ import type {
   IVideoRepository,
   StudioVideoFilters,
 } from '../../domain/repositories/video.repository';
-import { VideoCategoryOrmEntity } from './video-category.orm-entity';
+import { VideoTagOrmEntity } from './video-tag.orm-entity';
 import { VideoOrmEntity } from './video.orm-entity';
 
 @Injectable()
@@ -22,53 +23,56 @@ export class VideoRepository implements IVideoRepository {
   constructor(
     @InjectRepository(VideoOrmEntity)
     private readonly ormRepository: Repository<VideoOrmEntity>,
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
   ) {}
 
   async save(video: VideoEntity): Promise<void> {
-    await this.ormRepository.save({
-      id: video.id,
-      channelId: video.channelId,
-      ownerId: video.ownerId,
-      title: video.title,
-      description: video.description,
-      visibility: video.visibility,
-      status: video.status,
-      price: video.price,
-      requiredTierLevel: video.requiredTierLevel,
-      rawFileKey: video.rawFileKey,
-      masterPlaylistKey: video.masterPlaylistKey,
-      thumbnailUrl: video.thumbnailUrl,
-      durationSeconds: video.durationSeconds,
-      resolutions: video.resolutions,
-      errorMessage: video.errorMessage,
-      viewCount: video.viewCount,
-      publishedAt: video.publishedAt,
-      createdAt: video.createdAt,
-      updatedAt: video.updatedAt,
-      videoCategories: video.category.map(
-        (category): VideoCategoryOrmEntity => ({
-          videoId: video.id,
-          categoryId: category.id,
-          video: undefined as never,
-          category: {
-            id: category.id,
-            name: category.name,
-            slug: category.slug,
-            description: category.description,
-            status: category.status,
-            createdAt: category.createdAt,
-            updatedAt: category.updatedAt,
-          },
-        }),
-      ),
+    await this.dataSource.transaction(async (manager) => {
+      await manager.save(VideoOrmEntity, {
+        id: video.id,
+        channelId: video.channelId,
+        ownerId: video.ownerId,
+        title: video.title,
+        description: video.description,
+        categoryId: video.category.id,
+        visibility: video.visibility,
+        status: video.status,
+        price: video.price,
+        requiredTierLevel: video.requiredTierLevel,
+        rawFileKey: video.rawFileKey,
+        masterPlaylistKey: video.masterPlaylistKey,
+        thumbnailUrl: video.thumbnailUrl,
+        durationSeconds: video.durationSeconds,
+        resolutions: video.resolutions,
+        errorMessage: video.errorMessage,
+        viewCount: video.viewCount,
+        publishedAt: video.publishedAt,
+        createdAt: video.createdAt,
+        updatedAt: video.updatedAt,
+      });
+
+      await manager.delete(VideoTagOrmEntity, { videoId: video.id });
+
+      if (video.tags.length > 0) {
+        await manager.insert(
+          VideoTagOrmEntity,
+          video.tags.map((tag) => ({
+            videoId: video.id,
+            tagId: tag.id,
+            createdAt: new Date(),
+          })),
+        );
+      }
     });
   }
 
   async findById(id: string): Promise<VideoEntity | null> {
     const row = await this.ormRepository
       .createQueryBuilder('video')
-      .leftJoinAndSelect('video.videoCategories', 'videoCategory')
-      .leftJoinAndSelect('videoCategory.category', 'category')
+      .leftJoinAndSelect('video.category', 'category')
+      .leftJoinAndSelect('video.videoTags', 'videoTag')
+      .leftJoinAndSelect('videoTag.tag', 'tag')
       .where('video.id = :id', { id })
       .getOne();
 
@@ -76,7 +80,10 @@ export class VideoRepository implements IVideoRepository {
   }
 
   async findBasicById(id: string): Promise<VideoEntity | null> {
-    const row = await this.ormRepository.findOne({ where: { id } });
+    const row = await this.ormRepository.findOne({
+      where: { id },
+      relations: { category: true, videoTags: { tag: true } },
+    });
     return row ? this.toDomain(row) : null;
   }
 
@@ -135,11 +142,7 @@ export class VideoRepository implements IVideoRepository {
 
     const rows = await this.ormRepository.find({
       where,
-      relations: {
-        videoCategories: {
-          category: true,
-        },
-      },
+      relations: { category: true, videoTags: { tag: true } },
       order: {
         updatedAt: 'DESC',
         createdAt: 'DESC',
@@ -153,8 +156,9 @@ export class VideoRepository implements IVideoRepository {
   async findPublicByChannelId(channelId: string): Promise<VideoEntity[]> {
     const rows = await this.ormRepository
       .createQueryBuilder('video')
-      .leftJoinAndSelect('video.videoCategories', 'videoCategory')
-      .leftJoinAndSelect('videoCategory.category', 'category')
+      .leftJoinAndSelect('video.category', 'category')
+      .leftJoinAndSelect('video.videoTags', 'videoTag')
+      .leftJoinAndSelect('videoTag.tag', 'tag')
       .where('video.channelId = :channelId', { channelId })
       .andWhere('video.status = :status', { status: VideoStatus.READY })
       .andWhere('video.visibility = :visibility', {
@@ -170,8 +174,9 @@ export class VideoRepository implements IVideoRepository {
   async findLatestPublic(limit: number): Promise<VideoEntity[]> {
     const rows = await this.ormRepository
       .createQueryBuilder('video')
-      .leftJoinAndSelect('video.videoCategories', 'videoCategory')
-      .leftJoinAndSelect('videoCategory.category', 'category')
+      .leftJoinAndSelect('video.category', 'category')
+      .leftJoinAndSelect('video.videoTags', 'videoTag')
+      .leftJoinAndSelect('videoTag.tag', 'tag')
       .where('video.status = :status', { status: VideoStatus.READY })
       .andWhere('video.visibility = :visibility', {
         visibility: VideoVisibility.PUBLIC,
@@ -197,8 +202,9 @@ export class VideoRepository implements IVideoRepository {
     const offset = (filters.page - 1) * filters.limit;
     const queryBuilder = this.ormRepository
       .createQueryBuilder('video')
-      .leftJoinAndSelect('video.videoCategories', 'videoCategory')
-      .leftJoinAndSelect('videoCategory.category', 'category')
+      .leftJoinAndSelect('video.category', 'category')
+      .leftJoinAndSelect('video.videoTags', 'videoTag')
+      .leftJoinAndSelect('videoTag.tag', 'tag')
       .where('video.status = :status', { status: VideoStatus.READY })
       .andWhere('video.visibility = :visibility', {
         visibility: VideoVisibility.PUBLIC,
@@ -224,8 +230,9 @@ export class VideoRepository implements IVideoRepository {
   ): Promise<VideoEntity[]> {
     const queryBuilder = this.ormRepository
       .createQueryBuilder('video')
-      .leftJoinAndSelect('video.videoCategories', 'videoCategory')
-      .leftJoinAndSelect('videoCategory.category', 'category')
+      .leftJoinAndSelect('video.category', 'category')
+      .leftJoinAndSelect('video.videoTags', 'videoTag')
+      .leftJoinAndSelect('videoTag.tag', 'tag')
       .where('video.status = :status', { status: VideoStatus.READY })
       .andWhere('video.visibility = :visibility', {
         visibility: VideoVisibility.PUBLIC,
@@ -235,6 +242,20 @@ export class VideoRepository implements IVideoRepository {
       queryBuilder.andWhere('category.slug = :category', {
         category: filters.category,
       });
+    }
+
+    if (filters.tags && filters.tags.length > 0) {
+      queryBuilder.andWhere(
+        `video.id IN (
+          SELECT filtered_video_tags.video_id
+          FROM video_tags filtered_video_tags
+          INNER JOIN tags filtered_tags ON filtered_tags.id = filtered_video_tags.tag_id
+          WHERE filtered_tags.slug IN (:...tags)
+          GROUP BY filtered_video_tags.video_id
+          HAVING COUNT(DISTINCT filtered_tags.slug) = :tagCount
+        )`,
+        { tags: filters.tags, tagCount: filters.tags.length },
+      );
     }
 
     const normalizedQuery = filters.q?.trim().toLowerCase();
@@ -295,11 +316,7 @@ export class VideoRepository implements IVideoRepository {
         status: VideoStatus.READY,
         visibility: VideoVisibility.PUBLIC,
       },
-      relations: {
-        videoCategories: {
-          category: true,
-        },
-      },
+      relations: { category: true, videoTags: { tag: true } },
       order: { publishedAt: 'DESC', createdAt: 'DESC' },
       take: limit,
     });
@@ -307,7 +324,17 @@ export class VideoRepository implements IVideoRepository {
   }
 
   private toDomain(row: VideoOrmEntity): VideoEntity {
-    const videoCategories = row.videoCategories ?? [];
+    const legacyVideoCategories =
+      (
+        row as VideoOrmEntity & {
+          videoCategories?: { category: typeof row.category }[];
+        }
+      ).videoCategories ?? [];
+    const category = row.category ?? legacyVideoCategories[0]?.category;
+
+    if (!category) {
+      throw new Error(`Video ${row.id} is missing category relation`);
+    }
 
     return new VideoEntity({
       id: row.id,
@@ -315,16 +342,26 @@ export class VideoRepository implements IVideoRepository {
       ownerId: row.ownerId,
       title: row.title,
       description: row.description,
-      category: videoCategories.map(
+      category: new Category({
+        id: category.id,
+        name: category.name,
+        slug: category.slug,
+        description: category.description,
+        parentId: category.parentId ?? null,
+        status: category.status,
+        displayOrder: category.displayOrder ?? 0,
+        createdAt: category.createdAt,
+        updatedAt: category.updatedAt,
+      }),
+      tags: (row.videoTags ?? []).map(
         (item) =>
-          new Category({
-            id: item.category.id,
-            name: item.category.name,
-            slug: item.category.slug,
-            description: item.category.description,
-            status: item.category.status,
-            createdAt: item.category.createdAt,
-            updatedAt: item.category.updatedAt,
+          new Tag({
+            id: item.tag.id,
+            name: item.tag.name,
+            slug: item.tag.slug,
+            status: item.tag.status,
+            createdAt: item.tag.createdAt,
+            updatedAt: item.tag.updatedAt,
           }),
       ),
       visibility: row.visibility,

@@ -9,7 +9,9 @@ export function toCategoryResponseDto(
     name: source.name,
     slug: source.slug,
     description: source.description,
+    parentId: source.parentId,
     status: source.status,
+    displayOrder: source.displayOrder,
     createdAt: source.createdAt.toISOString(),
     updatedAt: source.updatedAt.toISOString(),
   };

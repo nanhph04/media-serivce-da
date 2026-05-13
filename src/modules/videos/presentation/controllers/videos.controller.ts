@@ -43,6 +43,7 @@ import { GetVideosByCategoryUseCase } from '../../application/use-cases/get-vide
 import { InitVideoUploadUseCase } from '../../application/use-cases/init-video-upload.use-case';
 import { PlayVideoUseCase } from '../../application/use-cases/play-video.use-case';
 import { RefreshPlaybackTokenUseCase } from '../../application/use-cases/refresh-playback-token.use-case';
+import { SearchPublicVideosUseCase } from '../../application/use-cases/search-public-videos.use-case';
 import { UpdateVideoProgressUseCase } from '../../application/use-cases/update-video-progress.use-case';
 import { UpdateVideoMetadataUseCase } from '../../application/use-cases/update-video-metadata.use-case';
 import { VideoProgressService } from '../../application/services/video-progress.service';
@@ -94,6 +95,7 @@ export class VideosController {
     private readonly videoProgressService: VideoProgressService,
     @Inject(VIDEO_PROGRESS_STREAM)
     private readonly videoProgressStream: IVideoProgressStream,
+    private readonly searchPublicVideosUseCase: SearchPublicVideosUseCase,
   ) {}
 
   @Get('me')
@@ -133,12 +135,37 @@ export class VideosController {
         userId,
         title: dto.title,
         description: dto.description,
+        categoryId: dto.categoryId,
         categories: dto.categories,
+        tagIds: dto.tagIds,
         visibility: dto.visibility as VideoVisibility,
         price: dto.price,
         requiredTierLevel: dto.requiredTierLevel ?? null,
       }),
     );
+  }
+
+  @Get()
+  @SkipInternalGatewayGuard()
+  @ApiQuery({ name: 'q', required: false, type: String })
+  @ApiQuery({ name: 'category', required: false, type: String })
+  @ApiQuery({ name: 'tags', required: false, type: String })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiSuccessResponse(VideoListItemResponseDto, { isArray: true })
+  async searchVideos(
+    @Query('q') q?: string,
+    @Query('category') category?: string,
+    @Query('tags') tags?: string,
+    @Query('limit') limit?: string,
+  ): Promise<ApiResponse<VideoListItemResponseDto[]>> {
+    const rows = await this.searchPublicVideosUseCase.execute({
+      q,
+      category,
+      tags: this.parseTags(tags),
+      limit: this.parseLimit(limit),
+    });
+
+    return apiResponseContract(rows.map((row) => this.toVideoListItemDto(row)));
   }
 
   @Post(':id/confirm-upload')
@@ -284,6 +311,8 @@ export class VideosController {
       title: dto.title,
       description: dto.description,
       thumbnailUrl: dto.thumbnailUrl,
+      categoryId: dto.categoryId,
+      tagIds: dto.tagIds,
     });
     return apiResponseContract(this.toVideoMetadataDto(metadata));
   }
@@ -390,7 +419,9 @@ export class VideosController {
       channelId: video.channelId,
       title: video.title,
       description: video.description,
+      category: video.category,
       categories: video.categories,
+      tags: video.tags,
       status: video.status,
       price: video.price,
       requiredTierLevel: video.requiredTierLevel,
@@ -413,7 +444,9 @@ export class VideosController {
       channelId: video.channelId,
       title: video.title,
       description: video.description,
+      category: video.category,
       categories: video.categories,
+      tags: video.tags,
       status: video.status,
       visibility: video.visibility,
       price: video.price,
@@ -436,6 +469,8 @@ export class VideosController {
       id: metadata.id,
       title: metadata.title,
       description: metadata.description,
+      category: metadata.category,
+      tags: metadata.tags,
       thumbnailUrl: metadata.thumbnailUrl,
       viewCount: metadata.viewCount,
       status: metadata.status,
@@ -500,6 +535,23 @@ export class VideosController {
   private parseLimit(limit?: string): number {
     const parsed = Number(limit) || 20;
     return Math.min(Math.max(parsed, 1), 50);
+  }
+
+  private parseTags(tags?: string): string[] | undefined {
+    if (!tags) {
+      return undefined;
+    }
+
+    const normalizedTags = [
+      ...new Set(
+        tags
+          .split(',')
+          .map((value) => value.trim())
+          .filter(Boolean),
+      ),
+    ];
+
+    return normalizedTags.length > 0 ? normalizedTags : undefined;
   }
 
   private parsePage(page?: string): number {
