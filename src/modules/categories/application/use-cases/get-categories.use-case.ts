@@ -6,9 +6,13 @@ import {
 } from '../../domain/repositories/category.repository';
 import type { CategoryResponse } from '../dto/category.response';
 
+export interface GetCategoriesQuery {
+  q?: string;
+}
+
 @Injectable()
 export class GetCategoriesUseCase extends BaseUseCase<
-  void,
+  GetCategoriesQuery | void,
   CategoryResponse[]
 > {
   constructor(
@@ -18,8 +22,11 @@ export class GetCategoriesUseCase extends BaseUseCase<
     super();
   }
 
-  async execute(): Promise<CategoryResponse[]> {
-    const categories = await this.categoryRepository.findActive();
+  async execute(query?: GetCategoriesQuery): Promise<CategoryResponse[]> {
+    const keyword = query?.q?.trim();
+    const categories = keyword
+      ? await this.categoryRepository.searchActive(keyword)
+      : await this.categoryRepository.findActive();
 
     return categories.map(
       (category): CategoryResponse => ({

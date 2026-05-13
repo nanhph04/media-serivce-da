@@ -5,9 +5,10 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiHeader, ApiTags } from '@nestjs/swagger';
+import { ApiHeader, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ForbiddenException } from '@shared/domain/exceptions/domain.exception';
 import { ApiCreatedSuccessResponse } from '@shared/presentation/decorators/api-success-response.decorator';
 import { ApiSuccessResponse } from '@shared/presentation/decorators/api-success-response.decorator';
@@ -41,9 +42,12 @@ export class CategoryController {
 
   @Get()
   @SkipInternalGatewayGuard()
+  @ApiQuery({ name: 'q', required: false, type: String })
   @ApiSuccessResponse(CategoryResponseDto, { isArray: true })
-  async getCategories(): Promise<ApiResponse<CategoryResponseDto[]>> {
-    const categories = await this.getCategoriesUseCase.execute();
+  async getCategories(
+    @Query('q') q?: string,
+  ): Promise<ApiResponse<CategoryResponseDto[]>> {
+    const categories = await this.getCategoriesUseCase.execute({ q });
     return apiResponseContract(categories.map(toCategoryResponseDto));
   }
 
@@ -51,14 +55,16 @@ export class CategoryController {
   @ApiHeader({ name: 'x-user-id', required: true })
   @ApiHeader({ name: 'x-user-role', required: true })
   @ApiHeader({ name: 'x-internal-secret', required: true })
+  @ApiQuery({ name: 'q', required: false, type: String })
   @ApiSuccessResponse(CategoryResponseDto, { isArray: true })
   async getAllCategoriesForAdmin(
     @CurrentUserId() _userId: string,
     @CurrentUserRole() role: string | undefined,
+    @Query('q') q?: string,
   ): Promise<ApiResponse<CategoryResponseDto[]>> {
     this.assertAdmin(role);
 
-    const categories = await this.getAllCategoriesUseCase.execute();
+    const categories = await this.getAllCategoriesUseCase.execute({ q });
     return apiResponseContract(categories.map(toCategoryResponseDto));
   }
 

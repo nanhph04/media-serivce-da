@@ -27,6 +27,8 @@ describe('GetVideosByCategoryUseCase', () => {
     findBySlug: jest.fn(),
     findAll: jest.fn(),
     findActive: jest.fn(),
+    searchAll: jest.fn(),
+    searchActive: jest.fn(),
     findBySlugs: jest.fn(),
   };
   const useCase = new GetVideosByCategoryUseCase(

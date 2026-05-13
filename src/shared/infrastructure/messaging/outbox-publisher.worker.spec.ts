@@ -62,6 +62,7 @@ describe('OutboxPublisherWorker', () => {
       OutboxMessageStatus.PUBLISHED,
       'outbox-1',
     ]);
+    expect(dataSource.query.mock.calls[0][0]).toContain('WITH claimed AS');
   });
 
   it('returns failed publish to pending with retry metadata', async () => {
@@ -89,6 +90,37 @@ describe('OutboxPublisherWorker', () => {
       'kafka down',
       'outbox-1',
     ]);
+    expect(dataSource.query.mock.calls[1][1][1].toString()).not.toBe(
+      'Invalid Date',
+    );
+  });
+
+  it('uses the minimum retry backoff when attempt count is malformed', async () => {
+    const event = buildEvent();
+    dataSource.query
+      .mockResolvedValueOnce([
+        {
+          id: 'outbox-1',
+          topic: 'channel.created',
+          messageKey: 'user-1',
+          payload: event,
+          attemptCount: Number.NaN,
+        },
+      ])
+      .mockResolvedValueOnce([]);
+    eventPublisher.emit.mockRejectedValueOnce(new Error('kafka down'));
+
+    await worker.publishPendingBatch();
+
+    expect(dataSource.query.mock.calls[1][1]).toEqual([
+      OutboxMessageStatus.PENDING,
+      expect.any(Date),
+      'kafka down',
+      'outbox-1',
+    ]);
+    expect(dataSource.query.mock.calls[1][1][1].toString()).not.toBe(
+      'Invalid Date',
+    );
   });
 
   it('does not claim messages when kafka is disabled', async () => {

@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import type { Server } from 'node:http';
 import { AppModule } from './app.module';
 import { LoggerService } from './shared/infrastructure/logger/logger.service';
 import { HttpExceptionFilter } from './shared/presentation/filters/http-exception.filter';
@@ -48,8 +49,18 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT') ?? 4002;
 
+  configureLongLivedHttpConnections(app.getHttpServer() as Server);
+
   await app.listen(port);
   logger.logInfo('Media Service started', { port });
   logger.logInfo(`Swagger docs available at http://localhost:${port}/api-docs`);
 }
+
+function configureLongLivedHttpConnections(server: Server): void {
+  server.timeout = 0;
+  server.requestTimeout = 0;
+  server.keepAliveTimeout = 75_000;
+  server.headersTimeout = 80_000;
+}
+
 void bootstrap();

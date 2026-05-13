@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { LoggerService } from '@shared/infrastructure/logger/logger.service';
 import {
   ForbiddenException,
   NotFoundException,
@@ -30,6 +31,7 @@ export class VideoProgressService {
     private readonly videoProgressStore: IVideoProgressStore,
     @Inject(VIDEO_PROGRESS_STREAM)
     private readonly videoProgressStream: IVideoProgressStream,
+    private readonly loggerService: LoggerService,
   ) {}
 
   async getSnapshotForOwner(
@@ -55,6 +57,23 @@ export class VideoProgressService {
       await this.videoProgressStore.applyProgressUpdate(snapshot);
     if (accepted) {
       this.videoProgressStream.publish(accepted);
+      this.loggerService.setContext(VideoProgressService.name);
+      this.loggerService.logInfo('Published video progress snapshot to stream', {
+        videoId: accepted.videoId,
+        stage: accepted.stage,
+        percent: accepted.percent,
+        terminal: accepted.terminal,
+        message: accepted.message,
+      });
+    } else {
+      this.loggerService.setContext(VideoProgressService.name);
+      this.loggerService.logWarn('Rejected stale video progress snapshot', {
+        videoId: snapshot.videoId,
+        stage: snapshot.stage,
+        percent: snapshot.percent,
+        terminal: snapshot.terminal,
+        message: snapshot.message,
+      });
     }
     return accepted;
   }

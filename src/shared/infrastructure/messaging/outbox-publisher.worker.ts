@@ -83,32 +83,41 @@ export class OutboxPublisherWorker
 
     return this.dataSource.query<ClaimedOutboxMessage[]>(
       `
-        UPDATE "outbox_messages"
-        SET
-          "status" = $1,
-          "locked_at" = NOW(),
-          "updated_at" = NOW()
-        WHERE "id" IN (
-          SELECT "id"
-          FROM "outbox_messages"
-          WHERE (
-            "status" = $2
-            AND "next_attempt_at" <= NOW()
+        WITH claimed AS (
+          UPDATE "outbox_messages"
+          SET
+            "status" = $1,
+            "locked_at" = NOW(),
+            "updated_at" = NOW()
+          WHERE "id" IN (
+            SELECT "id"
+            FROM "outbox_messages"
+            WHERE (
+              "status" = $2
+              AND "next_attempt_at" <= NOW()
+            )
+            OR (
+              "status" = $1
+              AND "locked_at" < NOW() - ($4 * INTERVAL '1 second')
+            )
+            ORDER BY "created_at" ASC
+            LIMIT $3
+            FOR UPDATE SKIP LOCKED
           )
-          OR (
-            "status" = $1
-            AND "locked_at" < NOW() - ($4 * INTERVAL '1 second')
-          )
-          ORDER BY "created_at" ASC
-          LIMIT $3
-          FOR UPDATE SKIP LOCKED
+          RETURNING
+            "id",
+            "topic",
+            "message_key",
+            "payload",
+            "attempt_count"
         )
-        RETURNING
+        SELECT
           "id",
           "topic",
           "message_key" AS "messageKey",
           "payload",
           "attempt_count" AS "attemptCount"
+        FROM claimed
       `,
       [
         OutboxMessageStatus.PROCESSING,
@@ -180,13 +189,14 @@ export class OutboxPublisherWorker
   }
 
   private getBackoffMs(attemptCount: number): number {
+    const safeAttemptCount = Number.isFinite(attemptCount) ? attemptCount : 0;
     const maxBackoffSeconds = this.configService.getNumber(
       'OUTBOX_MAX_BACKOFF_SECONDS',
       300,
     );
     const backoffSeconds = Math.min(
       maxBackoffSeconds,
-      2 ** Math.min(attemptCount, 8),
+      2 ** Math.min(safeAttemptCount, 8),
     );
 
     return backoffSeconds * 1000;

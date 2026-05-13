@@ -8,5 +8,7 @@ export interface ICategoryRepository {
   findBySlug(slug: string): Promise<Category | null>;
   findAll(): Promise<Category[]>;
   findActive(): Promise<Category[]>;
+  searchAll(keyword: string): Promise<Category[]>;
+  searchActive(keyword: string): Promise<Category[]>;
   findBySlugs(slugs: string[]): Promise<Category[]>;
 }

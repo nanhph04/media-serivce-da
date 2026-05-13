@@ -786,13 +786,16 @@ Ghi chu chung
 7. CATEGORY APIs
 ==================================================
 
-7.1) GET /api/media/categories
-- Muc dich: lay danh sach category public dang ACTIVE.
+7.1) GET /api/media/categories?q=...
+- Muc dich: lay danh sach category public dang ACTIVE, co ho tro search.
 - Public API: khong can `x-internal-secret`.
-- Request:
-  - Khong co body/query/path param.
+- Query:
+  - `q` (string, optional): keyword search theo `name` hoac `slug`.
 - Ghi chu:
   - Endpoint nay chi tra category co `status = active`.
+  - Neu khong truyen `q` thi tra tat ca category active.
+  - Neu co `q`, backend trim keyword va search case-insensitive theo `name` hoac `slug`.
+  - Neu `q` rong sau khi trim thi fallback ve danh sach tat ca category active.
 - Response HTTP 200:
   - Envelope `data`: array, moi object gom:
     - `id` (string)
@@ -803,16 +806,20 @@ Ghi chu chung
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
 
-7.2) GET /api/media/categories/admin/all
-- Muc dich: admin lay tat ca category, gom ACTIVE, INACTIVE, DELETED.
+7.2) GET /api/media/categories/admin/all?q=...
+- Muc dich: admin lay tat ca category hoac search category, gom ACTIVE, INACTIVE, DELETED.
 - Header:
   - `x-user-id`: He thong tu set
   - `x-user-role`: Bat buoc la `admin`
   - `x-internal-secret`: He thong tu set
-- Request:
-  - Khong co body/query/path param.
+- Query:
+  - `q` (string, optional): keyword search theo `name` hoac `slug`.
 - Ghi chu:
   - Neu thieu role hoac role khac `admin` thi tra `FORBIDDEN` / HTTP 403 voi message `Admin role is required`.
+  - Neu khong truyen `q` thi tra tat ca category moi status.
+  - Neu co `q`, backend trim keyword va search case-insensitive theo `name` hoac `slug`.
+  - Admin search khong loc status, nen co the tra `active`, `inactive`, `deleted`.
+  - Neu `q` rong sau khi trim thi fallback ve danh sach tat ca category moi status.
 - Response HTTP 200:
   - Envelope `data`: array, moi object gom:
     - `id` (string)

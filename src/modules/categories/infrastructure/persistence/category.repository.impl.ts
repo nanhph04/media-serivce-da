@@ -70,6 +70,32 @@ export class CategoryRepositoryImpl implements ICategoryRepository {
     return rows.map((row) => this.toDomain(row));
   }
 
+  async searchAll(keyword: string): Promise<Category[]> {
+    const normalizedKeyword = keyword.trim().toLowerCase();
+
+    if (!normalizedKeyword) {
+      return this.findAll();
+    }
+
+    const rows = await this.searchByKeyword(normalizedKeyword);
+    return rows.map((row) => this.toDomain(row));
+  }
+
+  async searchActive(keyword: string): Promise<Category[]> {
+    const normalizedKeyword = keyword.trim().toLowerCase();
+
+    if (!normalizedKeyword) {
+      return this.findActive();
+    }
+
+    const rows = await this.searchByKeyword(
+      normalizedKeyword,
+      CategoryStatus.ACTIVE,
+    );
+
+    return rows.map((row) => this.toDomain(row));
+  }
+
   async findBySlugs(slugs: string[]): Promise<Category[]> {
     if (slugs.length === 0) {
       return [];
@@ -92,6 +118,31 @@ export class CategoryRepositoryImpl implements ICategoryRepository {
       createdAt: category.createdAt,
       updatedAt: category.updatedAt,
     };
+  }
+
+  private async searchByKeyword(
+    normalizedKeyword: string,
+    status?: CategoryStatus,
+  ): Promise<CategoryOrmEntity[]> {
+    const partial = `%${escapeLikePattern(normalizedKeyword)}%`;
+    const queryBuilder = this.ormRepository
+      .createQueryBuilder('category')
+      .where(
+        `(
+          LOWER(category.name) LIKE :partial ESCAPE '\\'
+          OR LOWER(category.slug) LIKE :partial ESCAPE '\\'
+        )`,
+        { partial },
+      );
+
+    if (status) {
+      queryBuilder.andWhere('category.status = :status', { status });
+    }
+
+    return queryBuilder
+      .orderBy('category.name', 'ASC')
+      .addOrderBy('category.createdAt', 'ASC')
+      .getMany();
   }
 
   private toDomain(row: CategoryOrmEntity): Category {
@@ -163,4 +214,8 @@ export class CategoryRepositoryImpl implements ICategoryRepository {
       // Cache invalidation failure must not fail category writes.
     }
   }
+}
+
+function escapeLikePattern(value: string): string {
+  return value.replace(/[\\%_]/g, '\\$&');
 }

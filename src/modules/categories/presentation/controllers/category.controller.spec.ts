@@ -39,8 +39,28 @@ describe('CategoryController', () => {
 
     const result = await controller.getCategories();
 
-    expect(getCategoriesUseCase.execute).toHaveBeenCalled();
+    expect(getCategoriesUseCase.execute).toHaveBeenCalledWith({
+      q: undefined,
+    });
     expect(getAllCategoriesUseCase.execute).not.toHaveBeenCalled();
+    expect(result).toEqual([
+      {
+        ...category,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+    ]);
+  });
+
+  it('searches public categories using query keyword', async () => {
+    const category = buildCategoryResponse();
+    getCategoriesUseCase.execute.mockResolvedValue([category]);
+
+    const result = await controller.getCategories('music');
+
+    expect(getCategoriesUseCase.execute).toHaveBeenCalledWith({
+      q: 'music',
+    });
     expect(result).toEqual([
       {
         ...category,
@@ -68,9 +88,36 @@ describe('CategoryController', () => {
     const category = buildCategoryResponse(CategoryStatus.DELETED);
     getAllCategoriesUseCase.execute.mockResolvedValue([category]);
 
-    const result = await controller.getAllCategoriesForAdmin('user-1', 'admin');
+    const result = await controller.getAllCategoriesForAdmin(
+      'user-1',
+      'admin',
+    );
 
-    expect(getAllCategoriesUseCase.execute).toHaveBeenCalled();
+    expect(getAllCategoriesUseCase.execute).toHaveBeenCalledWith({
+      q: undefined,
+    });
+    expect(result).toEqual([
+      {
+        ...category,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+    ]);
+  });
+
+  it('searches all categories for admin using query keyword', async () => {
+    const category = buildCategoryResponse(CategoryStatus.INACTIVE);
+    getAllCategoriesUseCase.execute.mockResolvedValue([category]);
+
+    const result = await controller.getAllCategoriesForAdmin(
+      'user-1',
+      'admin',
+      'movie',
+    );
+
+    expect(getAllCategoriesUseCase.execute).toHaveBeenCalledWith({
+      q: 'movie',
+    });
     expect(result).toEqual([
       {
         ...category,

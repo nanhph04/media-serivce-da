@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   Inject,
   Logger,
   MessageEvent,
@@ -226,6 +227,9 @@ export class VideosController {
   }
 
   @Sse(':id/progress/stream')
+  @Header('Cache-Control', 'no-cache, no-transform')
+  @Header('Connection', 'keep-alive')
+  @Header('X-Accel-Buffering', 'no')
   async streamProgress(
     @CurrentUserId() userId: string,
     @Param('id') videoId: string,
