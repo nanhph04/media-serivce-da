@@ -128,6 +128,51 @@ export class ConfigService
     return this.getNumber('VIDEO_DRAFT_CLEANUP_BATCH_SIZE', 100);
   }
 
+  getVideoModerationTimeoutSeconds(): number {
+    return this.getNumber('VIDEO_MODERATION_TIMEOUT_SECONDS', 900);
+  }
+
+  getVideoProcessingTimeoutSeconds(): number {
+    return this.getNumber('VIDEO_PROCESSING_TIMEOUT_SECONDS', 3600);
+  }
+
+  getVideoWatchdogIntervalSeconds(): number {
+    return this.getNumber('VIDEO_WATCHDOG_INTERVAL_SECONDS', 60);
+  }
+
+  getVideoWatchdogBatchSize(): number {
+    return this.getNumber('VIDEO_WATCHDOG_BATCH_SIZE', 100);
+  }
+
+  getVideoWatchdogHealthFailureThreshold(): number {
+    return this.getNumber('VIDEO_WATCHDOG_HEALTH_FAILURE_THRESHOLD', 3);
+  }
+
+  getVideoWatchdogHealthFailureTtlSeconds(): number {
+    return this.getNumber('VIDEO_WATCHDOG_HEALTH_FAILURE_TTL_SECONDS', 300);
+  }
+
+  getVideoWatchdogStaleProgressIntervalSeconds(): number {
+    return this.getNumber(
+      'VIDEO_WATCHDOG_STALE_PROGRESS_INTERVAL_SECONDS',
+      300,
+    );
+  }
+
+  getModerationServiceHealthUrl(): string {
+    return this.get<string>(
+      'MODERATION_SERVICE_HEALTH_URL',
+      'http://localhost:8000/health/ready',
+    );
+  }
+
+  getMediaProcessingServiceHealthUrl(): string {
+    return this.get<string>(
+      'MEDIA_PROCESSING_SERVICE_HEALTH_URL',
+      'http://localhost:3000/health/ready',
+    );
+  }
+
   getVideoViewDiscoveryInvalidationIntervalSeconds(): number {
     return this.getNumber(
       'VIDEO_VIEW_DISCOVERY_INVALIDATION_INTERVAL_SECONDS',

@@ -6,6 +6,7 @@ import { EngagementModule } from '../engagement/engagement.module';
 import { TagsModule } from '../tags/tags.module';
 import { ConfirmVideoUploadUseCase } from './application/use-cases/confirm-video-upload.use-case';
 import { CancelVideoUploadUseCase } from './application/use-cases/cancel-video-upload.use-case';
+import { CheckStaleVideoProcessingUseCase } from './application/use-cases/check-stale-video-processing.use-case';
 import { CleanupExpiredDraftUploadsUseCase } from './application/use-cases/cleanup-expired-draft-uploads.use-case';
 import { GetContinueWatchingUseCase } from './application/use-cases/get-continue-watching.use-case';
 import { GetLatestVideosUseCase } from './application/use-cases/get-latest-videos.use-case';
@@ -36,8 +37,11 @@ import { VideoPaymentConsumer } from './infrastructure/consumers/video-payment.c
 import { VideoViewedConsumer } from './infrastructure/consumers/video-viewed.consumer';
 import { VideoViewFlushWorker } from './infrastructure/queue/video-view-flush.worker';
 import { VideoDraftUploadCleanupWorker } from './infrastructure/queue/video-draft-upload-cleanup.worker';
+import { VideoProcessingWatchdogWorker } from './infrastructure/queue/video-processing-watchdog.worker';
 import { VideoModerationRequestPublisher } from './infrastructure/messaging/video-moderation-request.publisher';
 import { VideoModerationOutcomePublisher } from './infrastructure/messaging/video-moderation-outcome.publisher';
+import { VideoWorkerHealthCheckerService } from './infrastructure/health/video-worker-health-checker.service';
+import { VideoWatchdogHealthFailureStore } from './infrastructure/health/video-watchdog-health-failure-store.service';
 import { VideoCacheInvalidator } from './infrastructure/cache/video-cache-invalidator.service';
 import { VideoViewAggregationService } from './infrastructure/cache/video-view-aggregation.service';
 import { VideoPurchaseUnlockOrmEntity } from './infrastructure/persistence/video-purchase-unlock.orm-entity';
@@ -61,6 +65,8 @@ import { VIDEO_PROGRESS_STORE } from './application/interfaces/video-progress-st
 import { VIDEO_PROGRESS_STREAM } from './application/interfaces/video-progress-stream.interface';
 import { VIDEO_SEARCH_QUERY_SERVICE } from './application/interfaces/video-search-query.service.interface';
 import { VIDEO_VIEW_AGGREGATION } from './application/interfaces/video-view-aggregation.interface';
+import { VIDEO_WATCHDOG_HEALTH_FAILURE_STORE } from './application/interfaces/video-watchdog-health-failure-store.interface';
+import { VIDEO_WORKER_HEALTH_CHECKER } from './application/interfaces/video-worker-health-checker.interface';
 import { VIDEO_PURCHASE_UNLOCK_REPOSITORY } from './domain/repositories/video-purchase-unlock.repository';
 import { VIDEO_REPOSITORY } from './domain/repositories/video.repository';
 import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-watch-progress.repository';
@@ -96,6 +102,7 @@ import { VideoProgressService } from './application/services/video-progress.serv
     ConfirmVideoUploadUseCase,
     ReplaceVideoUploadUseCase,
     CancelVideoUploadUseCase,
+    CheckStaleVideoProcessingUseCase,
     CleanupExpiredDraftUploadsUseCase,
     PlayVideoUseCase,
     UpdateVideoProgressUseCase,
@@ -123,8 +130,11 @@ import { VideoProgressService } from './application/services/video-progress.serv
     VideoViewedConsumer,
     VideoViewFlushWorker,
     VideoDraftUploadCleanupWorker,
+    VideoProcessingWatchdogWorker,
     VideoModerationRequestPublisher,
     VideoModerationOutcomePublisher,
+    VideoWorkerHealthCheckerService,
+    VideoWatchdogHealthFailureStore,
     {
       provide: VIDEO_REPOSITORY,
       useExisting: VideoRepository,
@@ -168,6 +178,14 @@ import { VideoProgressService } from './application/services/video-progress.serv
     {
       provide: VIDEO_MODERATION_OUTCOME_PUBLISHER,
       useExisting: VideoModerationOutcomePublisher,
+    },
+    {
+      provide: VIDEO_WORKER_HEALTH_CHECKER,
+      useExisting: VideoWorkerHealthCheckerService,
+    },
+    {
+      provide: VIDEO_WATCHDOG_HEALTH_FAILURE_STORE,
+      useExisting: VideoWatchdogHealthFailureStore,
     },
   ],
   exports: [

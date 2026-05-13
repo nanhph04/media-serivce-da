@@ -311,6 +311,52 @@ describe('HandleVideoModerationCompletedUseCase', () => {
   });
 
   it.each([
+    VideoStatus.PROCESSING,
+    VideoStatus.READY,
+    VideoStatus.FAILED,
+    VideoStatus.REJECTED,
+    VideoStatus.PENDING_MANUAL_REVIEW,
+    VideoStatus.DRAFT,
+  ])(
+    'ignores moderation completed when current status is %s',
+    async (status) => {
+      videoRepository.findById.mockResolvedValue(buildVideo({ status }));
+
+      await useCase.execute({
+        eventId: 'event-1',
+        data: {
+          videoId: 'video-1',
+          status: 'SAFE',
+          isSafe: true,
+          reason: 'safe',
+          confidence: 0.1,
+          evidenceTimestampSeconds: null,
+          rawFileKey: 'uploads/raw/channel-1/video.mp4',
+          resolutions: ['720p'],
+          userId: 'owner-1',
+        },
+      });
+
+      expect(videoRepository.save).not.toHaveBeenCalled();
+      expect(
+        videoProcessingJobDispatcher.enqueueTranscodeJob,
+      ).not.toHaveBeenCalled();
+      expect(
+        moderationOutcomePublisher.publishModerationOutcome,
+      ).not.toHaveBeenCalled();
+      expect(videoProgressService.applyProgressUpdate).not.toHaveBeenCalled();
+      expect(logger.logWarn).toHaveBeenCalledWith(
+        'Ignoring stale video moderation completed event',
+        {
+          eventId: 'event-1',
+          videoId: 'video-1',
+          currentStatus: status,
+        },
+      );
+    },
+  );
+
+  it.each([
     {
       name: 'enqueue failure',
       fail: () => {
@@ -402,7 +448,9 @@ describe('HandleVideoModerationCompletedUseCase', () => {
   });
 });
 
-function buildVideo(): VideoEntity {
+function buildVideo(
+  overrides: Partial<ConstructorParameters<typeof VideoEntity>[0]> = {},
+): VideoEntity {
   return new VideoEntity({
     id: 'video-1',
     channelId: 'channel-1',
@@ -424,5 +472,7 @@ function buildVideo(): VideoEntity {
     publishedAt: null,
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
     updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+    statusChangedAt: new Date('2026-01-01T00:00:00.000Z'),
+    ...overrides,
   });
 }

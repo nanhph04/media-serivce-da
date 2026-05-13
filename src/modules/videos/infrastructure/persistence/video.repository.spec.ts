@@ -215,6 +215,25 @@ describe('VideoRepository', () => {
       take: 25,
     });
   });
+
+  it('loads stale videos by status using statusChangedAt', async () => {
+    find.mockResolvedValue([]);
+    const cutoffDate = new Date('2026-01-01T00:00:00.000Z');
+
+    await repository.findStaleByStatus('processing', cutoffDate, 50);
+
+    expect(find).toHaveBeenCalledWith({
+      where: {
+        status: 'processing',
+        statusChangedAt: expect.any(Object),
+      },
+      relations: { category: true, videoTags: { tag: true } },
+      order: {
+        statusChangedAt: 'ASC',
+      },
+      take: 50,
+    });
+  });
 });
 
 function buildCategoryRow(): {

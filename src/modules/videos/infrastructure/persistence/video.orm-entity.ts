@@ -93,6 +93,13 @@ export class VideoOrmEntity {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt!: Date;
 
+  @Column({
+    type: 'timestamp',
+    name: 'status_changed_at',
+    default: () => 'now()',
+  })
+  statusChangedAt!: Date;
+
   @ManyToOne(() => CategoryOrmEntity, { eager: true, nullable: true })
   @JoinColumn({ name: 'category_id' })
   category!: CategoryOrmEntity | null;

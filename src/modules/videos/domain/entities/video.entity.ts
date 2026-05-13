@@ -42,6 +42,7 @@ export interface VideoProps {
   publishedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+  statusChangedAt?: Date;
 }
 
 export class VideoEntity {
@@ -132,6 +133,10 @@ export class VideoEntity {
     return this.props.updatedAt;
   }
 
+  get statusChangedAt(): Date {
+    return this.props.statusChangedAt ?? this.props.updatedAt;
+  }
+
   static create(input: {
     channelId: string;
     ownerId: string;
@@ -169,6 +174,7 @@ export class VideoEntity {
       publishedAt: null,
       createdAt: now,
       updatedAt: now,
+      statusChangedAt: now,
     });
   }
 
@@ -179,15 +185,13 @@ export class VideoEntity {
     ) {
       throw new ConflictException('Video cannot be marked as processing');
     }
-    this.props.status = VideoStatus.PROCESSING;
-    this.touch();
+    this.changeStatus(VideoStatus.PROCESSING);
   }
 
   markPendingModeration(): void {
     this.assertDraftUploadMutable();
-    this.props.status = VideoStatus.PENDING_MODERATION;
+    this.changeStatus(VideoStatus.PENDING_MODERATION);
     this.props.errorMessage = null;
-    this.touch();
   }
 
   replaceDraftRawFile(rawFileKey: string): void {
@@ -204,15 +208,13 @@ export class VideoEntity {
   }
 
   markPendingManualReview(reason: string): void {
-    this.props.status = VideoStatus.PENDING_MANUAL_REVIEW;
+    this.changeStatus(VideoStatus.PENDING_MANUAL_REVIEW);
     this.props.errorMessage = reason;
-    this.touch();
   }
 
   markRejected(reason: string): void {
-    this.props.status = VideoStatus.REJECTED;
+    this.changeStatus(VideoStatus.REJECTED);
     this.props.errorMessage = reason;
-    this.touch();
   }
 
   markReady(input: {
@@ -221,7 +223,7 @@ export class VideoEntity {
     durationSeconds?: number | null;
     resolutions?: string[];
   }): void {
-    this.props.status = VideoStatus.READY;
+    this.changeStatus(VideoStatus.READY);
     this.props.masterPlaylistKey = input.masterPlaylistKey;
     this.props.thumbnailUrl = input.thumbnailUrl ?? this.props.thumbnailUrl;
     this.props.durationSeconds =
@@ -229,7 +231,6 @@ export class VideoEntity {
     this.props.resolutions = input.resolutions ?? this.props.resolutions;
     this.props.errorMessage = null;
     this.props.publishedAt = new Date();
-    this.touch();
   }
 
   updateMetadata(input: {
@@ -264,9 +265,8 @@ export class VideoEntity {
   }
 
   markFailed(errorMessage: string): void {
-    this.props.status = VideoStatus.FAILED;
+    this.changeStatus(VideoStatus.FAILED);
     this.props.errorMessage = errorMessage;
-    this.touch();
   }
 
   incrementViewCount(): void {
@@ -276,6 +276,13 @@ export class VideoEntity {
 
   private touch(): void {
     this.props.updatedAt = new Date();
+  }
+
+  private changeStatus(status: VideoStatus): void {
+    const now = new Date();
+    this.props.status = status;
+    this.props.statusChangedAt = now;
+    this.props.updatedAt = now;
   }
 
   private static validate(

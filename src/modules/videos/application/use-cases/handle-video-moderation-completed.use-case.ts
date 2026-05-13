@@ -84,6 +84,18 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
       return;
     }
 
+    if (video.status !== VideoStatus.PENDING_MODERATION) {
+      this.loggerService.logWarn(
+        'Ignoring stale video moderation completed event',
+        {
+          eventId: command.eventId,
+          videoId: command.data.videoId,
+          currentStatus: video.status,
+        },
+      );
+      return;
+    }
+
     if (command.data.status === 'SAFE') {
       video.markProcessing();
       await this.videoRepository.save(video);

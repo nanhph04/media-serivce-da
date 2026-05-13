@@ -56,6 +56,7 @@ export class VideoRepository implements IVideoRepository {
         publishedAt: video.publishedAt,
         createdAt: video.createdAt,
         updatedAt: video.updatedAt,
+        statusChangedAt: video.statusChangedAt,
       });
 
       await manager.delete(VideoTagOrmEntity, { videoId: video.id });
@@ -115,6 +116,26 @@ export class VideoRepository implements IVideoRepository {
       relations: { category: true, videoTags: { tag: true } },
       order: {
         createdAt: 'ASC',
+      },
+      take: limit,
+    });
+
+    return rows.map((row) => this.toDomain(row));
+  }
+
+  async findStaleByStatus(
+    status: string,
+    cutoffDate: Date,
+    limit: number,
+  ): Promise<VideoEntity[]> {
+    const rows = await this.ormRepository.find({
+      where: {
+        status: status as VideoStatus,
+        statusChangedAt: LessThan(cutoffDate),
+      },
+      relations: { category: true, videoTags: { tag: true } },
+      order: {
+        statusChangedAt: 'ASC',
       },
       take: limit,
     });
@@ -413,6 +434,7 @@ export class VideoRepository implements IVideoRepository {
       publishedAt: row.publishedAt,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
+      statusChangedAt: row.statusChangedAt,
     });
   }
 }
