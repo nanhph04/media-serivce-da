@@ -61,7 +61,55 @@ describe('UpdateVideoMetadataUseCase', () => {
       id: 'video-1',
       title: 'Updated Video',
       description: 'Updated description',
+      categoryId: 'category-1',
+      category: 'music',
+      tagIds: ['tag-1'],
+      tags: ['action'],
       thumbnailUrl: null,
+    });
+  });
+
+  it('returns category and tag ids with slug fields after updating metadata', async () => {
+    const video = buildVideo();
+    videoRepository.findById.mockResolvedValue(video);
+    categoryRepository.findById.mockResolvedValue(
+      new Category({
+        id: 'category-2',
+        name: 'Cinematic Shorts',
+        slug: 'cinematic-shorts',
+        description: null,
+        parentId: null,
+        status: CategoryStatus.ACTIVE,
+        displayOrder: 0,
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+      }),
+    );
+    tagRepository.findByIds.mockResolvedValue([
+      new Tag({
+        id: 'tag-2',
+        name: 'Film',
+        slug: 'film',
+        status: TagStatus.ACTIVE,
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+      }),
+    ]);
+    videoRepository.save.mockResolvedValue(undefined);
+    videoCacheInvalidator.invalidateMetadata.mockResolvedValue(undefined);
+
+    const result = await useCase.execute({
+      userId: 'owner-1',
+      videoId: 'video-1',
+      categoryId: 'category-2',
+      tagIds: ['tag-2'],
+    });
+
+    expect(result).toMatchObject({
+      categoryId: 'category-2',
+      category: 'cinematic-shorts',
+      tagIds: ['tag-2'],
+      tags: ['film'],
     });
   });
 
@@ -121,7 +169,9 @@ function buildVideo(): VideoEntity {
       name: 'Music',
       slug: 'music',
       description: null,
+      parentId: null,
       status: CategoryStatus.ACTIVE,
+      displayOrder: 0,
       createdAt: new Date('2026-01-01T00:00:00.000Z'),
       updatedAt: new Date('2026-01-02T00:00:00.000Z'),
     }),

@@ -7,7 +7,9 @@ export interface VideoMetadataResponse {
   id: string;
   title: string;
   description: string;
+  categoryId: string;
   category: string;
+  tagIds: string[];
   tags: string[];
   thumbnailUrl: string | null;
   viewCount: number;

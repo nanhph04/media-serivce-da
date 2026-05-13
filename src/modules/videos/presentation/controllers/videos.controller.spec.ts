@@ -95,6 +95,10 @@ describe('VideosController', () => {
       id: 'video-1',
       title: 'Video',
       description: 'Description',
+      categoryId: 'category-1',
+      category: 'music',
+      tagIds: ['tag-1'],
+      tags: ['action'],
       thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
       viewCount: 10,
       status: VideoStatus.READY,
@@ -598,6 +602,10 @@ function buildMetadata(): {
   id: string;
   title: string;
   description: string;
+  categoryId: string;
+  category: string;
+  tagIds: string[];
+  tags: string[];
   thumbnailUrl: string;
   viewCount: number;
   status: VideoStatus;
@@ -610,6 +618,10 @@ function buildMetadata(): {
     id: 'video-1',
     title: 'Video',
     description: 'Description',
+    categoryId: 'category-1',
+    category: 'music',
+    tagIds: ['tag-1'],
+    tags: ['action'],
     thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
     viewCount: 10,
     status: VideoStatus.READY,

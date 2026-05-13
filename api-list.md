@@ -397,6 +397,37 @@ Ghi chu chung
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
 
+4.0A) GET /api/media/videos?q=...&category=...&tags=tag1,tag2&limit=20
+- Muc dich: tim kiem/list public videos truc tiep tu video controller.
+- Public API: khong can `x-internal-secret`.
+- Query:
+  - `q` (string, optional): keyword search.
+  - `category` (string, optional): category slug.
+  - `tags` (string, optional): danh sach tag slug/name phan tach bang dau phay; backend trim, bo rong, va unique.
+  - `limit` (number, optional, default 20, min 1, max 50)
+- Ghi chu:
+  - Endpoint nay chi tra public videos co the expose cho discovery.
+  - Khac voi `GET /api/media/search`: endpoint nay chi tra videos, khong tra channels.
+- Response HTTP 200:
+  - Envelope `data`: array, moi object gom:
+    - `id` (string)
+    - `channelId` (string)
+    - `title` (string)
+    - `description` (string)
+    - `category` (string)
+    - `tags` (string[])
+    - `status` (string)
+    - `price` (number)
+    - `requiredTierLevel` (number | null)
+    - `thumbnailUrl` (string | null)
+    - `durationSeconds` (number | null)
+    - `resolutions` (string[])
+    - `errorMessage` (string | null)
+    - `viewCount` (number)
+    - `publishedAt` (string ISO | null)
+    - `createdAt` (string ISO)
+    - `updatedAt` (string ISO)
+
 4.1) POST /api/media/videos/init-upload
 - Muc dich: tao video draft va tra presigned upload URL.
 - Header:
@@ -554,13 +585,17 @@ Ghi chu chung
 - Ghi chu:
   - Chi tra video public/phu hop quy tac public trong use case.
   - Neu video khong ton tai hoac khong duoc expose thi tra `NOT_FOUND` / HTTP 404.
+  - `categoryId` va `tagIds` dung de FE preselect form edit video.
+  - `category` luon la category slug; `tags` luon la tag slug array, dung cho display/filter.
 - Response HTTP 200:
   - Envelope `data`:
     - `id` (string)
     - `title` (string)
     - `description` (string)
-    - `category` (string)
-    - `tags` (string[])
+    - `categoryId` (string): id cua category chinh hien tai
+    - `category` (string): category slug
+    - `tagIds` (string[]): danh sach tag id hien tai
+    - `tags` (string[]): danh sach tag slug hien tai
     - `thumbnailUrl` (string | null)
     - `viewCount` (number)
     - `status` (string)
@@ -580,6 +615,10 @@ Ghi chu chung
   - API nay KHONG phai watch-progress.
   - Chi owner cua video moi xem duoc; non-owner tra `FORBIDDEN` / HTTP 403.
   - Stage hop le co the gom: `pending_moderation`, `moderating`, `processing`, `ready`, `pending_manual_review`, `rejected`, `failed`.
+  - Neu watchdog phat hien video qua timeout nhung service moderation/processing van `/health/ready` OK, API co the tra progress non-terminal:
+    - moderation: `stage = pending_moderation`, `percent` khoang `10`, `message = "Moderation is taking longer than expected"`
+    - processing: `stage = processing`, `percent` giu theo snapshot hien tai neu co, `message = "Video processing is taking longer than expected"`
+  - Neu service `/health/ready` fail lien tiep du nguong watchdog, video co the thanh `failed` voi `errorCode = MODERATION_SERVICE_UNAVAILABLE` hoac `PROCESSING_SERVICE_UNAVAILABLE`.
 - Response HTTP 200:
   - Envelope `data`:
     - `videoId` (string)
@@ -607,6 +646,7 @@ Ghi chu chung
     - `ping`
   - `ping` duoc gui dinh ky ~15 giay.
   - Chi owner cua video moi xem duoc; non-owner tra `FORBIDDEN` / HTTP 403.
+  - Watchdog stale progress neu co cung duoc stream qua SSE nhu progress binh thuong; khi watchdog fail terminal thi event type la `end`.
 - Response HTTP 200:
   - Content-Type: `text/event-stream`
   - Event data cho `snapshot|progress|end`:
@@ -634,13 +674,16 @@ Ghi chu chung
   - `tagIds` (string[], optional): neu truyen thi replace toan bo tag hien tai; unique va tat ca tag phai dang `active`
 - Ghi chu:
   - Chi owner duoc sua; non-owner tra `FORBIDDEN` / HTTP 403.
+  - Response tra ca id va slug: FE nen dung `categoryId/tagIds` de set value edit form, va dung `category/tags` nhu slug cho display/filter.
 - Response HTTP 200:
   - Envelope `data`:
     - `id` (string)
     - `title` (string)
     - `description` (string)
-    - `category` (string)
-    - `tags` (string[])
+    - `categoryId` (string): id cua category chinh sau update
+    - `category` (string): category slug sau update
+    - `tagIds` (string[]): danh sach tag id sau update
+    - `tags` (string[]): danh sach tag slug sau update
     - `thumbnailUrl` (string | null)
     - `viewCount` (number)
     - `status` (string)
@@ -676,7 +719,46 @@ Ghi chu chung
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
 
-4.13) GET /api/media/videos/discovery/by-category?category=...&page=1&limit=20
+4.13) GET /api/media/videos/library/purchased?page=1&limit=20
+- Muc dich: lay thu vien video da mua/unlock cua user hien tai.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-internal-secret`: He thong tu set
+- Query:
+  - `page` (number, optional, default 1, min 1)
+  - `limit` (number, optional, default 20, min 1, max 50)
+- He thong tu set them khi xu ly:
+  - `userId`: lay tu header `x-user-id`
+- Ghi chu:
+  - Du lieu den tu bang `video_purchase_unlocks`, duoc tao khi media_service nhan event `video.payment.success`.
+  - Endpoint nay chi list video user da unlock/mua le, khong phai membership feed.
+  - Sap xep theo lan unlock moi nhat truoc.
+- Response HTTP 200:
+  - Envelope `data`: array, moi object gom:
+    - `id` (string)
+    - `channelId` (string)
+    - `title` (string)
+    - `description` (string)
+    - `category` (string)
+    - `tags` (string[])
+    - `status` (string)
+    - `price` (number)
+    - `requiredTierLevel` (number | null)
+    - `thumbnailUrl` (string | null)
+    - `durationSeconds` (number | null)
+    - `resolutions` (string[])
+    - `errorMessage` (string | null)
+    - `viewCount` (number)
+    - `publishedAt` (string ISO | null)
+    - `createdAt` (string ISO)
+    - `updatedAt` (string ISO)
+  - Envelope `pagination`:
+    - `page` (number)
+    - `limit` (number)
+    - `total` (number)
+    - `totalPages` (number)
+
+4.14) GET /api/media/videos/discovery/by-category?category=...&page=1&limit=20
 - Muc dich: lay danh sach video theo category.
 - Public API: khong can `x-internal-secret`.
 - Query:
@@ -716,7 +798,26 @@ Ghi chu chung
     - `total` (number)
     - `totalPages` (number)
 
-4.14) GET /api/media/videos/discovery/subscribed?limit=20
+4.15) GET /api/media/categories/:slug/videos?page=1&limit=20
+- Muc dich: lay danh sach video public theo category slug qua nested category route.
+- Public API: khong can `x-internal-secret`.
+- Path param:
+  - `slug` (string): category slug
+- Query:
+  - `page` (number, optional, default 1, min 1)
+  - `limit` (number, optional, default 20, min 1, max 50)
+- Ghi chu:
+  - Endpoint nay dung chung logic voi `GET /api/media/videos/discovery/by-category?category=...`.
+  - Neu category khong ton tai hoac khong `active` thi tra `NOT_FOUND` / HTTP 404.
+- Response HTTP 200:
+  - Envelope `data`: array, moi object giong shape cua `GET /api/media/videos/discovery/by-category`
+  - Envelope `pagination`:
+    - `page` (number)
+    - `limit` (number)
+    - `total` (number)
+    - `totalPages` (number)
+
+4.16) GET /api/media/videos/discovery/subscribed?limit=20
 - Muc dich: lay video public moi tu cac channel ma user dang co membership active.
 - Header:
   - `x-user-id`: He thong tu set
@@ -751,7 +852,7 @@ Ghi chu chung
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
 
-4.15) GET /api/media/videos/continue-watching?limit=20
+4.17) GET /api/media/videos/continue-watching?limit=20
 - Muc dich: lay danh sach video user dang xem do de hien thi muc xem tiep.
 - Header:
   - `x-user-id`: He thong tu set

@@ -11,7 +11,13 @@ export class VideoMetadataResponseDto {
   description!: string;
 
   @ApiProperty()
+  categoryId!: string;
+
+  @ApiProperty()
   category!: string;
+
+  @ApiProperty({ type: [String] })
+  tagIds!: string[];
 
   @ApiProperty({ type: [String] })
   tags!: string[];
