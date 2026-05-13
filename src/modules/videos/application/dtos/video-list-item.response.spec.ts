@@ -7,21 +7,30 @@ import {
   VideoEntity,
   VideoVisibility,
 } from '../../domain/entities/video.entity';
+import { Tag, TagStatus } from '../../../tags/domain/entities/tag.entity';
 
 describe('mapVideoEntityToListItem', () => {
-  it('maps category entities into slug array', () => {
+  it('maps category and tag entities into slugs', () => {
     const video = VideoEntity.create({
       channelId: 'channel-1',
       ownerId: 'user-1',
       title: 'Video',
       description: '',
-      category: [
-        new Category({
-          id: 'cat-1',
-          name: 'Music',
-          slug: 'music',
-          description: null,
-          status: CategoryStatus.ACTIVE,
+      category: new Category({
+        id: 'cat-1',
+        name: 'Music',
+        slug: 'music',
+        description: null,
+        status: CategoryStatus.ACTIVE,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+      tags: [
+        new Tag({
+          id: 'tag-1',
+          name: 'Action',
+          slug: 'action',
+          status: TagStatus.ACTIVE,
           createdAt: new Date(),
           updatedAt: new Date(),
         }),
@@ -34,6 +43,7 @@ describe('mapVideoEntityToListItem', () => {
 
     const result = mapVideoEntityToListItem(video);
 
-    expect(result.categories).toEqual(['music']);
+    expect(result.category).toBe('music');
+    expect(result.tags).toEqual(['action']);
   });
 });

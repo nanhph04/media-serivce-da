@@ -18,7 +18,13 @@ describe('VideoPurchaseUnlockRepository', () => {
   const offset = jest.fn();
   const limit = jest.fn();
   const pageSelect = jest.fn();
+  const pageAddSelect = jest.fn();
+  const pageOrderBy = jest.fn();
+  const pageAddOrderBy = jest.fn();
+  const groupBy = jest.fn();
+  const addGroupBy = jest.fn();
   const countSelect = jest.fn();
+  const countOrderBy = jest.fn();
   const getRawMany = jest.fn();
   const getRawOne = jest.fn();
   const clone = jest.fn();
@@ -35,11 +41,17 @@ describe('VideoPurchaseUnlockRepository', () => {
   };
   const clonedPageQueryBuilder = {
     select: pageSelect,
+    addSelect: pageAddSelect,
+    groupBy,
+    addGroupBy,
+    orderBy: pageOrderBy,
+    addOrderBy: pageAddOrderBy,
     offset,
     limit,
     getRawMany,
   };
   const clonedCountQueryBuilder = {
+    orderBy: countOrderBy,
     select: countSelect,
     getRawOne,
   };
@@ -60,6 +72,8 @@ describe('VideoPurchaseUnlockRepository', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    createQueryBuilder.mockReset();
+    clone.mockReset();
     createQueryBuilder
       .mockReturnValueOnce({ innerJoin: innerJoinAndSelect })
       .mockReturnValueOnce(videoQueryBuilder);
@@ -71,7 +85,13 @@ describe('VideoPurchaseUnlockRepository', () => {
     offset.mockReturnValue(clonedPageQueryBuilder);
     limit.mockReturnValue(clonedPageQueryBuilder);
     pageSelect.mockReturnValue(clonedPageQueryBuilder);
+    pageAddSelect.mockReturnValue(clonedPageQueryBuilder);
+    groupBy.mockReturnValue(clonedPageQueryBuilder);
+    addGroupBy.mockReturnValue(clonedPageQueryBuilder);
+    pageOrderBy.mockReturnValue(clonedPageQueryBuilder);
+    pageAddOrderBy.mockReturnValue(clonedPageQueryBuilder);
     countSelect.mockReturnValue(clonedCountQueryBuilder);
+    countOrderBy.mockReturnValue(clonedCountQueryBuilder);
     clone
       .mockReturnValueOnce(clonedPageQueryBuilder)
       .mockReturnValueOnce(clonedCountQueryBuilder);
@@ -97,15 +117,18 @@ describe('VideoPurchaseUnlockRepository', () => {
       limit: 10,
     });
 
-    expect(where).toHaveBeenCalledWith('unlock.userId = :userId', {
+    expect(where).toHaveBeenCalledWith('unlock.user_id = :userId', {
       userId: 'viewer-1',
     });
     expect(andWhere).toHaveBeenCalledWith('video.status = :status', {
       status: VideoStatus.READY,
     });
     expect(andWhere).toHaveBeenCalledWith('video.price > 0');
-    expect(orderBy).toHaveBeenCalledWith('unlock.createdAt', 'DESC');
-    expect(addOrderBy).toHaveBeenCalledWith('video.createdAt', 'DESC');
+    expect(pageOrderBy).toHaveBeenCalledWith(
+      'MAX(unlock.created_at)',
+      'DESC',
+    );
+    expect(pageAddOrderBy).toHaveBeenCalledWith('video.created_at', 'DESC');
     expect(offset).toHaveBeenCalledWith(10);
     expect(limit).toHaveBeenCalledWith(10);
     expect(clone).toHaveBeenCalled();
@@ -119,17 +142,7 @@ describe('VideoPurchaseUnlockRepository', () => {
       status: VideoStatus.READY,
       price: 500,
     });
-    expect(result.items[0]?.category).toEqual([
-      new Category({
-        id: 'category-1',
-        name: 'Music',
-        slug: 'music',
-        description: null,
-        status: CategoryStatus.ACTIVE,
-        createdAt: new Date('2026-01-01T00:00:00.000Z'),
-        updatedAt: new Date('2026-01-02T00:00:00.000Z'),
-      }),
-    ]);
+    expect(result.items[0]?.category.slug).toBe('music');
   });
 
   it('returns an empty page when the user has no purchased videos', async () => {
@@ -180,6 +193,8 @@ function buildVideoRow(
   videoCategories: {
     category: Category;
   }[];
+  category: Category;
+  videoTags: [];
 } {
   return {
     id: overrides.id ?? 'video-1',
@@ -201,6 +216,16 @@ function buildVideoRow(
     publishedAt: new Date('2026-01-01T00:00:00.000Z'),
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
     updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+    category: new Category({
+      id: 'category-1',
+      name: 'Music',
+      slug: 'music',
+      description: null,
+      status: CategoryStatus.ACTIVE,
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+    }),
+    videoTags: [],
     videoCategories: [
       {
         category: new Category({

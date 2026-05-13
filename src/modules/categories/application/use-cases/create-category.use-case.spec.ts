@@ -36,7 +36,9 @@ describe('CreateCategoryUseCase', () => {
       name: 'Music',
       slug: 'music',
       description: 'Songs',
+      parentId: null,
       status: CategoryStatus.ACTIVE,
+      displayOrder: 0,
       createdAt: expect.any(Date),
       updatedAt: expect.any(Date),
     });

@@ -6,7 +6,6 @@ export interface VideoListItemResponse {
   title: string;
   description: string;
   category: string;
-  categories: string[];
   tags: string[];
   status: string;
   price: number;
@@ -30,7 +29,6 @@ export function mapVideoEntityToListItem(
     title: video.title,
     description: video.description,
     category: video.category.slug,
-    categories: [video.category.slug],
     tags: video.tags.map((tag) => tag.slug),
     status: video.status,
     price: video.price,

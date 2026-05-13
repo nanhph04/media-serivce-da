@@ -89,12 +89,17 @@ describe('VideoRepository', () => {
       publishedAt: null,
       createdAt: new Date('2026-01-01T00:00:00.000Z'),
       updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+      category: buildCategoryRow(),
+      videoTags: [],
     });
 
     const video = await repository.findBasicById('video-1');
 
-    expect(findOne).toHaveBeenCalledWith({ where: { id: 'video-1' } });
-    expect(video?.category).toEqual([]);
+    expect(findOne).toHaveBeenCalledWith({
+      where: { id: 'video-1' },
+      relations: { category: true, videoTags: { tag: true } },
+    });
+    expect(video?.category.slug).toBe('music');
   });
 
   it('aggregates ready video count and total views for channel eligibility', async () => {
@@ -140,7 +145,8 @@ describe('VideoRepository', () => {
         publishedAt: null,
         createdAt,
         updatedAt,
-        videoCategories: [],
+        category: buildCategoryRow(),
+        videoTags: [],
       },
     ]);
 
@@ -156,11 +162,7 @@ describe('VideoRepository', () => {
         status: expect.any(Object),
         visibility: expect.any(Object),
       },
-      relations: {
-        videoCategories: {
-          category: true,
-        },
-      },
+      relations: { category: true, videoTags: { tag: true } },
       order: {
         updatedAt: 'DESC',
         createdAt: 'DESC',
@@ -170,3 +172,27 @@ describe('VideoRepository', () => {
     expect(videos[0]?.ownerId).toBe('owner-1');
   });
 });
+
+function buildCategoryRow(): {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  parentId: string | null;
+  status: string;
+  displayOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+} {
+  return {
+    id: 'category-1',
+    name: 'Music',
+    slug: 'music',
+    description: null,
+    parentId: null,
+    status: 'active',
+    displayOrder: 0,
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+  };
+}

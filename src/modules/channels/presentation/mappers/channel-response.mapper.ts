@@ -37,7 +37,8 @@ interface MembershipTierResponseSource {
 interface PublicVideoResponseSource {
   id: string;
   title: string;
-  categories: string[];
+  category: string;
+  tags: string[];
   status: string;
   thumbnailUrl: string | null;
   publishedAt: Date | null;
@@ -125,7 +126,8 @@ export function toPublicVideoResponseDto(
   return {
     id: source.id,
     title: source.title,
-    categories: source.categories,
+    category: source.category,
+    tags: source.tags,
     status: source.status,
     thumbnailUrl: source.thumbnailUrl,
     publishedAt: source.publishedAt?.toISOString() ?? null,

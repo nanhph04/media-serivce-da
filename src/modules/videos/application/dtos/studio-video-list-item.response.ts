@@ -6,7 +6,6 @@ export interface StudioVideoListItemResponse {
   title: string;
   description: string;
   category: string;
-  categories: string[];
   tags: string[];
   status: string;
   visibility: string;
@@ -31,7 +30,6 @@ export function mapVideoEntityToStudioListItem(
     title: video.title,
     description: video.description,
     category: video.category.slug,
-    categories: [video.category.slug],
     tags: video.tags.map((tag) => tag.slug),
     status: video.status,
     visibility: video.visibility,

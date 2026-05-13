@@ -96,7 +96,7 @@ describe('CategoryRepositoryImpl', () => {
     expect(ormRepository.createQueryBuilder).not.toHaveBeenCalled();
     expect(ormRepository.find).toHaveBeenCalledWith({
       where: { status: CategoryStatus.ACTIVE },
-      order: { name: 'ASC', createdAt: 'ASC' },
+      order: { displayOrder: 'ASC', name: 'ASC', createdAt: 'ASC' },
     });
     expect(result).toHaveLength(1);
   });
@@ -110,7 +110,7 @@ describe('CategoryRepositoryImpl', () => {
 
     expect(ormRepository.createQueryBuilder).not.toHaveBeenCalled();
     expect(ormRepository.find).toHaveBeenCalledWith({
-      order: { name: 'ASC', createdAt: 'ASC' },
+      order: { displayOrder: 'ASC', name: 'ASC', createdAt: 'ASC' },
     });
     expect(result).toHaveLength(1);
   });

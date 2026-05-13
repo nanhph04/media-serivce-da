@@ -17,9 +17,6 @@ export class VideoListItemResponseDto {
   category!: string;
 
   @ApiProperty({ type: [String] })
-  categories!: string[];
-
-  @ApiProperty({ type: [String] })
   tags!: string[];
 
   @ApiProperty()

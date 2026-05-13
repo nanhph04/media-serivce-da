@@ -154,7 +154,8 @@ Ghi chu chung
     - `publicVideos` (array)
       - `id` (string)
       - `title` (string)
-      - `categories` (string[])
+      - `category` (string)
+      - `tags` (string[])
       - `status` (string)
       - `thumbnailUrl` (string | null)
       - `publishedAt` (string ISO | null)
@@ -381,7 +382,8 @@ Ghi chu chung
     - `channelId` (string)
     - `title` (string)
     - `description` (string)
-    - `categories` (string[])
+    - `category` (string)
+    - `tags` (string[])
     - `status` (string)
     - `visibility` (string)
     - `price` (number)
@@ -404,7 +406,8 @@ Ghi chu chung
   - `channelId` (string, optional, deprecated): backend IGNORE, channel duoc resolve tu `x-user-id`
   - `title` (string, bat buoc, max 200)
   - `description` (string, optional, default `""`)
-  - `categories` (string[], bat buoc, unique, it nhat 1 phan tu, moi phan tu la category slug hop le)
+  - `categoryId` (string, bat buoc): ID cua category chinh, category phai ton tai va dang `active`
+  - `tagIds` (string[], optional, default `[]`): danh sach tag ID, unique, tat ca tag phai ton tai va dang `active`
   - `visibility` (`public` | `private`, optional, default `public`)
   - `price` (number, optional, default 0, min 0)
   - `requiredTierLevel` (number | null, optional, min 1)
@@ -412,7 +415,9 @@ Ghi chu chung
   - `userId`: lay tu header `x-user-id`
 - Ghi chu:
   - Backend KHONG con fallback ve category mac dinh.
-  - Neu thieu `categories`, gui mang rong, gui slug rong sau khi trim, hoac co slug khong ton tai / khong active thi tra `BAD_REQUEST` / HTTP 400.
+  - Backend KHONG nhan `categories` nua; uploader chi duoc gui `categoryId`.
+  - Neu thieu `categoryId`, `categoryId` rong sau khi trim, hoac category khong ton tai / khong active thi tra `BAD_REQUEST` / HTTP 400.
+  - Neu `tagIds` bi duplicate, co tag khong ton tai, hoac tag khong active thi tra `BAD_REQUEST` / HTTP 400.
 - Response HTTP 201:
   - Envelope `data`:
     - `videoId` (string)
@@ -504,6 +509,8 @@ Ghi chu chung
     - `id` (string)
     - `title` (string)
     - `description` (string)
+    - `category` (string)
+    - `tags` (string[])
     - `thumbnailUrl` (string | null)
     - `viewCount` (number)
     - `status` (string)
@@ -573,6 +580,8 @@ Ghi chu chung
   - `title` (string, optional, max 200)
   - `description` (string, optional)
   - `thumbnailUrl` (string | null, optional, max 500)
+  - `categoryId` (string, optional): neu truyen thi category phai ton tai va dang `active`
+  - `tagIds` (string[], optional): neu truyen thi replace toan bo tag hien tai; unique va tat ca tag phai dang `active`
 - Ghi chu:
   - Chi owner duoc sua; non-owner tra `FORBIDDEN` / HTTP 403.
 - Response HTTP 200:
@@ -580,6 +589,8 @@ Ghi chu chung
     - `id` (string)
     - `title` (string)
     - `description` (string)
+    - `category` (string)
+    - `tags` (string[])
     - `thumbnailUrl` (string | null)
     - `viewCount` (number)
     - `status` (string)
@@ -601,7 +612,8 @@ Ghi chu chung
     - `channelId` (string)
     - `title` (string)
     - `description` (string)
-    - `categories` (string[])
+    - `category` (string)
+    - `tags` (string[])
     - `status` (string)
     - `price` (number)
     - `requiredTierLevel` (number | null)
@@ -635,7 +647,8 @@ Ghi chu chung
     - `channelId` (string)
     - `title` (string)
     - `description` (string)
-    - `categories` (string[])
+    - `category` (string)
+    - `tags` (string[])
     - `status` (string)
     - `price` (number)
     - `requiredTierLevel` (number | null)
@@ -674,7 +687,8 @@ Ghi chu chung
     - `channelId` (string)
     - `title` (string)
     - `description` (string)
-    - `categories` (string[])
+    - `category` (string)
+    - `tags` (string[])
     - `status` (string)
     - `price` (number)
     - `requiredTierLevel` (number | null)
@@ -802,11 +816,13 @@ Ghi chu chung
     - `name` (string)
     - `slug` (string)
     - `description` (string | undefined)
+    - `parentId` (string | null)
     - `status` (`active`)
+    - `displayOrder` (number)
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
 
-7.2) GET /api/media/categories/admin/all?q=...
+7.2) GET /api/media/admin/categories?q=...
 - Muc dich: admin lay tat ca category hoac search category, gom ACTIVE, INACTIVE, DELETED.
 - Header:
   - `x-user-id`: He thong tu set
@@ -826,11 +842,13 @@ Ghi chu chung
     - `name` (string)
     - `slug` (string)
     - `description` (string | undefined)
+    - `parentId` (string | null)
     - `status` (`active` | `inactive` | `deleted`)
+    - `displayOrder` (number)
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
 
-7.3) POST /api/media/categories
+7.3) POST /api/media/admin/categories
 - Muc dich: admin tao category moi.
 - Header:
   - `x-user-id`: He thong tu set
@@ -839,17 +857,21 @@ Ghi chu chung
 - Body:
   - `name` (string, bat buoc, max 100)
   - `description` (string, optional)
+  - `parentId` (string | null, optional)
+  - `displayOrder` (number, optional, min 0, default 0)
 - Response HTTP 201:
   - Envelope `data`:
     - `id` (string)
     - `name` (string)
     - `slug` (string)
     - `description` (string | undefined)
+    - `parentId` (string | null)
     - `status` (string)
+    - `displayOrder` (number)
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
 
-7.4) PATCH /api/media/categories/:id
+7.4) PATCH /api/media/admin/categories/:id
 - Muc dich: admin cap nhat category.
 - Header:
   - `x-user-id`: He thong tu set
@@ -860,18 +882,81 @@ Ghi chu chung
 - Body:
   - `name` (string, optional, max 100)
   - `description` (string, optional)
+  - `parentId` (string | null, optional)
+  - `status` (`active` | `inactive` | `deleted`, optional)
+  - `displayOrder` (number, optional, min 0)
 - Response HTTP 200:
   - Envelope `data`:
     - `id` (string)
     - `name` (string)
     - `slug` (string)
     - `description` (string | undefined)
+    - `parentId` (string | null)
     - `status` (string)
+    - `displayOrder` (number)
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
 
+7.5) DELETE /api/media/admin/categories/:id
+- Muc dich: admin xoa mem category bang cach chuyen `status` ve `inactive`.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-user-role`: Bat buoc la `admin`
+  - `x-internal-secret`: He thong tu set
+- Path param:
+  - `id` (string): categoryId
+- Response HTTP 200:
+  - Envelope `data`: category sau khi inactive.
+
 ==================================================
-8. ERROR RESPONSE CHUNG
+8. TAG APIs
+==================================================
+
+8.1) GET /api/media/tags?q=...
+- Muc dich: lay danh sach tag public dang ACTIVE, co ho tro search.
+- Public API: khong can `x-internal-secret`.
+- Query:
+  - `q` (string, optional): keyword search theo `name` hoac `slug`.
+- Response HTTP 200:
+  - Envelope `data`: array, moi object gom:
+    - `id` (string)
+    - `name` (string)
+    - `slug` (string)
+    - `status` (`active`)
+    - `createdAt` (string ISO)
+    - `updatedAt` (string ISO)
+
+8.2) GET /api/media/admin/tags?q=...
+- Muc dich: admin lay tat ca tag hoac search tag, gom `active`, `inactive`, `pending`, `deleted`.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-user-role`: Bat buoc la `admin`
+  - `x-internal-secret`: He thong tu set
+- Response HTTP 200:
+  - Envelope `data`: array tag.
+
+8.3) POST /api/media/admin/tags
+- Muc dich: admin tao tag moi.
+- Body:
+  - `name` (string, bat buoc, max 100)
+- Response HTTP 201:
+  - Envelope `data`: tag vua tao.
+
+8.4) PATCH /api/media/admin/tags/:id
+- Muc dich: admin cap nhat tag.
+- Body:
+  - `name` (string, optional, max 100)
+  - `status` (`active` | `inactive` | `pending` | `deleted`, optional)
+- Response HTTP 200:
+  - Envelope `data`: tag sau khi cap nhat.
+
+8.5) DELETE /api/media/admin/tags/:id
+- Muc dich: admin xoa mem tag bang cach chuyen `status` ve `inactive`.
+- Response HTTP 200:
+  - Envelope `data`: tag sau khi inactive.
+
+==================================================
+9. ERROR RESPONSE CHUNG
 ==================================================
 
 Khi loi, service dung format:

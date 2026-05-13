@@ -8,13 +8,17 @@ import {
   VideoVisibility,
 } from '../../domain/entities/video.entity';
 import { InitVideoUploadUseCase } from './init-video-upload.use-case';
+import { Tag, TagStatus } from '../../../tags/domain/entities/tag.entity';
 
 describe('InitVideoUploadUseCase', () => {
   const videoRepository = {
     save: jest.fn(),
   };
   const categoryRepository = {
-    findBySlugs: jest.fn(),
+    findById: jest.fn(),
+  };
+  const tagRepository = {
+    findByIds: jest.fn(),
   };
   const channelAccessService = {
     getOwnedActiveChannelId: jest.fn(),
@@ -29,6 +33,7 @@ describe('InitVideoUploadUseCase', () => {
     categoryRepository as never,
     channelAccessService as never,
     objectStorageService as never,
+    tagRepository as never,
   );
 
   beforeEach(() => {
@@ -40,14 +45,16 @@ describe('InitVideoUploadUseCase', () => {
     );
   });
 
-  it('succeeds with one valid category', async () => {
-    categoryRepository.findBySlugs.mockResolvedValue([buildCategory()]);
+  it('succeeds with one valid category id and active tags', async () => {
+    categoryRepository.findById.mockResolvedValue(buildCategory());
+    tagRepository.findByIds.mockResolvedValue([buildTag()]);
 
     const result = await useCase.execute(
-      buildCommand({ categories: ['music'] }),
+      buildCommand({ categoryId: 'category-1', tagIds: ['tag-1'] }),
     );
 
-    expect(categoryRepository.findBySlugs).toHaveBeenCalledWith(['music']);
+    expect(categoryRepository.findById).toHaveBeenCalledWith('category-1');
+    expect(tagRepository.findByIds).toHaveBeenCalledWith(['tag-1']);
     expect(videoRepository.save).toHaveBeenCalledWith(
       expect.objectContaining({
         status: VideoStatus.DRAFT,
@@ -56,94 +63,74 @@ describe('InitVideoUploadUseCase', () => {
     expect(result.bucket).toBe('raw-videos');
   });
 
-  it('succeeds with multiple valid categories', async () => {
-    categoryRepository.findBySlugs.mockResolvedValue([
-      buildCategory(),
-      buildCategory({
-        id: 'category-2',
-        name: 'News',
-        slug: 'news',
-      }),
-    ]);
+  it('trims category id before lookup', async () => {
+    categoryRepository.findById.mockResolvedValue(buildCategory());
+    tagRepository.findByIds.mockResolvedValue([]);
 
-    await useCase.execute(buildCommand({ categories: ['music', 'news'] }));
+    await useCase.execute(buildCommand({ categoryId: ' category-1 ' }));
 
-    expect(categoryRepository.findBySlugs).toHaveBeenCalledWith([
-      'music',
-      'news',
-    ]);
+    expect(categoryRepository.findById).toHaveBeenCalledWith('category-1');
   });
 
-  it('de-duplicates repeated category slugs before lookup', async () => {
-    categoryRepository.findBySlugs.mockResolvedValue([buildCategory()]);
-
-    await useCase.execute(
-      buildCommand({ categories: ['music', ' music ', 'music'] }),
-    );
-
-    expect(categoryRepository.findBySlugs).toHaveBeenCalledWith(['music']);
-  });
-
-  it('rejects when normalized categories are empty', async () => {
+  it('rejects blank category id', async () => {
     await expect(
-      useCase.execute(buildCommand({ categories: [' ', '   '] })),
+      useCase.execute(buildCommand({ categoryId: '   ' })),
     ).rejects.toThrow(
-      new BadRequestException('At least one category is required'),
+      new BadRequestException('Exactly one category is required'),
     );
-    expect(categoryRepository.findBySlugs).not.toHaveBeenCalled();
+    expect(categoryRepository.findById).not.toHaveBeenCalled();
   });
 
-  it('rejects when one or more categories do not exist', async () => {
-    categoryRepository.findBySlugs.mockResolvedValue([buildCategory()]);
+  it('rejects when category does not exist', async () => {
+    categoryRepository.findById.mockResolvedValue(null);
 
     await expect(
-      useCase.execute(buildCommand({ categories: ['music', 'missing'] })),
-    ).rejects.toThrow(
-      new BadRequestException('One or more categories are invalid'),
-    );
-  });
-
-  it('rejects when all provided categories are invalid', async () => {
-    categoryRepository.findBySlugs.mockResolvedValue([]);
-
-    await expect(
-      useCase.execute(buildCommand({ categories: ['missing'] })),
-    ).rejects.toThrow(
-      new BadRequestException('One or more categories are invalid'),
-    );
+      useCase.execute(buildCommand({ categoryId: 'missing' })),
+    ).rejects.toThrow(new BadRequestException('Category is invalid'));
   });
 
   it('rejects inactive categories', async () => {
-    categoryRepository.findBySlugs.mockResolvedValue([
+    categoryRepository.findById.mockResolvedValue(
       buildCategory({ status: CategoryStatus.INACTIVE }),
+    );
+
+    await expect(
+      useCase.execute(buildCommand({ categoryId: 'category-1' })),
+    ).rejects.toThrow(new BadRequestException('Category is invalid'));
+  });
+
+  it('rejects duplicate tag ids', async () => {
+    categoryRepository.findById.mockResolvedValue(buildCategory());
+
+    await expect(
+      useCase.execute(buildCommand({ tagIds: ['tag-1', ' tag-1 '] })),
+    ).rejects.toThrow(new BadRequestException('Duplicate tags are not allowed'));
+    expect(tagRepository.findByIds).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid or inactive tags', async () => {
+    categoryRepository.findById.mockResolvedValue(buildCategory());
+    tagRepository.findByIds.mockResolvedValue([
+      buildTag({ status: TagStatus.INACTIVE }),
     ]);
 
     await expect(
-      useCase.execute(buildCommand({ categories: ['music'] })),
-    ).rejects.toThrow(
-      new BadRequestException('One or more categories are invalid'),
-    );
-  });
-
-  it('no longer falls back to the default category', async () => {
-    categoryRepository.findBySlugs.mockResolvedValue([]);
-
-    await expect(
-      useCase.execute(buildCommand({ categories: ['unknown'] })),
-    ).rejects.toThrow(BadRequestException);
-    expect(videoRepository.save).not.toHaveBeenCalled();
+      useCase.execute(buildCommand({ tagIds: ['tag-1'] })),
+    ).rejects.toThrow(new BadRequestException('One or more tags are invalid'));
   });
 });
 
 function buildCommand(
   overrides: Partial<{
-    categories: string[];
+    categoryId: string;
+    tagIds: string[];
   }> = {},
 ): {
   userId: string;
   title: string;
   description: string;
-  categories: string[];
+  categoryId: string;
+  tagIds: string[];
   visibility: VideoVisibility;
   price: number;
   requiredTierLevel: number | null;
@@ -152,7 +139,8 @@ function buildCommand(
     userId: 'owner-1',
     title: 'Video title',
     description: 'Description',
-    categories: overrides.categories ?? ['music'],
+    categoryId: overrides.categoryId ?? 'category-1',
+    tagIds: overrides.tagIds ?? [],
     visibility: VideoVisibility.PUBLIC,
     price: 0,
     requiredTierLevel: null,
@@ -173,6 +161,24 @@ function buildCategory(
     slug: overrides.slug ?? 'music',
     description: null,
     status: overrides.status ?? CategoryStatus.ACTIVE,
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+  });
+}
+
+function buildTag(
+  overrides: Partial<{
+    id: string;
+    name: string;
+    slug: string;
+    status: TagStatus;
+  }> = {},
+): Tag {
+  return new Tag({
+    id: overrides.id ?? 'tag-1',
+    name: overrides.name ?? 'Action',
+    slug: overrides.slug ?? 'action',
+    status: overrides.status ?? TagStatus.ACTIVE,
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
     updatedAt: new Date('2026-01-02T00:00:00.000Z'),
   });

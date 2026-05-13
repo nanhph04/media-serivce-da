@@ -3,47 +3,37 @@ import { validate } from 'class-validator';
 import { InitVideoUploadRequestDto } from './init-video-upload.request';
 
 describe('InitVideoUploadRequestDto', () => {
-  it('fails when categories is omitted', async () => {
+  it('fails when categoryId is omitted', async () => {
     const dto = plainToInstance(InitVideoUploadRequestDto, {
       title: 'Video title',
     });
 
     const errors = await validate(dto);
 
-    expect(errors.some((error) => error.property === 'categories')).toBe(true);
+    expect(errors.some((error) => error.property === 'categoryId')).toBe(true);
   });
 
-  it('fails when categories is an empty array', async () => {
+  it('fails when categoryId is blank', async () => {
     const dto = plainToInstance(InitVideoUploadRequestDto, {
       title: 'Video title',
-      categories: [],
+      categoryId: '',
     });
 
     const errors = await validate(dto);
 
-    expect(errors.some((error) => error.property === 'categories')).toBe(true);
+    expect(errors.some((error) => error.property === 'categoryId')).toBe(true);
   });
 
-  it('fails when categories contains only blank values', async () => {
+  it('accepts categoryId and trims tag ids', async () => {
     const dto = plainToInstance(InitVideoUploadRequestDto, {
       title: 'Video title',
-      categories: ['   '],
-    });
-
-    const errors = await validate(dto);
-
-    expect(errors.some((error) => error.property === 'categories')).toBe(true);
-  });
-
-  it('trims categories and accepts a valid non-empty array', async () => {
-    const dto = plainToInstance(InitVideoUploadRequestDto, {
-      title: 'Video title',
-      categories: [' music '],
+      categoryId: 'category-1',
+      tagIds: [' tag-1 '],
     });
 
     const errors = await validate(dto);
 
     expect(errors).toHaveLength(0);
-    expect(dto.categories).toEqual(['music']);
+    expect(dto.tagIds).toEqual(['tag-1']);
   });
 });

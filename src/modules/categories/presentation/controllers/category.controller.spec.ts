@@ -138,6 +138,8 @@ describe('CategoryController', () => {
     expect(createCategoryUseCase.execute).toHaveBeenCalledWith({
       name: 'Music',
       description: undefined,
+      parentId: null,
+      displayOrder: undefined,
     });
     expect(result).toEqual({
       ...category,
@@ -172,6 +174,9 @@ describe('CategoryController', () => {
       categoryId: 'category-1',
       name: undefined,
       description: 'Updated',
+      parentId: undefined,
+      status: undefined,
+      displayOrder: undefined,
     });
     expect(result).toEqual({
       ...category,
@@ -186,7 +191,9 @@ function buildCategoryResponse(status = CategoryStatus.ACTIVE): {
   name: string;
   slug: string;
   description: undefined;
+  parentId: string | null;
   status: CategoryStatus;
+  displayOrder: number;
   createdAt: Date;
   updatedAt: Date;
 } {
@@ -195,7 +202,9 @@ function buildCategoryResponse(status = CategoryStatus.ACTIVE): {
     name: 'Music',
     slug: 'music',
     description: undefined,
+    parentId: null,
     status,
+    displayOrder: 0,
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
     updatedAt: new Date('2026-01-01T00:00:00.000Z'),
   };

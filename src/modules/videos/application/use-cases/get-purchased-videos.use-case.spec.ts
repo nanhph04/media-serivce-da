@@ -5,6 +5,7 @@ import {
 import type { IVideoPurchaseUnlockRepository } from '../../domain/repositories/video-purchase-unlock.repository';
 import { Category } from '../../../categories/domain/entities/category.entity';
 import { CategoryStatus } from '../../../categories/domain/entities/category.entity';
+import { Tag, TagStatus } from '../../../tags/domain/entities/tag.entity';
 import { VideoEntity } from '../../domain/entities/video.entity';
 import { GetPurchasedVideosUseCase } from './get-purchased-videos.use-case';
 
@@ -44,7 +45,8 @@ describe('GetPurchasedVideosUseCase', () => {
           channelId: 'channel-1',
           title: 'Premium Video',
           description: 'Description',
-          categories: ['music'],
+          category: 'music',
+          tags: ['action'],
           status: VideoStatus.READY,
           price: 500,
           requiredTierLevel: null,
@@ -75,13 +77,21 @@ function buildVideo(): VideoEntity {
     ownerId: 'owner-1',
     title: 'Premium Video',
     description: 'Description',
-    category: [
-      new Category({
-        id: 'category-1',
-        name: 'Music',
-        slug: 'music',
-        description: null,
-        status: CategoryStatus.ACTIVE,
+    category: new Category({
+      id: 'category-1',
+      name: 'Music',
+      slug: 'music',
+      description: null,
+      status: CategoryStatus.ACTIVE,
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+    }),
+    tags: [
+      new Tag({
+        id: 'tag-1',
+        name: 'Action',
+        slug: 'action',
+        status: TagStatus.ACTIVE,
         createdAt: new Date('2026-01-01T00:00:00.000Z'),
         updatedAt: new Date('2026-01-02T00:00:00.000Z'),
       }),

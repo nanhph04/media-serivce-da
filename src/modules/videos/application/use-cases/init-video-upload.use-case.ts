@@ -58,7 +58,7 @@ export class InitVideoUploadUseCase extends BaseUseCase<
     );
 
     const rawFileKey = `uploads/raw/${channelId}/${Date.now()}-${crypto.randomUUID()}.mp4`;
-    const category = await this.resolveCategory(command);
+    const category = await this.resolveCategory(command.categoryId);
     const tags = await this.resolveTags(command.tagIds);
     const video = VideoEntity.create({
       channelId,
@@ -87,33 +87,16 @@ export class InitVideoUploadUseCase extends BaseUseCase<
     };
   }
 
-  private async resolveCategory(
-    command: InitVideoUploadCommand,
-  ): Promise<Category> {
-    if (command.categoryId) {
-      const category = await this.categoryRepository.findById(
-        command.categoryId,
-      );
+  private async resolveCategory(categoryId: string): Promise<Category> {
+    const normalizedCategoryId = categoryId.trim();
 
-      if (!category || category.status !== CategoryStatus.ACTIVE) {
-        throw new BadRequestException('Category is invalid');
-      }
-
-      return category;
-    }
-
-    const normalizedSlugs = [
-      ...new Set(
-        (command.categories ?? []).map((slug) => slug.trim()).filter(Boolean),
-      ),
-    ];
-
-    if (normalizedSlugs.length !== 1) {
+    if (!normalizedCategoryId) {
       throw new BadRequestException('Exactly one category is required');
     }
 
-    const [category] =
-      await this.categoryRepository.findBySlugs(normalizedSlugs);
+    const category = await this.categoryRepository.findById(
+      normalizedCategoryId,
+    );
 
     if (!category || category.status !== CategoryStatus.ACTIVE) {
       throw new BadRequestException('Category is invalid');

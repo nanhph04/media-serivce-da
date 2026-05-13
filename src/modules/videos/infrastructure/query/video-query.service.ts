@@ -66,7 +66,8 @@ export class VideoQueryService implements IVideoQueryService {
     return videos.map((video) => ({
       id: video.id,
       title: video.title,
-      categories: [video.category.slug],
+      category: video.category.slug,
+      tags: video.tags.map((tag) => tag.slug),
       status: video.status,
       thumbnailUrl: video.thumbnailUrl,
       publishedAt: video.publishedAt,

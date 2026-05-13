@@ -46,7 +46,6 @@ export class CategoryVideosController {
       title: video.title,
       description: video.description,
       category: video.category,
-      categories: video.categories,
       tags: video.tags,
       status: video.status,
       price: video.price,

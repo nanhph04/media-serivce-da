@@ -3,6 +3,7 @@ import {
   Category,
   CategoryStatus,
 } from '../../../categories/domain/entities/category.entity';
+import { Tag, TagStatus } from '../../../tags/domain/entities/tag.entity';
 import {
   VideoEntity,
   VideoStatus,
@@ -85,6 +86,8 @@ describe('VideoQueryService', () => {
       viewCount: 10,
       status: VideoStatus.READY,
       visibility: VideoVisibility.PUBLIC,
+      category: 'music',
+      tags: ['action'],
       errorMessage: null,
       publishedAt: new Date('2026-01-01T00:00:00.000Z'),
       updatedAt: new Date('2026-01-02T00:00:00.000Z'),
@@ -95,6 +98,8 @@ describe('VideoQueryService', () => {
         id: 'video-1',
         title: 'Video',
         description: 'Description',
+        category: 'music',
+        tags: ['action'],
         thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
         viewCount: 10,
         status: VideoStatus.READY,
@@ -178,7 +183,8 @@ describe('VideoQueryService', () => {
           channelId: 'channel-1',
           title: 'Video',
           description: 'Description',
-          categories: ['music'],
+          category: 'music',
+          tags: ['action'],
           status: VideoStatus.READY,
           price: 0,
           requiredTierLevel: null,
@@ -250,7 +256,8 @@ describe('VideoQueryService', () => {
         channelId: 'channel-1',
         title: 'Video',
         description: 'Description',
-        categories: ['music'],
+        category: 'music',
+        tags: ['action'],
         status: VideoStatus.READY,
         price: 0,
         requiredTierLevel: null,
@@ -271,7 +278,7 @@ describe('VideoQueryService', () => {
       limit: 5,
     });
     expect(cacheService.set).toHaveBeenCalledWith(
-      VIDEO_CACHE_KEYS.publicSearch(4, 'piano', 'music', 5),
+      VIDEO_CACHE_KEYS.publicSearch(4, 'piano', 'music', undefined, 5),
       [buildCachedListItem()],
       VIDEO_CACHE_TTL_SECONDS.publicSearch,
     );
@@ -295,7 +302,7 @@ describe('VideoQueryService', () => {
     );
     expect(cacheService.get).toHaveBeenNthCalledWith(
       2,
-      VIDEO_CACHE_KEYS.publicSearch(2, 'piano', undefined, 3),
+      VIDEO_CACHE_KEYS.publicSearch(2, 'piano', undefined, undefined, 3),
     );
   });
 
@@ -319,7 +326,8 @@ describe('VideoQueryService', () => {
         channelId: 'channel-1',
         title: 'Video',
         description: 'Description',
-        categories: ['music'],
+        category: 'music',
+        tags: ['action'],
         status: VideoStatus.DRAFT,
         visibility: VideoVisibility.PRIVATE,
         price: 0,
@@ -430,17 +438,8 @@ function buildVideo(
     ownerId: 'owner-1',
     title: 'Video',
     description: 'Description',
-    category: [
-      new Category({
-        id: 'category-1',
-        name: 'Music',
-        slug: 'music',
-        description: null,
-        status: CategoryStatus.ACTIVE,
-        createdAt: new Date('2026-01-01T00:00:00.000Z'),
-        updatedAt: new Date('2026-01-02T00:00:00.000Z'),
-      }),
-    ],
+    category: buildCategory(),
+    tags: [buildTag()],
     visibility: overrides.visibility ?? VideoVisibility.PUBLIC,
     status: overrides.status ?? VideoStatus.READY,
     price: 0,
@@ -463,7 +462,8 @@ function buildCachedListItem(): {
   channelId: string;
   title: string;
   description: string;
-  categories: string[];
+  category: string;
+  tags: string[];
   status: string;
   price: number;
   requiredTierLevel: number | null;
@@ -481,7 +481,8 @@ function buildCachedListItem(): {
     channelId: 'channel-1',
     title: 'Video',
     description: 'Description',
-    categories: ['music'],
+    category: 'music',
+    tags: ['action'],
     status: VideoStatus.READY,
     price: 0,
     requiredTierLevel: null,
@@ -494,4 +495,27 @@ function buildCachedListItem(): {
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-02T00:00:00.000Z',
   };
+}
+
+function buildCategory(): Category {
+  return new Category({
+    id: 'category-1',
+    name: 'Music',
+    slug: 'music',
+    description: null,
+    status: CategoryStatus.ACTIVE,
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+  });
+}
+
+function buildTag(): Tag {
+  return new Tag({
+    id: 'tag-1',
+    name: 'Action',
+    slug: 'action',
+    status: TagStatus.ACTIVE,
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+  });
 }

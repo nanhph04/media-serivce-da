@@ -7,6 +7,11 @@ import {
   VideoStatus,
   VideoVisibility,
 } from '../../domain/entities/video.entity';
+import {
+  Category,
+  CategoryStatus,
+} from '../../../categories/domain/entities/category.entity';
+import { Tag, TagStatus } from '../../../tags/domain/entities/tag.entity';
 import { UpdateVideoMetadataUseCase } from './update-video-metadata.use-case';
 
 describe('UpdateVideoMetadataUseCase', () => {
@@ -17,9 +22,17 @@ describe('UpdateVideoMetadataUseCase', () => {
   const videoCacheInvalidator = {
     invalidateMetadata: jest.fn(),
   };
+  const categoryRepository = {
+    findById: jest.fn(),
+  };
+  const tagRepository = {
+    findByIds: jest.fn(),
+  };
   const useCase = new UpdateVideoMetadataUseCase(
     videoRepository as never,
     videoCacheInvalidator as never,
+    categoryRepository as never,
+    tagRepository as never,
   );
 
   beforeEach(() => {
@@ -103,7 +116,25 @@ function buildVideo(): VideoEntity {
     ownerId: 'owner-1',
     title: 'Video',
     description: 'Description',
-    category: [],
+    category: new Category({
+      id: 'category-1',
+      name: 'Music',
+      slug: 'music',
+      description: null,
+      status: CategoryStatus.ACTIVE,
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+    }),
+    tags: [
+      new Tag({
+        id: 'tag-1',
+        name: 'Action',
+        slug: 'action',
+        status: TagStatus.ACTIVE,
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+      }),
+    ],
     visibility: VideoVisibility.PUBLIC,
     status: VideoStatus.READY,
     price: 0,

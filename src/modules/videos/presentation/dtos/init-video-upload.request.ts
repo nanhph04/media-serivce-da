@@ -6,6 +6,7 @@ import {
   IsInt,
   IsArray,
   IsIn,
+  IsNotEmpty,
   IsString,
   MaxLength,
   Min,
@@ -32,31 +33,10 @@ export class InitVideoUploadRequestDto {
   @IsOptional()
   description = '';
 
-  @ApiPropertyOptional({
-    description:
-      'Primary category id. Preferred over the deprecated categories field.',
-  })
+  @ApiProperty({ description: 'Primary category id.' })
   @IsString()
-  @IsOptional()
-  categoryId?: string;
-
-  @ApiPropertyOptional({
-    type: [String],
-    deprecated: true,
-    description: 'Deprecated: use categoryId. Only one slug is accepted.',
-  })
-  @Transform(({ value }: TransformFnParams): unknown =>
-    Array.isArray(value)
-      ? value.map((item: unknown) =>
-          typeof item === 'string' ? item.trim() : item,
-        )
-      : value,
-  )
-  @IsArray()
-  @ArrayUnique()
-  @IsString({ each: true })
-  @IsOptional()
-  categories?: string[];
+  @IsNotEmpty()
+  categoryId!: string;
 
   @ApiPropertyOptional({ type: [String], default: [] })
   @Transform(({ value }: TransformFnParams): unknown =>

@@ -7,6 +7,7 @@ import {
   VideoStatus,
   VideoVisibility,
 } from '../../domain/entities/video.entity';
+import { Tag, TagStatus } from '../../../tags/domain/entities/tag.entity';
 import { GetSubscribedVideosUseCase } from './get-subscribed-videos.use-case';
 
 describe('GetSubscribedVideosUseCase', () => {
@@ -83,7 +84,8 @@ function buildVideoListItem(
   channelId: string;
   title: string;
   description: string;
-  categories: string[];
+  category: string;
+  tags: string[];
   status: string;
   price: number;
   requiredTierLevel: number | null;
@@ -101,7 +103,8 @@ function buildVideoListItem(
     channelId: 'channel-1',
     title: 'Video',
     description: 'Description',
-    categories: ['music'],
+    category: 'music',
+    tags: ['action'],
     status: VideoStatus.READY,
     price: 0,
     requiredTierLevel: null,
@@ -126,7 +129,8 @@ function buildVideoEntity(
     ownerId: 'owner-1',
     title: 'Video',
     description: 'Description',
-    category: [buildCategory()],
+    category: buildCategory(),
+    tags: [buildTag()],
     visibility: VideoVisibility.PUBLIC,
     status: VideoStatus.READY,
     price: 0,
@@ -142,6 +146,17 @@ function buildVideoEntity(
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
     updatedAt: new Date('2026-01-02T00:00:00.000Z'),
     ...overrides,
+  });
+}
+
+function buildTag(): Tag {
+  return new Tag({
+    id: 'tag-1',
+    name: 'Action',
+    slug: 'action',
+    status: TagStatus.ACTIVE,
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    updatedAt: new Date('2026-01-01T00:00:00.000Z'),
   });
 }
 

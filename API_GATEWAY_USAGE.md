@@ -1,6 +1,6 @@
 # Media Service - API Gateway Usage
 
-Last updated: 2026-05-12
+Last updated: 2026-05-13
 
 ## Purpose
 
@@ -80,7 +80,10 @@ Important public GET routes:
 ```text
 GET /api/media/
 GET /api/media/categories
+GET /api/media/categories/:slug/videos
+GET /api/media/tags
 GET /api/media/search
+GET /api/media/videos
 GET /api/media/videos/discovery/latest
 GET /api/media/videos/discovery/by-category
 GET /api/media/videos/:id/metadata
@@ -143,9 +146,14 @@ PATCH  /api/media/videos/:id/metadata
 GET    /api/media/videos/library/purchased
 GET    /api/media/videos/discovery/subscribed
 GET    /api/media/videos/continue-watching
-GET    /api/media/categories/admin/all
-POST   /api/media/categories
-PATCH  /api/media/categories/:id
+GET    /api/media/admin/categories
+POST   /api/media/admin/categories
+PATCH  /api/media/admin/categories/:id
+DELETE /api/media/admin/categories/:id
+GET    /api/media/admin/tags
+POST   /api/media/admin/tags
+PATCH  /api/media/admin/tags/:id
+DELETE /api/media/admin/tags/:id
 ```
 
 For protected routes, clients must send:
@@ -174,8 +182,36 @@ Example:
 
 ```text
 GET   /api/media/categories -> public
-POST  /api/media/categories -> protected
-PATCH /api/media/categories/:id -> protected
+GET   /api/media/tags -> public
+POST  /api/media/admin/categories -> protected
+PATCH /api/media/admin/categories/:id -> protected
+POST  /api/media/admin/tags -> protected
+PATCH /api/media/admin/tags/:id -> protected
+```
+
+## Video Category/Tag Contract
+
+Upload and metadata update requests use `categoryId` and `tagIds`.
+Gateway must not translate these back to the old `categories` slug array.
+
+```json
+{
+  "title": "Anime chien dau hoc duong",
+  "description": "Mot video anime ngan...",
+  "categoryId": "uuid-category",
+  "tagIds": ["uuid-tag-1", "uuid-tag-2"],
+  "visibility": "public",
+  "price": 0
+}
+```
+
+Public video responses expose:
+
+```json
+{
+  "category": "anime",
+  "tags": ["hanh-dong", "hoc-duong"]
+}
 ```
 
 ## Error Shape
