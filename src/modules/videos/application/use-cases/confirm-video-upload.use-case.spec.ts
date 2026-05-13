@@ -19,6 +19,8 @@ describe('ConfirmVideoUploadUseCase', () => {
     objectExists: jest.fn(),
     getObjectMetadata: jest.fn(),
     getBucketName: jest.fn(),
+    copyObject: jest.fn(),
+    deleteObject: jest.fn(),
   };
   const videoProcessingJobDispatcher = {
     enqueueTranscodeJob: jest.fn(),
@@ -33,6 +35,10 @@ describe('ConfirmVideoUploadUseCase', () => {
     applyProgressUpdate: jest.fn(),
     createSnapshot: jest.fn().mockImplementation((input) => input),
   };
+  const loggerService = {
+    setContext: jest.fn(),
+    logWarn: jest.fn(),
+  };
 
   const useCase = new ConfirmVideoUploadUseCase(
     videoRepository as never,
@@ -40,6 +46,7 @@ describe('ConfirmVideoUploadUseCase', () => {
     videoModerationRequestPublisher as never,
     videoUploadConfig as never,
     videoProgressService as never,
+    loggerService as never,
   );
 
   beforeEach(() => {
@@ -48,6 +55,8 @@ describe('ConfirmVideoUploadUseCase', () => {
       2 * 1024 * 1024 * 1024,
     );
     objectStorageService.getBucketName.mockReturnValue('media-raw');
+    objectStorageService.copyObject.mockResolvedValue(undefined);
+    objectStorageService.deleteObject.mockResolvedValue(undefined);
   });
 
   it('rejects when uploaded file exceeds maximum size', async () => {
@@ -107,16 +116,50 @@ describe('ConfirmVideoUploadUseCase', () => {
       videoModerationRequestPublisher.publishModerationRequested,
     ).toHaveBeenCalledWith({
       videoId: 'video-1',
-      rawFileKey: 'uploads/raw/channel-1/video.mp4',
+      rawFileKey: expect.stringMatching(
+        /^uploads\/confirmed\/video-1\/.+\.mp4$/,
+      ),
       rawBucket: 'media-raw',
       resolution: ['480p', '720p', '1080p'],
       userId: 'owner-1',
     });
+    expect(objectStorageService.copyObject).toHaveBeenCalledWith(
+      'raw',
+      'uploads/raw/channel-1/video.mp4',
+      expect.stringMatching(/^uploads\/confirmed\/video-1\/.+\.mp4$/),
+    );
+    expect(objectStorageService.deleteObject).toHaveBeenCalledWith(
+      'raw',
+      'uploads/raw/channel-1/video.mp4',
+    );
     expect(
       videoProcessingJobDispatcher.enqueueTranscodeJob,
     ).not.toHaveBeenCalled();
     expect(videoProgressService.applyProgressUpdate).toHaveBeenCalled();
     expect(result.status).toBe(VideoStatus.PENDING_MODERATION);
+  });
+
+  it('does not mark pending moderation when immutable copy fails', async () => {
+    const video = buildDraftVideo();
+    videoRepository.findById.mockResolvedValue(video);
+    objectStorageService.objectExists.mockResolvedValue(true);
+    objectStorageService.getObjectMetadata.mockResolvedValue({
+      sizeBytes: 1024,
+    });
+    objectStorageService.copyObject.mockRejectedValue(new Error('copy failed'));
+
+    await expect(
+      useCase.execute({
+        userId: 'owner-1',
+        videoId: 'video-1',
+        resolutions: ['720p'],
+      }),
+    ).rejects.toThrow('copy failed');
+
+    expect(videoRepository.save).not.toHaveBeenCalled();
+    expect(
+      videoModerationRequestPublisher.publishModerationRequested,
+    ).not.toHaveBeenCalled();
   });
 
   it('throws not found when video does not exist', async () => {

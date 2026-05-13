@@ -26,6 +26,10 @@ export class VideoProgressStoreService implements IVideoProgressStore {
     return this.cacheService.get<VideoProgressSnapshot>(this.getKey(videoId));
   }
 
+  async delete(videoId: string): Promise<void> {
+    await this.cacheService.delete(this.getKey(videoId));
+  }
+
   async applyProgressUpdate(
     snapshot: VideoProgressSnapshot,
   ): Promise<VideoProgressSnapshot | null> {

@@ -8,6 +8,7 @@ import {
   type IVideoUploadConfig,
 } from '@shared/application/interfaces/video-upload-config.interface';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
+import { LoggerService } from '@shared/infrastructure/logger/logger.service';
 import {
   BadRequestException,
   ForbiddenException,
@@ -45,8 +46,10 @@ export class ConfirmVideoUploadUseCase extends BaseUseCase<
     @Inject(VIDEO_UPLOAD_CONFIG)
     private readonly videoUploadConfig: IVideoUploadConfig,
     private readonly videoProgressService: VideoProgressService,
+    private readonly loggerService: LoggerService,
   ) {
     super();
+    this.loggerService.setContext(ConfirmVideoUploadUseCase.name);
   }
 
   async execute(
@@ -59,6 +62,7 @@ export class ConfirmVideoUploadUseCase extends BaseUseCase<
     if (video.ownerId !== command.userId) {
       throw new ForbiddenException('You do not own this video');
     }
+    video.assertDraftUploadMutable();
 
     const exists = await this.objectStorageService.objectExists(
       'raw',
@@ -84,6 +88,15 @@ export class ConfirmVideoUploadUseCase extends BaseUseCase<
       );
     }
 
+    const draftRawFileKey = video.rawFileKey;
+    const confirmedRawFileKey = this.createConfirmedRawFileKey(video.id);
+    await this.objectStorageService.copyObject(
+      'raw',
+      draftRawFileKey,
+      confirmedRawFileKey,
+    );
+
+    video.replaceDraftRawFile(confirmedRawFileKey);
     const normalizedResolutions = [...command.resolutions].sort(
       (left, right) => {
         return (
@@ -111,6 +124,7 @@ export class ConfirmVideoUploadUseCase extends BaseUseCase<
         terminal: false,
       }),
     );
+    await this.deleteDraftRawFileIfPresent(draftRawFileKey);
 
     return {
       status: video.status,
@@ -121,5 +135,25 @@ export class ConfirmVideoUploadUseCase extends BaseUseCase<
   private formatBytes(sizeBytes: number): string {
     const sizeInGiB = sizeBytes / (1024 * 1024 * 1024);
     return `${sizeInGiB.toFixed(sizeInGiB >= 10 ? 0 : 1)}GB`;
+  }
+
+  private createConfirmedRawFileKey(videoId: string): string {
+    return `uploads/confirmed/${videoId}/${crypto.randomUUID()}.mp4`;
+  }
+
+  private async deleteDraftRawFileIfPresent(rawFileKey: string): Promise<void> {
+    try {
+      if (await this.objectStorageService.objectExists('raw', rawFileKey)) {
+        await this.objectStorageService.deleteObject('raw', rawFileKey);
+      }
+    } catch (error: unknown) {
+      this.loggerService.logWarn(
+        'Failed to delete confirmed draft raw object',
+        {
+          rawFileKey,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+      );
+    }
   }
 }

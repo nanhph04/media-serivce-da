@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Header,
   Inject,
@@ -43,9 +44,11 @@ import { GetVideosByCategoryUseCase } from '../../application/use-cases/get-vide
 import { InitVideoUploadUseCase } from '../../application/use-cases/init-video-upload.use-case';
 import { PlayVideoUseCase } from '../../application/use-cases/play-video.use-case';
 import { RefreshPlaybackTokenUseCase } from '../../application/use-cases/refresh-playback-token.use-case';
+import { ReplaceVideoUploadUseCase } from '../../application/use-cases/replace-video-upload.use-case';
 import { SearchPublicVideosUseCase } from '../../application/use-cases/search-public-videos.use-case';
 import { UpdateVideoProgressUseCase } from '../../application/use-cases/update-video-progress.use-case';
 import { UpdateVideoMetadataUseCase } from '../../application/use-cases/update-video-metadata.use-case';
+import { CancelVideoUploadUseCase } from '../../application/use-cases/cancel-video-upload.use-case';
 import { VideoProgressService } from '../../application/services/video-progress.service';
 import type { VideoProgressSnapshot } from '../../application/dtos/video-progress.snapshot';
 import type { ContinueWatchingItemResponse } from '../../application/dtos/continue-watching-item.response';
@@ -54,6 +57,8 @@ import { ConfirmVideoUploadResponseDto } from '../dtos/confirm-video-upload.resp
 import { ContinueWatchingItemResponseDto } from '../dtos/continue-watching-item.response';
 import { InitVideoUploadRequestDto } from '../dtos/init-video-upload.request';
 import { InitVideoUploadResponseDto } from '../dtos/init-video-upload.response';
+import { ReplaceVideoUploadResponseDto } from '../dtos/replace-video-upload.response';
+import { CancelVideoUploadResponseDto } from '../dtos/cancel-video-upload.response';
 import { PlayVideoResponseDto } from '../dtos/play-video.response';
 import { RefreshPlaybackTokenResponseDto } from '../dtos/refresh-playback-token.response';
 import { UpdateVideoMetadataRequestDto } from '../dtos/update-video-metadata.request';
@@ -81,6 +86,8 @@ export class VideosController {
   constructor(
     private readonly initVideoUploadUseCase: InitVideoUploadUseCase,
     private readonly confirmVideoUploadUseCase: ConfirmVideoUploadUseCase,
+    private readonly replaceVideoUploadUseCase: ReplaceVideoUploadUseCase,
+    private readonly cancelVideoUploadUseCase: CancelVideoUploadUseCase,
     private readonly playVideoUseCase: PlayVideoUseCase,
     private readonly updateVideoProgressUseCase: UpdateVideoProgressUseCase,
     private readonly refreshPlaybackTokenUseCase: RefreshPlaybackTokenUseCase,
@@ -179,6 +186,34 @@ export class VideosController {
         userId,
         videoId,
         resolutions: dto.resolutions,
+      }),
+    );
+  }
+
+  @Post(':id/replace-upload')
+  @ApiCreatedSuccessResponse(ReplaceVideoUploadResponseDto)
+  async replaceUpload(
+    @CurrentUserId() userId: string,
+    @Param('id') videoId: string,
+  ): Promise<ApiResponse<ReplaceVideoUploadResponseDto>> {
+    return apiResponseContract(
+      await this.replaceVideoUploadUseCase.execute({
+        userId,
+        videoId,
+      }),
+    );
+  }
+
+  @Delete(':id/upload')
+  @ApiSuccessResponse(CancelVideoUploadResponseDto)
+  async cancelUpload(
+    @CurrentUserId() userId: string,
+    @Param('id') videoId: string,
+  ): Promise<ApiResponse<CancelVideoUploadResponseDto>> {
+    return apiResponseContract(
+      await this.cancelVideoUploadUseCase.execute({
+        userId,
+        videoId,
       }),
     );
   }

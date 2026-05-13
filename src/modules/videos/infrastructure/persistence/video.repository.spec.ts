@@ -16,8 +16,20 @@ describe('VideoRepository', () => {
     find,
     findOne,
   };
+  const manager = {
+    delete: jest.fn(),
+  };
+  const dataSource = {
+    transaction: jest.fn(
+      async (callback: (managerArg: typeof manager) => void) =>
+        callback(manager),
+    ),
+  };
 
-  const repository = new VideoRepository(ormRepository as never);
+  const repository = new VideoRepository(
+    ormRepository as never,
+    dataSource as never,
+  );
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -36,6 +48,7 @@ describe('VideoRepository', () => {
     setParameter.mockReturnValue({
       getRawOne,
     });
+    manager.delete.mockResolvedValue(undefined);
   });
 
   it('increments view_count atomically for the target video', async () => {
@@ -170,6 +183,37 @@ describe('VideoRepository', () => {
       take: 10,
     });
     expect(videos[0]?.ownerId).toBe('owner-1');
+  });
+
+  it('deletes only draft videos by id', async () => {
+    await repository.deleteDraftById('video-1');
+
+    expect(manager.delete).toHaveBeenCalledWith(expect.any(Function), {
+      videoId: 'video-1',
+    });
+    expect(manager.delete).toHaveBeenCalledWith(expect.any(Function), {
+      id: 'video-1',
+      status: 'draft',
+    });
+  });
+
+  it('loads expired drafts ordered by creation time', async () => {
+    find.mockResolvedValue([]);
+    const cutoffDate = new Date('2026-01-01T00:00:00.000Z');
+
+    await repository.findExpiredDrafts(cutoffDate, 25);
+
+    expect(find).toHaveBeenCalledWith({
+      where: {
+        status: 'draft',
+        createdAt: expect.any(Object),
+      },
+      relations: { category: true, videoTags: { tag: true } },
+      order: {
+        createdAt: 'ASC',
+      },
+      take: 25,
+    });
   });
 });
 

@@ -35,6 +35,8 @@ export interface IVideoRepository {
   save(video: VideoEntity): Promise<void>;
   findById(id: string): Promise<VideoEntity | null>;
   findBasicById(id: string): Promise<VideoEntity | null>;
+  deleteDraftById(id: string): Promise<void>;
+  findExpiredDrafts(cutoffDate: Date, limit: number): Promise<VideoEntity[]>;
   incrementViewCount(videoId: string): Promise<void>;
   incrementViewCountBy(videoId: string, delta: number): Promise<void>;
   getChannelMembershipEligibilityMetrics(

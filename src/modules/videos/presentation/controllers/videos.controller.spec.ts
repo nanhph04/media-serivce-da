@@ -12,6 +12,12 @@ describe('VideosController', () => {
   const confirmVideoUploadUseCase = {
     execute: jest.fn(),
   };
+  const replaceVideoUploadUseCase = {
+    execute: jest.fn(),
+  };
+  const cancelVideoUploadUseCase = {
+    execute: jest.fn(),
+  };
   const playVideoUseCase = {
     execute: jest.fn(),
   };
@@ -51,9 +57,14 @@ describe('VideosController', () => {
   const videoProgressStream = {
     observe: jest.fn(),
   };
+  const searchPublicVideosUseCase = {
+    execute: jest.fn(),
+  };
   const controller = new VideosController(
     initVideoUploadUseCase as never,
     confirmVideoUploadUseCase as never,
+    replaceVideoUploadUseCase as never,
+    cancelVideoUploadUseCase as never,
     playVideoUseCase as never,
     updateVideoProgressUseCase as never,
     refreshPlaybackTokenUseCase as never,
@@ -67,6 +78,7 @@ describe('VideosController', () => {
     updateVideoMetadataUseCase as never,
     videoProgressService as never,
     videoProgressStream as never,
+    searchPublicVideosUseCase as never,
   );
 
   beforeEach(() => {
@@ -167,6 +179,48 @@ describe('VideosController', () => {
       rawFileKey: 'uploads/raw/channel-1/file-2.mp4',
       bucket: 'raw-videos',
       uploadUrl: 'https://upload.example.com/2',
+    });
+  });
+
+  it('replaces a draft upload for the current user', async () => {
+    replaceVideoUploadUseCase.execute.mockResolvedValue({
+      videoId: 'video-1',
+      status: VideoStatus.DRAFT,
+      rawFileKey: 'uploads/raw/channel-1/file-2.mp4',
+      bucket: 'raw-videos',
+      uploadUrl: 'https://upload.example.com/2',
+    });
+
+    const result = await controller.replaceUpload('owner-1', 'video-1');
+
+    expect(replaceVideoUploadUseCase.execute).toHaveBeenCalledWith({
+      userId: 'owner-1',
+      videoId: 'video-1',
+    });
+    expect(result).toEqual({
+      videoId: 'video-1',
+      status: VideoStatus.DRAFT,
+      rawFileKey: 'uploads/raw/channel-1/file-2.mp4',
+      bucket: 'raw-videos',
+      uploadUrl: 'https://upload.example.com/2',
+    });
+  });
+
+  it('cancels a draft upload for the current user', async () => {
+    cancelVideoUploadUseCase.execute.mockResolvedValue({
+      videoId: 'video-1',
+      cancelled: true,
+    });
+
+    const result = await controller.cancelUpload('owner-1', 'video-1');
+
+    expect(cancelVideoUploadUseCase.execute).toHaveBeenCalledWith({
+      userId: 'owner-1',
+      videoId: 'video-1',
+    });
+    expect(result).toEqual({
+      videoId: 'video-1',
+      cancelled: true,
     });
   });
 

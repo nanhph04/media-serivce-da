@@ -1,6 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, In, Repository, type FindOptionsWhere } from 'typeorm';
+import {
+  DataSource,
+  In,
+  LessThan,
+  Repository,
+  type FindOptionsWhere,
+} from 'typeorm';
 import {
   VideoEntity,
   VideoStatus,
@@ -85,6 +91,35 @@ export class VideoRepository implements IVideoRepository {
       relations: { category: true, videoTags: { tag: true } },
     });
     return row ? this.toDomain(row) : null;
+  }
+
+  async deleteDraftById(id: string): Promise<void> {
+    await this.dataSource.transaction(async (manager) => {
+      await manager.delete(VideoTagOrmEntity, { videoId: id });
+      await manager.delete(VideoOrmEntity, {
+        id,
+        status: VideoStatus.DRAFT,
+      });
+    });
+  }
+
+  async findExpiredDrafts(
+    cutoffDate: Date,
+    limit: number,
+  ): Promise<VideoEntity[]> {
+    const rows = await this.ormRepository.find({
+      where: {
+        status: VideoStatus.DRAFT,
+        createdAt: LessThan(cutoffDate),
+      },
+      relations: { category: true, videoTags: { tag: true } },
+      order: {
+        createdAt: 'ASC',
+      },
+      take: limit,
+    });
+
+    return rows.map((row) => this.toDomain(row));
   }
 
   async incrementViewCount(videoId: string): Promise<void> {

@@ -137,6 +137,8 @@ GET    /api/media/memberships/me
 GET    /api/media/videos/me
 POST   /api/media/videos/init-upload
 POST   /api/media/videos/:id/confirm-upload
+POST   /api/media/videos/:id/replace-upload
+DELETE /api/media/videos/:id/upload
 GET    /api/media/videos/:id/play
 POST   /api/media/videos/:id/progress
 GET    /api/media/videos/:id/progress

@@ -5,6 +5,8 @@ import { ChannelsModule } from '../channels/channels.module';
 import { EngagementModule } from '../engagement/engagement.module';
 import { TagsModule } from '../tags/tags.module';
 import { ConfirmVideoUploadUseCase } from './application/use-cases/confirm-video-upload.use-case';
+import { CancelVideoUploadUseCase } from './application/use-cases/cancel-video-upload.use-case';
+import { CleanupExpiredDraftUploadsUseCase } from './application/use-cases/cleanup-expired-draft-uploads.use-case';
 import { GetContinueWatchingUseCase } from './application/use-cases/get-continue-watching.use-case';
 import { GetLatestVideosUseCase } from './application/use-cases/get-latest-videos.use-case';
 import { GetPurchasedVideosUseCase } from './application/use-cases/get-purchased-videos.use-case';
@@ -20,6 +22,7 @@ import { HandleVideoViewedUseCase } from './application/use-cases/handle-video-v
 import { InitVideoUploadUseCase } from './application/use-cases/init-video-upload.use-case';
 import { PlayVideoUseCase } from './application/use-cases/play-video.use-case';
 import { RefreshPlaybackTokenUseCase } from './application/use-cases/refresh-playback-token.use-case';
+import { ReplaceVideoUploadUseCase } from './application/use-cases/replace-video-upload.use-case';
 import { SearchPublicVideosUseCase } from './application/use-cases/search-public-videos.use-case';
 import { FlushPendingVideoViewsUseCase } from './application/use-cases/flush-pending-video-views.use-case';
 import { UpdateVideoProgressUseCase } from './application/use-cases/update-video-progress.use-case';
@@ -32,6 +35,7 @@ import { VideoModerationConsumer } from './infrastructure/consumers/video-modera
 import { VideoPaymentConsumer } from './infrastructure/consumers/video-payment.consumer';
 import { VideoViewedConsumer } from './infrastructure/consumers/video-viewed.consumer';
 import { VideoViewFlushWorker } from './infrastructure/queue/video-view-flush.worker';
+import { VideoDraftUploadCleanupWorker } from './infrastructure/queue/video-draft-upload-cleanup.worker';
 import { VideoModerationRequestPublisher } from './infrastructure/messaging/video-moderation-request.publisher';
 import { VideoModerationOutcomePublisher } from './infrastructure/messaging/video-moderation-outcome.publisher';
 import { VideoCacheInvalidator } from './infrastructure/cache/video-cache-invalidator.service';
@@ -90,6 +94,9 @@ import { VideoProgressService } from './application/services/video-progress.serv
     VideoProgressService,
     InitVideoUploadUseCase,
     ConfirmVideoUploadUseCase,
+    ReplaceVideoUploadUseCase,
+    CancelVideoUploadUseCase,
+    CleanupExpiredDraftUploadsUseCase,
     PlayVideoUseCase,
     UpdateVideoProgressUseCase,
     RefreshPlaybackTokenUseCase,
@@ -115,6 +122,7 @@ import { VideoProgressService } from './application/services/video-progress.serv
     VideoPaymentConsumer,
     VideoViewedConsumer,
     VideoViewFlushWorker,
+    VideoDraftUploadCleanupWorker,
     VideoModerationRequestPublisher,
     VideoModerationOutcomePublisher,
     {

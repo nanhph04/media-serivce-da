@@ -116,6 +116,18 @@ export class ConfigService
     return this.getNumber('VIDEO_VIEW_FLUSH_INTERVAL_SECONDS', 5);
   }
 
+  getVideoDraftUploadTtlHours(): number {
+    return this.getNumber('VIDEO_DRAFT_UPLOAD_TTL_HOURS', 24);
+  }
+
+  getVideoDraftCleanupIntervalSeconds(): number {
+    return this.getNumber('VIDEO_DRAFT_CLEANUP_INTERVAL_SECONDS', 3600);
+  }
+
+  getVideoDraftCleanupBatchSize(): number {
+    return this.getNumber('VIDEO_DRAFT_CLEANUP_BATCH_SIZE', 100);
+  }
+
   getVideoViewDiscoveryInvalidationIntervalSeconds(): number {
     return this.getNumber(
       'VIDEO_VIEW_DISCOVERY_INVALIDATION_INTERVAL_SECONDS',

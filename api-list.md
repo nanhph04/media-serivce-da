@@ -1,4 +1,4 @@
-date 06/05/2026
+date 13/05/2026
 
 MEDIA SERVICE API LIST
 Base URL: /api/media
@@ -438,12 +438,62 @@ Ghi chu chung
   - Gia tri hop le hien tai: `480p`, `720p`, `1080p`
 - He thong tu set them khi xu ly:
   - `userId`: lay tu header `x-user-id`
+- Ghi chu:
+  - Chi owner duoc confirm.
+  - Chi confirm duoc khi video con `status = draft`; cac status khac tra `CONFLICT` / HTTP 409.
+  - Backend kiem tra raw object ton tai, size > 0, va khong vuot gioi han upload.
+  - Khi confirm thanh cong, backend copy raw object sang immutable key `uploads/confirmed/{videoId}/{uuid}.mp4` truoc khi publish moderation event. Presigned URL cu neu con han se khong ghi de file dang moderation/transcode.
 - Response HTTP 201:
   - Envelope `data`:
     - `status` (string)
     - `message` (string)
 
-4.3) GET /api/media/videos/:id/play
+4.3) POST /api/media/videos/:id/replace-upload
+- Muc dich: doi raw upload file cho video draft va tra presigned upload URL moi.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-internal-secret`: He thong tu set
+- Path param:
+  - `id` (string): videoId
+- Request:
+  - Khong co body.
+- He thong tu set them khi xu ly:
+  - `userId`: lay tu header `x-user-id`
+- Ghi chu:
+  - Chi owner duoc replace.
+  - Chi replace duoc khi video con `status = draft`; cac status khac tra `CONFLICT` / HTTP 409.
+  - Backend sinh `rawFileKey` moi va upload URL moi.
+  - Raw object cu se duoc xoa best-effort neu ton tai; neu xoa cu that bai thi upload moi van duoc tra ve va cleanup job se don sau.
+- Response HTTP 201:
+  - Envelope `data`:
+    - `videoId` (string)
+    - `status` (string)
+    - `rawFileKey` (string)
+    - `bucket` (string)
+    - `uploadUrl` (string)
+
+4.4) DELETE /api/media/videos/:id/upload
+- Muc dich: huy upload video draft khi user khong muon upload nua.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-internal-secret`: He thong tu set
+- Path param:
+  - `id` (string): videoId
+- Request:
+  - Khong co body.
+- He thong tu set them khi xu ly:
+  - `userId`: lay tu header `x-user-id`
+- Ghi chu:
+  - Chi owner duoc cancel.
+  - Chi cancel duoc khi video con `status = draft`; cac status khac tra `CONFLICT` / HTTP 409.
+  - Backend xoa raw object neu ton tai, xoa processing progress cache, va hard delete video draft trong DB.
+  - Neu raw object chua duoc upload thi van xoa draft video binh thuong.
+- Response HTTP 200:
+  - Envelope `data`:
+    - `videoId` (string)
+    - `cancelled` (boolean)
+
+4.5) GET /api/media/videos/:id/play
 - Muc dich: lay thong tin phat video cho user hien tai.
 - Header:
   - `x-user-id`: He thong tu set
@@ -462,7 +512,7 @@ Ghi chu chung
     - `resumePositionSeconds` (number): vi tri tiep tuc xem, `0` neu chua co tien do
     - `isResumeAvailable` (boolean): `true` neu co the xem tiep tu tien do da luu
 
-4.4) POST /api/media/videos/:id/progress
+4.6) POST /api/media/videos/:id/progress
 - Muc dich: luu tien do xem video cua user hien tai.
 - Header:
   - `x-user-id`: He thong tu set
@@ -481,7 +531,7 @@ Ghi chu chung
     - `positionSeconds` (number)
     - `completed` (boolean)
 
-4.5) POST /api/media/videos/:id/playback-token/refresh
+4.7) POST /api/media/videos/:id/playback-token/refresh
 - Muc dich: cap moi playback token cho video dang xem.
 - Header:
   - `x-user-id`: He thong tu set
@@ -496,7 +546,7 @@ Ghi chu chung
     - `playbackToken` (string)
     - `playbackUrl` (string)
 
-4.6) GET /api/media/videos/:id/metadata
+4.8) GET /api/media/videos/:id/metadata
 - Muc dich: lay metadata public cua video.
 - Public API: khong can `x-internal-secret`.
 - Path param:
@@ -519,7 +569,7 @@ Ghi chu chung
     - `publishedAt` (string ISO | null)
     - `updatedAt` (string ISO)
 
-4.7) GET /api/media/videos/:id/progress
+4.9) GET /api/media/videos/:id/progress
 - Muc dich: lay processing/moderation progress cua video cho owner.
 - Header:
   - `x-user-id`: He thong tu set
@@ -541,7 +591,7 @@ Ghi chu chung
     - `detail` (object | null)
     - `errorCode` (string | null)
 
-4.8) GET /api/media/videos/:id/progress/stream
+4.10) GET /api/media/videos/:id/progress/stream
 - Muc dich: stream processing/moderation progress real-time qua SSE cho owner.
 - Header:
   - `x-user-id`: He thong tu set
@@ -569,7 +619,7 @@ Ghi chu chung
     - `detail` (object | null)
     - `errorCode` (string | null)
 
-4.9) PATCH /api/media/videos/:id/metadata
+4.11) PATCH /api/media/videos/:id/metadata
 - Muc dich: creator cap nhat metadata cua video.
 - Header:
   - `x-user-id`: Gateway verify JWT roi tu set
@@ -599,7 +649,7 @@ Ghi chu chung
     - `publishedAt` (string ISO | null)
     - `updatedAt` (string ISO)
 
-4.10) GET /api/media/videos/discovery/latest?limit=20
+4.12) GET /api/media/videos/discovery/latest?limit=20
 - Muc dich: lay danh sach video moi nhat.
 - Public API: khong can `x-internal-secret`.
 - Query:
@@ -626,7 +676,7 @@ Ghi chu chung
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
 
-4.11) GET /api/media/videos/discovery/by-category?category=...&page=1&limit=20
+4.13) GET /api/media/videos/discovery/by-category?category=...&page=1&limit=20
 - Muc dich: lay danh sach video theo category.
 - Public API: khong can `x-internal-secret`.
 - Query:
@@ -666,7 +716,7 @@ Ghi chu chung
     - `total` (number)
     - `totalPages` (number)
 
-4.12) GET /api/media/videos/discovery/subscribed?limit=20
+4.14) GET /api/media/videos/discovery/subscribed?limit=20
 - Muc dich: lay video public moi tu cac channel ma user dang co membership active.
 - Header:
   - `x-user-id`: He thong tu set
@@ -701,7 +751,7 @@ Ghi chu chung
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
 
-4.13) GET /api/media/videos/continue-watching?limit=20
+4.15) GET /api/media/videos/continue-watching?limit=20
 - Muc dich: lay danh sach video user dang xem do de hien thi muc xem tiep.
 - Header:
   - `x-user-id`: He thong tu set

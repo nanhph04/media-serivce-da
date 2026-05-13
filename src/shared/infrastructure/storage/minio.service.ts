@@ -87,6 +87,23 @@ export class MinioService implements OnModuleInit, IObjectStorageService {
     }
   }
 
+  async copyObject(
+    bucket: StorageBucket,
+    sourceObjectKey: string,
+    destinationObjectKey: string,
+  ): Promise<void> {
+    const bucketName = this.getBucketName(bucket);
+    await this.client.copyObject(
+      bucketName,
+      destinationObjectKey,
+      `/${bucketName}/${sourceObjectKey}`,
+    );
+  }
+
+  async deleteObject(bucket: StorageBucket, objectKey: string): Promise<void> {
+    await this.client.removeObject(this.getBucketName(bucket), objectKey);
+  }
+
   async getObjectMetadata(
     bucket: StorageBucket,
     objectKey: string,

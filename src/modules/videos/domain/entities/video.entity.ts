@@ -184,12 +184,23 @@ export class VideoEntity {
   }
 
   markPendingModeration(): void {
-    if (this.props.status !== VideoStatus.DRAFT) {
-      throw new ConflictException('Video is not in draft status');
-    }
+    this.assertDraftUploadMutable();
     this.props.status = VideoStatus.PENDING_MODERATION;
     this.props.errorMessage = null;
     this.touch();
+  }
+
+  replaceDraftRawFile(rawFileKey: string): void {
+    this.assertDraftUploadMutable();
+    this.props.rawFileKey = rawFileKey;
+    this.props.errorMessage = null;
+    this.touch();
+  }
+
+  assertDraftUploadMutable(): void {
+    if (this.props.status !== VideoStatus.DRAFT) {
+      throw new ConflictException('Video is not in draft status');
+    }
   }
 
   markPendingManualReview(reason: string): void {

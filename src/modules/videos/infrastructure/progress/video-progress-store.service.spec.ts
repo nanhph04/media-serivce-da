@@ -4,6 +4,7 @@ describe('VideoProgressStoreService', () => {
   const cacheService = {
     get: jest.fn(),
     set: jest.fn(),
+    delete: jest.fn(),
   };
 
   let service: VideoProgressStoreService;
@@ -123,5 +124,15 @@ describe('VideoProgressStoreService', () => {
     });
 
     expect(result).toBeNull();
+  });
+
+  it('deletes a progress snapshot by video id', async () => {
+    cacheService.delete.mockResolvedValue(undefined);
+
+    await service.delete('video-1');
+
+    expect(cacheService.delete).toHaveBeenCalledWith(
+      'media:video-progress:video-1',
+    );
   });
 });

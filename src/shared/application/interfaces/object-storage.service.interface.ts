@@ -16,6 +16,12 @@ export interface IObjectStorageService {
     expirySeconds?: number,
   ): Promise<string>;
   objectExists(bucket: StorageBucket, objectKey: string): Promise<boolean>;
+  copyObject(
+    bucket: StorageBucket,
+    sourceObjectKey: string,
+    destinationObjectKey: string,
+  ): Promise<void>;
+  deleteObject(bucket: StorageBucket, objectKey: string): Promise<void>;
   getObjectMetadata(
     bucket: StorageBucket,
     objectKey: string,

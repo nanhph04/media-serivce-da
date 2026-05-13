@@ -16,6 +16,8 @@ describe('MinioService', () => {
   const makeBucket = jest.fn();
   const presignedPutObject = jest.fn();
   const statObject = jest.fn();
+  const copyObject = jest.fn();
+  const removeObject = jest.fn();
   const logger = {
     setContext: jest.fn(),
     logInfo: jest.fn(),
@@ -45,6 +47,8 @@ describe('MinioService', () => {
       makeBucket,
       presignedPutObject,
       statObject,
+      copyObject,
+      removeObject,
     }));
     bucketExists.mockResolvedValue(true);
     configService = {
@@ -122,6 +126,26 @@ describe('MinioService', () => {
       'media-processed',
       'video/master.m3u8',
     );
+  });
+
+  it('copies objects within the configured logical bucket', async () => {
+    copyObject.mockResolvedValue(undefined);
+
+    await service.copyObject('raw', 'draft/video.mp4', 'confirmed/video.mp4');
+
+    expect(copyObject).toHaveBeenCalledWith(
+      'media-raw',
+      'confirmed/video.mp4',
+      '/media-raw/draft/video.mp4',
+    );
+  });
+
+  it('deletes objects from the configured logical bucket', async () => {
+    removeObject.mockResolvedValue(undefined);
+
+    await service.deleteObject('raw', 'draft/video.mp4');
+
+    expect(removeObject).toHaveBeenCalledWith('media-raw', 'draft/video.mp4');
   });
 
   it('fails fast when a required MinIO bucket config is missing', () => {
