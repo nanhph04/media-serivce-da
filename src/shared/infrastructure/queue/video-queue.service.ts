@@ -27,7 +27,15 @@ export class VideoQueueService
   }
 
   async enqueueTranscodeJob(payload: VideoProcessingJobPayload): Promise<void> {
-    await this.queue.add('transcode-job', payload, { attempts: 3 });
+    await this.queue.add('transcode-job', payload, {
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 5000,
+      },
+      removeOnComplete: true,
+      removeOnFail: 100,
+    });
   }
 
   async onModuleDestroy(): Promise<void> {

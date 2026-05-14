@@ -9,10 +9,6 @@ import {
   NotFoundException,
 } from '@shared/domain/exceptions/domain.exception';
 import {
-  type IVideoProgressStore,
-  VIDEO_PROGRESS_STORE,
-} from '../interfaces/video-progress-store.interface';
-import {
   type IVideoRepository,
   VIDEO_REPOSITORY,
 } from '../../domain/repositories/video.repository';
@@ -28,8 +24,6 @@ export class CancelVideoUploadUseCase extends BaseUseCase<
     private readonly videoRepository: IVideoRepository,
     @Inject(OBJECT_STORAGE_SERVICE)
     private readonly objectStorageService: IObjectStorageService,
-    @Inject(VIDEO_PROGRESS_STORE)
-    private readonly videoProgressStore: IVideoProgressStore,
   ) {
     super();
   }
@@ -50,7 +44,6 @@ export class CancelVideoUploadUseCase extends BaseUseCase<
     if (await this.objectStorageService.objectExists('raw', video.rawFileKey)) {
       await this.objectStorageService.deleteObject('raw', video.rawFileKey);
     }
-    await this.videoProgressStore.delete(video.id);
     await this.videoRepository.deleteDraftById(video.id);
 
     return {

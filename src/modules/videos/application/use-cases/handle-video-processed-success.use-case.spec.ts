@@ -16,10 +16,6 @@ describe('HandleVideoProcessedSuccessUseCase', () => {
   const cacheService = {
     setIfNotExists: jest.fn(),
   };
-  const videoProgressService = {
-    applyProgressUpdate: jest.fn(),
-    createSnapshot: jest.fn().mockImplementation((input) => input),
-  };
   const logger = {
     setContext: jest.fn(),
     logWarn: jest.fn(),
@@ -36,14 +32,12 @@ describe('HandleVideoProcessedSuccessUseCase', () => {
     cacheService.setIfNotExists.mockResolvedValue(true);
     videoRepository.save.mockResolvedValue(undefined);
     eligibilityService.syncChannelEligibility.mockResolvedValue(undefined);
-    videoProgressService.applyProgressUpdate.mockResolvedValue(undefined);
     videoCacheInvalidator.invalidateMetadata.mockResolvedValue(undefined);
     videoCacheInvalidator.invalidateDiscoveryLists.mockResolvedValue(undefined);
     useCase = new HandleVideoProcessedSuccessUseCase(
       videoRepository as never,
       eligibilityService as never,
       cacheService as never,
-      videoProgressService as never,
       logger as never,
       videoCacheInvalidator as never,
     );
@@ -75,12 +69,6 @@ describe('HandleVideoProcessedSuccessUseCase', () => {
     expect(eligibilityService.syncChannelEligibility).toHaveBeenCalledWith(
       'channel-1',
     );
-    expect(videoProgressService.applyProgressUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        stage: 'ready',
-        terminal: true,
-      }),
-    );
   });
 
   it.each([
@@ -110,7 +98,6 @@ describe('HandleVideoProcessedSuccessUseCase', () => {
       videoCacheInvalidator.invalidateDiscoveryLists,
     ).not.toHaveBeenCalled();
     expect(eligibilityService.syncChannelEligibility).not.toHaveBeenCalled();
-    expect(videoProgressService.applyProgressUpdate).not.toHaveBeenCalled();
     expect(logger.logWarn).toHaveBeenCalledWith(
       'Ignoring stale video processed success event',
       {
@@ -163,7 +150,6 @@ describe('HandleVideoProcessedSuccessUseCase', () => {
       videoCacheInvalidator.invalidateDiscoveryLists,
     ).not.toHaveBeenCalled();
     expect(eligibilityService.syncChannelEligibility).not.toHaveBeenCalled();
-    expect(videoProgressService.applyProgressUpdate).not.toHaveBeenCalled();
   });
 });
 

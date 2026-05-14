@@ -27,6 +27,12 @@ export enum VideoDeletionStatus {
   READY_FOR_HARD_DELETE = 'ready_for_hard_delete',
 }
 
+export interface VideoModerationDetails {
+  reason: string;
+  confidence: number;
+  evidenceTimestampSeconds: number | null;
+}
+
 export interface VideoProps {
   id: string;
   channelId: string;
@@ -45,6 +51,7 @@ export interface VideoProps {
   durationSeconds: number | null;
   resolutions: string[];
   errorMessage: string | null;
+  moderationDetails?: VideoModerationDetails | null;
   viewCount: number;
   publishedAt: Date | null;
   isDeleted?: boolean;
@@ -234,6 +241,7 @@ export class VideoEntity {
       durationSeconds: null,
       resolutions: [],
       errorMessage: null,
+      moderationDetails: null,
       viewCount: 0,
       publishedAt: null,
       isDeleted: false,
@@ -279,14 +287,26 @@ export class VideoEntity {
     }
   }
 
-  markPendingManualReview(reason: string): void {
-    this.changeStatus(VideoStatus.PENDING_MANUAL_REVIEW);
-    this.props.errorMessage = reason;
+  get moderationDetails(): VideoModerationDetails | null {
+    return this.props.moderationDetails ?? null;
   }
 
-  markRejected(reason: string): void {
+  markPendingManualReview(
+    reason: string,
+    moderationDetails: VideoModerationDetails | null = null,
+  ): void {
+    this.changeStatus(VideoStatus.PENDING_MANUAL_REVIEW);
+    this.props.errorMessage = reason;
+    this.props.moderationDetails = moderationDetails;
+  }
+
+  markRejected(
+    reason: string,
+    moderationDetails: VideoModerationDetails | null = null,
+  ): void {
     this.changeStatus(VideoStatus.REJECTED);
     this.props.errorMessage = reason;
+    this.props.moderationDetails = moderationDetails;
   }
 
   markReady(input: {
@@ -302,6 +322,7 @@ export class VideoEntity {
       input.durationSeconds ?? this.props.durationSeconds;
     this.props.resolutions = input.resolutions ?? this.props.resolutions;
     this.props.errorMessage = null;
+    this.props.moderationDetails = null;
     this.props.publishedAt = new Date();
   }
 

@@ -20,6 +20,7 @@ import {
 } from '../../../tags/domain/repositories/tag.repository';
 import type { UpdateVideoMetadataCommand } from '../dtos/update-video-metadata.command';
 import type { VideoMetadataResponse } from '../dtos/video-metadata.response';
+import { mapVideoStatusToJobFields } from '../dtos/video-job-status';
 import {
   type IVideoCacheInvalidator,
   VIDEO_CACHE_INVALIDATOR,
@@ -86,6 +87,11 @@ export class UpdateVideoMetadataUseCase extends BaseUseCase<
       status: video.status,
       visibility: video.visibility,
       errorMessage: video.errorMessage,
+      ...mapVideoStatusToJobFields({
+        status: video.status,
+        errorMessage: video.errorMessage,
+        moderationDetails: video.moderationDetails,
+      }),
       publishedAt: video.publishedAt,
       isDeleted: video.isDeleted,
       deletedAt: video.deletedAt,

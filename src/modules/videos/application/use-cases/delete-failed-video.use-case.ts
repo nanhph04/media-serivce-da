@@ -15,10 +15,6 @@ import {
   VIDEO_REPOSITORY,
 } from '../../domain/repositories/video.repository';
 import type { DeleteFailedVideoResponse } from '../dtos/delete-failed-video.response';
-import {
-  type IVideoProgressStore,
-  VIDEO_PROGRESS_STORE,
-} from '../interfaces/video-progress-store.interface';
 
 @Injectable()
 export class DeleteFailedVideoUseCase extends BaseUseCase<
@@ -30,8 +26,6 @@ export class DeleteFailedVideoUseCase extends BaseUseCase<
     private readonly videoRepository: IVideoRepository,
     @Inject(OBJECT_STORAGE_SERVICE)
     private readonly objectStorageService: IObjectStorageService,
-    @Inject(VIDEO_PROGRESS_STORE)
-    private readonly videoProgressStore: IVideoProgressStore,
   ) {
     super();
   }
@@ -54,7 +48,6 @@ export class DeleteFailedVideoUseCase extends BaseUseCase<
     if (await this.objectStorageService.objectExists('raw', video.rawFileKey)) {
       await this.objectStorageService.deleteObject('raw', video.rawFileKey);
     }
-    await this.videoProgressStore.delete(video.id);
     await this.videoRepository.deleteFailedById(video.id);
 
     return {

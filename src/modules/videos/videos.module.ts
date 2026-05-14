@@ -35,7 +35,6 @@ import { UnpublishVideoUseCase } from './application/use-cases/unpublish-video.u
 import { UnlockVideoUseCase } from './application/use-cases/unlock-video.use-case';
 import { VideoWatchAccessService } from './application/services/video-watch-access.service';
 import { VideoProcessingConsumer } from './infrastructure/consumers/video-processing.consumer';
-import { VideoProgressConsumer } from './infrastructure/consumers/video-progress.consumer';
 import { VideoModerationConsumer } from './infrastructure/consumers/video-moderation.consumer';
 import { VideoPaymentConsumer } from './infrastructure/consumers/video-payment.consumer';
 import { VideoDeleteRefundCompletedConsumer } from './infrastructure/consumers/video-delete-refund-completed.consumer';
@@ -60,8 +59,6 @@ import { VideoRepository } from './infrastructure/persistence/video.repository';
 import { VideoWatchProgressOrmEntity } from './infrastructure/persistence/video-watch-progress.orm-entity';
 import { VideoWatchProgressRepository } from './infrastructure/persistence/video-watch-progress.repository';
 import { VideoQueryService } from './infrastructure/query/video-query.service';
-import { VideoProgressStoreService } from './infrastructure/progress/video-progress-store.service';
-import { VideoProgressStreamService } from './infrastructure/progress/video-progress-stream.service';
 import { VideosController } from './presentation/controllers/videos.controller';
 import { CategoryVideosController } from './presentation/controllers/category-videos.controller';
 import { VIDEO_CACHE_INVALIDATOR } from './application/interfaces/video-cache-invalidator.interface';
@@ -69,8 +66,6 @@ import { VIDEO_MODERATION_REQUEST_PUBLISHER } from './application/interfaces/vid
 import { VIDEO_MODERATION_OUTCOME_PUBLISHER } from './application/interfaces/video-moderation-outcome-publisher.interface';
 import { VIDEO_DELETE_REQUEST_PUBLISHER } from './application/interfaces/video-delete-request-publisher.interface';
 import { VIDEO_QUERY_SERVICE } from './application/interfaces/video-query.service.interface';
-import { VIDEO_PROGRESS_STORE } from './application/interfaces/video-progress-store.interface';
-import { VIDEO_PROGRESS_STREAM } from './application/interfaces/video-progress-stream.interface';
 import { VIDEO_SEARCH_QUERY_SERVICE } from './application/interfaces/video-search-query.service.interface';
 import { VIDEO_VIEW_AGGREGATION } from './application/interfaces/video-view-aggregation.interface';
 import { VIDEO_WATCHDOG_HEALTH_FAILURE_STORE } from './application/interfaces/video-watchdog-health-failure-store.interface';
@@ -78,7 +73,6 @@ import { VIDEO_WORKER_HEALTH_CHECKER } from './application/interfaces/video-work
 import { VIDEO_PURCHASE_UNLOCK_REPOSITORY } from './domain/repositories/video-purchase-unlock.repository';
 import { VIDEO_REPOSITORY } from './domain/repositories/video.repository';
 import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-watch-progress.repository';
-import { VideoProgressService } from './application/services/video-progress.service';
 
 @Module({
   imports: [
@@ -103,9 +97,6 @@ import { VideoProgressService } from './application/services/video-progress.serv
     VideoCacheInvalidator,
     VideoViewAggregationService,
     VideoWatchAccessService,
-    VideoProgressStoreService,
-    VideoProgressStreamService,
-    VideoProgressService,
     InitVideoUploadUseCase,
     ConfirmVideoUploadUseCase,
     ReplaceVideoUploadUseCase,
@@ -136,7 +127,6 @@ import { VideoProgressService } from './application/services/video-progress.serv
     HandleVideoViewedUseCase,
     FlushPendingVideoViewsUseCase,
     VideoProcessingConsumer,
-    VideoProgressConsumer,
     VideoModerationConsumer,
     VideoPaymentConsumer,
     VideoDeleteRefundCompletedConsumer,
@@ -177,14 +167,6 @@ import { VideoProgressService } from './application/services/video-progress.serv
     {
       provide: VIDEO_VIEW_AGGREGATION,
       useExisting: VideoViewAggregationService,
-    },
-    {
-      provide: VIDEO_PROGRESS_STORE,
-      useExisting: VideoProgressStoreService,
-    },
-    {
-      provide: VIDEO_PROGRESS_STREAM,
-      useExisting: VideoProgressStreamService,
     },
     {
       provide: VIDEO_MODERATION_REQUEST_PUBLISHER,

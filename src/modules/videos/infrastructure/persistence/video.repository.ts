@@ -10,6 +10,7 @@ import {
 import {
   VideoDeletionStatus,
   VideoEntity,
+  type VideoModerationDetails,
   VideoStatus,
   VideoVisibility,
 } from '../../domain/entities/video.entity';
@@ -55,6 +56,9 @@ export class VideoRepository implements IVideoRepository {
         durationSeconds: video.durationSeconds,
         resolutions: video.resolutions,
         errorMessage: video.errorMessage,
+        moderationDetails: video.moderationDetails
+          ? { ...video.moderationDetails }
+          : null,
         viewCount: video.viewCount,
         publishedAt: video.publishedAt,
         isDeleted: video.isDeleted,
@@ -486,6 +490,7 @@ export class VideoRepository implements IVideoRepository {
       durationSeconds: row.durationSeconds,
       resolutions: row.resolutions.filter((value) => value.length > 0),
       errorMessage: row.errorMessage,
+      moderationDetails: toModerationDetails(row.moderationDetails),
       viewCount: row.viewCount,
       publishedAt: row.publishedAt,
       isDeleted: row.isDeleted ?? false,
@@ -509,4 +514,29 @@ export class VideoRepository implements IVideoRepository {
 
 function escapeLikePattern(value: string): string {
   return value.replace(/[\\%_]/g, '\\$&');
+}
+
+function toModerationDetails(
+  value: Record<string, unknown> | null,
+): VideoModerationDetails | null {
+  if (!value) {
+    return null;
+  }
+
+  const reason = value.reason;
+  const confidence = value.confidence;
+  const evidenceTimestampSeconds = value.evidenceTimestampSeconds;
+
+  if (typeof reason !== 'string' || typeof confidence !== 'number') {
+    return null;
+  }
+
+  return {
+    reason,
+    confidence,
+    evidenceTimestampSeconds:
+      typeof evidenceTimestampSeconds === 'number'
+        ? evidenceTimestampSeconds
+        : null,
+  };
 }

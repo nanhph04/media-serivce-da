@@ -14,7 +14,6 @@ import {
 } from '../../domain/repositories/video.repository';
 import { VideoStatus } from '../../domain/entities/video.entity';
 import type { HandleVideoProcessedSuccessCommand } from '../dtos/handle-video-processed-success.command';
-import { VideoProgressService } from '../services/video-progress.service';
 import { LoggerService } from '@shared/infrastructure/logger/logger.service';
 import {
   type IVideoCacheInvalidator,
@@ -33,7 +32,6 @@ export class HandleVideoProcessedSuccessUseCase extends BaseUseCase<
     private readonly channelMembershipEligibilityService: IChannelMembershipEligibilityService,
     @Inject(IDEMPOTENCY_STORE)
     private readonly idempotencyStore: IIdempotencyStore,
-    private readonly videoProgressService: VideoProgressService,
     private readonly loggerService: LoggerService,
     @Inject(VIDEO_CACHE_INVALIDATOR)
     private readonly videoCacheInvalidator: IVideoCacheInvalidator,
@@ -76,15 +74,6 @@ export class HandleVideoProcessedSuccessUseCase extends BaseUseCase<
     await this.videoCacheInvalidator.invalidateDiscoveryLists();
     await this.channelMembershipEligibilityService.syncChannelEligibility(
       video.channelId,
-    );
-    await this.videoProgressService.applyProgressUpdate(
-      this.videoProgressService.createSnapshot({
-        videoId: command.data.videoId,
-        stage: 'ready',
-        percent: 100,
-        message: 'Video processing completed',
-        terminal: true,
-      }),
     );
   }
 

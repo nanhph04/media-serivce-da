@@ -3,22 +3,13 @@ import {
   Controller,
   Delete,
   Get,
-  Header,
-  Inject,
-  Logger,
-  MessageEvent,
   Param,
   Patch,
   Post,
   Query,
-  Req,
-  Sse,
   UseGuards,
 } from '@nestjs/common';
 import { ApiHeader, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
-import type { Request } from 'express';
-import { concat, fromEvent, interval, merge, Observable, of } from 'rxjs';
-import { finalize, map, take, takeUntil } from 'rxjs/operators';
 import { ApiCreatedSuccessResponse } from '@shared/presentation/decorators/api-success-response.decorator';
 import { ApiSuccessResponse } from '@shared/presentation/decorators/api-success-response.decorator';
 import { CurrentUserId } from '@shared/presentation/decorators/user-id.decorator';
@@ -51,8 +42,6 @@ import { UpdateVideoMetadataUseCase } from '../../application/use-cases/update-v
 import { UnpublishVideoUseCase } from '../../application/use-cases/unpublish-video.use-case';
 import { CancelVideoUploadUseCase } from '../../application/use-cases/cancel-video-upload.use-case';
 import { DeleteFailedVideoUseCase } from '../../application/use-cases/delete-failed-video.use-case';
-import { VideoProgressService } from '../../application/services/video-progress.service';
-import type { VideoProgressSnapshot } from '../../application/dtos/video-progress.snapshot';
 import type { ContinueWatchingItemResponse } from '../../application/dtos/continue-watching-item.response';
 import { ConfirmVideoUploadRequestDto } from '../dtos/confirm-video-upload.request';
 import { ConfirmVideoUploadResponseDto } from '../dtos/confirm-video-upload.response';
@@ -71,22 +60,15 @@ import { UnpublishVideoResponseDto } from '../dtos/unpublish-video.response';
 import { StudioVideoListItemResponseDto } from '../dtos/studio-video-list-item.response';
 import { VideoListItemResponseDto } from '../dtos/video-list-item.response';
 import { VideoMetadataResponseDto } from '../dtos/video-metadata.response';
-import { VideoProgressResponseDto } from '../dtos/video-progress.response';
 import type { StudioVideoListItemResponse } from '../../application/dtos/studio-video-list-item.response';
 import type { VideoMetadataResponse } from '../../application/dtos/video-metadata.response';
 import type { UpdateVideoProgressResponse } from '../../application/dtos/update-video-progress.response';
-import {
-  VIDEO_PROGRESS_STREAM,
-  type IVideoProgressStream,
-} from '../../application/interfaces/video-progress-stream.interface';
 
 @ApiTags('videos')
 @ApiHeader({ name: 'x-user-id', required: true })
 @UseGuards(InternalGatewayGuard)
 @Controller('videos')
 export class VideosController {
-  private readonly logger = new Logger(VideosController.name);
-
   constructor(
     private readonly initVideoUploadUseCase: InitVideoUploadUseCase,
     private readonly confirmVideoUploadUseCase: ConfirmVideoUploadUseCase,
@@ -105,9 +87,6 @@ export class VideosController {
     private readonly getVideoMetadataUseCase: GetVideoMetadataUseCase,
     private readonly updateVideoMetadataUseCase: UpdateVideoMetadataUseCase,
     private readonly unpublishVideoUseCase: UnpublishVideoUseCase,
-    private readonly videoProgressService: VideoProgressService,
-    @Inject(VIDEO_PROGRESS_STREAM)
-    private readonly videoProgressStream: IVideoProgressStream,
     private readonly searchPublicVideosUseCase: SearchPublicVideosUseCase,
   ) {}
 
@@ -308,62 +287,6 @@ export class VideosController {
     return apiResponseContract(this.toVideoMetadataDto(metadata));
   }
 
-  @Get(':id/progress')
-  @ApiSuccessResponse(VideoProgressResponseDto)
-  async getProgress(
-    @CurrentUserId() userId: string,
-    @Param('id') videoId: string,
-  ): Promise<ApiResponse<VideoProgressResponseDto>> {
-    const snapshot = await this.videoProgressService.getSnapshotForOwner(
-      videoId,
-      userId,
-    );
-    return apiResponseContract(this.toVideoProgressDto(snapshot));
-  }
-
-  @Sse(':id/progress/stream')
-  @Header('Cache-Control', 'no-cache, no-transform')
-  @Header('Connection', 'keep-alive')
-  @Header('X-Accel-Buffering', 'no')
-  async streamProgress(
-    @CurrentUserId() userId: string,
-    @Param('id') videoId: string,
-    @Req() request: Request,
-  ): Promise<Observable<MessageEvent>> {
-    const initialSnapshot = await this.videoProgressService.getSnapshotForOwner(
-      videoId,
-      userId,
-    );
-    const disconnect$ = merge(
-      fromEvent(request, 'close'),
-      fromEvent(request, 'aborted'),
-    ).pipe(take(1));
-
-    const initial$ = of(this.toSseMessage('snapshot', initialSnapshot));
-    const live$ = this.videoProgressStream
-      .observe(videoId)
-      .pipe(
-        map((snapshot) =>
-          this.toSseMessage(snapshot.terminal ? 'end' : 'progress', snapshot),
-        ),
-      );
-    const heartbeat$ = interval(15000).pipe(
-      map(() => ({
-        type: 'ping',
-        data: {
-          timestamp: new Date().toISOString(),
-        },
-      })),
-    );
-
-    return concat(initial$, merge(live$, heartbeat$)).pipe(
-      takeUntil(disconnect$),
-      finalize(() => {
-        this.logger.log(`Closed progress stream for videoId=${videoId}`);
-      }),
-    );
-  }
-
   @Patch(':id/metadata')
   @ApiHeader({ name: 'x-internal-secret', required: true })
   @ApiHeader({ name: 'x-user-id', required: true })
@@ -521,6 +444,10 @@ export class VideosController {
       durationSeconds: video.durationSeconds,
       resolutions: video.resolutions,
       errorMessage: video.errorMessage,
+      jobStatus: video.jobStatus,
+      jobStatusMessage: video.jobStatusMessage,
+      failureReason: video.failureReason,
+      moderationDetails: video.moderationDetails,
       viewCount: video.viewCount,
       publishedAt: video.publishedAt?.toISOString() ?? null,
       isDeleted: video.isDeleted,
@@ -548,6 +475,10 @@ export class VideosController {
       status: metadata.status,
       visibility: metadata.visibility,
       errorMessage: metadata.errorMessage,
+      jobStatus: metadata.jobStatus,
+      jobStatusMessage: metadata.jobStatusMessage,
+      failureReason: metadata.failureReason,
+      moderationDetails: metadata.moderationDetails,
       publishedAt: metadata.publishedAt?.toISOString() ?? null,
       isDeleted: metadata.isDeleted,
       deletedAt: metadata.deletedAt?.toISOString() ?? null,
@@ -564,31 +495,6 @@ export class VideosController {
       videoId: response.videoId,
       positionSeconds: response.positionSeconds,
       completed: response.completed,
-    };
-  }
-
-  private toVideoProgressDto(
-    snapshot: VideoProgressSnapshot,
-  ): VideoProgressResponseDto {
-    return {
-      videoId: snapshot.videoId,
-      stage: snapshot.stage,
-      percent: snapshot.percent,
-      message: snapshot.message,
-      terminal: snapshot.terminal,
-      updatedAt: snapshot.updatedAt,
-      detail: snapshot.detail ?? null,
-      errorCode: snapshot.errorCode ?? null,
-    };
-  }
-
-  private toSseMessage(
-    type: string,
-    snapshot: VideoProgressSnapshot,
-  ): MessageEvent {
-    return {
-      type,
-      data: this.toVideoProgressDto(snapshot),
     };
   }
 

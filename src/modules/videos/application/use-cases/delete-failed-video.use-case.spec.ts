@@ -19,25 +19,19 @@ describe('DeleteFailedVideoUseCase', () => {
     objectExists: jest.fn(),
     deleteObject: jest.fn(),
   };
-  const videoProgressStore = {
-    delete: jest.fn(),
-  };
-
   const useCase = new DeleteFailedVideoUseCase(
     videoRepository as never,
     objectStorageService as never,
-    videoProgressStore as never,
   );
 
   beforeEach(() => {
     jest.clearAllMocks();
     objectStorageService.objectExists.mockResolvedValue(true);
     objectStorageService.deleteObject.mockResolvedValue(undefined);
-    videoProgressStore.delete.mockResolvedValue(undefined);
     videoRepository.deleteFailedById.mockResolvedValue(undefined);
   });
 
-  it('deletes raw object, progress, and failed video row', async () => {
+  it('deletes raw object and failed video row', async () => {
     videoRepository.findById.mockResolvedValue(buildVideo());
 
     const result = await useCase.execute({
@@ -49,7 +43,6 @@ describe('DeleteFailedVideoUseCase', () => {
       'raw',
       'uploads/raw/channel-1/video.mp4',
     );
-    expect(videoProgressStore.delete).toHaveBeenCalledWith('video-1');
     expect(videoRepository.deleteFailedById).toHaveBeenCalledWith('video-1');
     expect(result).toEqual({
       videoId: 'video-1',
@@ -57,14 +50,13 @@ describe('DeleteFailedVideoUseCase', () => {
     });
   });
 
-  it('deletes progress and failed row when raw object is not present', async () => {
+  it('deletes failed row when raw object is not present', async () => {
     videoRepository.findById.mockResolvedValue(buildVideo());
     objectStorageService.objectExists.mockResolvedValue(false);
 
     await useCase.execute({ userId: 'owner-1', videoId: 'video-1' });
 
     expect(objectStorageService.deleteObject).not.toHaveBeenCalled();
-    expect(videoProgressStore.delete).toHaveBeenCalledWith('video-1');
     expect(videoRepository.deleteFailedById).toHaveBeenCalledWith('video-1');
   });
 

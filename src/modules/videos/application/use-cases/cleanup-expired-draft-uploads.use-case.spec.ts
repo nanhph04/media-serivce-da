@@ -14,9 +14,6 @@ describe('CleanupExpiredDraftUploadsUseCase', () => {
     objectExists: jest.fn(),
     deleteObject: jest.fn(),
   };
-  const videoProgressStore = {
-    delete: jest.fn(),
-  };
   const configService = {
     getVideoDraftUploadTtlHours: jest.fn(),
     getVideoDraftCleanupBatchSize: jest.fn(),
@@ -30,7 +27,6 @@ describe('CleanupExpiredDraftUploadsUseCase', () => {
   const useCase = new CleanupExpiredDraftUploadsUseCase(
     videoRepository as never,
     objectStorageService as never,
-    videoProgressStore as never,
     configService as never,
     loggerService as never,
   );
@@ -42,7 +38,6 @@ describe('CleanupExpiredDraftUploadsUseCase', () => {
     configService.getVideoDraftCleanupBatchSize.mockReturnValue(100);
     objectStorageService.objectExists.mockResolvedValue(true);
     objectStorageService.deleteObject.mockResolvedValue(undefined);
-    videoProgressStore.delete.mockResolvedValue(undefined);
     videoRepository.deleteDraftById.mockResolvedValue(undefined);
   });
 
@@ -63,7 +58,6 @@ describe('CleanupExpiredDraftUploadsUseCase', () => {
       'raw',
       'uploads/raw/channel-1/video.mp4',
     );
-    expect(videoProgressStore.delete).toHaveBeenCalledWith('video-1');
     expect(videoRepository.deleteDraftById).toHaveBeenCalledWith('video-1');
   });
 

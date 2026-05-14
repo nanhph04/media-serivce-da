@@ -7,10 +7,6 @@ import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import { LoggerService } from '@shared/infrastructure/logger/logger.service';
 import { ConfigService } from '@shared/infrastructure/config/config.service';
 import {
-  type IVideoProgressStore,
-  VIDEO_PROGRESS_STORE,
-} from '../interfaces/video-progress-store.interface';
-import {
   type IVideoRepository,
   VIDEO_REPOSITORY,
 } from '../../domain/repositories/video.repository';
@@ -22,8 +18,6 @@ export class CleanupExpiredDraftUploadsUseCase extends BaseUseCase<void, void> {
     private readonly videoRepository: IVideoRepository,
     @Inject(OBJECT_STORAGE_SERVICE)
     private readonly objectStorageService: IObjectStorageService,
-    @Inject(VIDEO_PROGRESS_STORE)
-    private readonly videoProgressStore: IVideoProgressStore,
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
   ) {
@@ -53,7 +47,6 @@ export class CleanupExpiredDraftUploadsUseCase extends BaseUseCase<void, void> {
       if (await this.objectStorageService.objectExists('raw', rawFileKey)) {
         await this.objectStorageService.deleteObject('raw', rawFileKey);
       }
-      await this.videoProgressStore.delete(videoId);
       await this.videoRepository.deleteDraftById(videoId);
       this.loggerService.logInfo('Cleaned up expired draft upload', {
         videoId,

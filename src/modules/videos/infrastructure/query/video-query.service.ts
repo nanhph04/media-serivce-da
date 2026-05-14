@@ -14,6 +14,7 @@ import {
   type VideoListItemResponse,
 } from '../../application/dtos/video-list-item.response';
 import type { VideoMetadataResponse } from '../../application/dtos/video-metadata.response';
+import { mapVideoStatusToJobFields } from '../../application/dtos/video-job-status';
 import {
   type IVideoQueryService,
   PublicChannelVideoSummary,
@@ -115,6 +116,11 @@ export class VideoQueryService implements IVideoQueryService {
       status: video.status,
       visibility: video.visibility,
       errorMessage: video.errorMessage,
+      ...mapVideoStatusToJobFields({
+        status: video.status,
+        errorMessage: video.errorMessage,
+        moderationDetails: video.moderationDetails,
+      }),
       publishedAt: video.publishedAt,
       isDeleted: video.isDeleted,
       deletedAt: video.deletedAt,

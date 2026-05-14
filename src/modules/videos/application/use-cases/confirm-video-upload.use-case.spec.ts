@@ -31,10 +31,6 @@ describe('ConfirmVideoUploadUseCase', () => {
   const videoUploadConfig = {
     getMaxVideoUploadSizeBytes: jest.fn(),
   };
-  const videoProgressService = {
-    applyProgressUpdate: jest.fn(),
-    createSnapshot: jest.fn().mockImplementation((input) => input),
-  };
   const loggerService = {
     setContext: jest.fn(),
     logWarn: jest.fn(),
@@ -45,7 +41,6 @@ describe('ConfirmVideoUploadUseCase', () => {
     objectStorageService as never,
     videoModerationRequestPublisher as never,
     videoUploadConfig as never,
-    videoProgressService as never,
     loggerService as never,
   );
 
@@ -135,8 +130,8 @@ describe('ConfirmVideoUploadUseCase', () => {
     expect(
       videoProcessingJobDispatcher.enqueueTranscodeJob,
     ).not.toHaveBeenCalled();
-    expect(videoProgressService.applyProgressUpdate).toHaveBeenCalled();
     expect(result.status).toBe(VideoStatus.PENDING_MODERATION);
+    expect(result.message).toBe('Video is waiting for moderation');
   });
 
   it('does not mark pending moderation when immutable copy fails', async () => {

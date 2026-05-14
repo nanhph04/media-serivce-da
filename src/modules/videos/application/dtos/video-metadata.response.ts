@@ -2,8 +2,9 @@ import type {
   VideoStatus,
   VideoVisibility,
 } from '../../domain/entities/video.entity';
+import type { VideoJobStatusFields } from './video-job-status';
 
-export interface VideoMetadataResponse {
+export interface VideoMetadataResponse extends VideoJobStatusFields {
   id: string;
   title: string;
   description: string;

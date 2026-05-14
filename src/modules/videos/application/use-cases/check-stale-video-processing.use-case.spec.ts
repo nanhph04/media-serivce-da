@@ -10,9 +10,6 @@ describe('CheckStaleVideoProcessingUseCase', () => {
     findStaleByStatus: jest.fn(),
     save: jest.fn(),
   };
-  const videoProgressStore = {
-    get: jest.fn(),
-  };
   const videoWorkerHealthChecker = {
     isHealthy: jest.fn(),
   };
@@ -20,22 +17,12 @@ describe('CheckStaleVideoProcessingUseCase', () => {
     reset: jest.fn(),
     increment: jest.fn(),
   };
-  const videoProgressService = {
-    applyProgressUpdate: jest.fn(),
-    createSnapshot: jest.fn().mockImplementation((input) => ({
-      ...input,
-      updatedAt: new Date().toISOString(),
-      detail: null,
-      errorCode: input.errorCode ?? null,
-    })),
-  };
   const configService = {
     getVideoModerationTimeoutSeconds: jest.fn(),
     getVideoProcessingTimeoutSeconds: jest.fn(),
     getVideoWatchdogBatchSize: jest.fn(),
     getVideoWatchdogHealthFailureTtlSeconds: jest.fn(),
     getVideoWatchdogHealthFailureThreshold: jest.fn(),
-    getVideoWatchdogStaleProgressIntervalSeconds: jest.fn(),
   };
   const logger = {
     setContext: jest.fn(),
@@ -49,7 +36,6 @@ describe('CheckStaleVideoProcessingUseCase', () => {
     jest.useFakeTimers().setSystemTime(new Date('2026-01-01T01:00:00.000Z'));
     videoRepository.findStaleByStatus.mockResolvedValue([]);
     videoRepository.save.mockResolvedValue(undefined);
-    videoProgressStore.get.mockResolvedValue(null);
     videoWorkerHealthChecker.isHealthy.mockResolvedValue(true);
     healthFailureStore.reset.mockResolvedValue(undefined);
     healthFailureStore.increment.mockResolvedValue(1);
@@ -58,15 +44,10 @@ describe('CheckStaleVideoProcessingUseCase', () => {
     configService.getVideoWatchdogBatchSize.mockReturnValue(100);
     configService.getVideoWatchdogHealthFailureTtlSeconds.mockReturnValue(300);
     configService.getVideoWatchdogHealthFailureThreshold.mockReturnValue(3);
-    configService.getVideoWatchdogStaleProgressIntervalSeconds.mockReturnValue(
-      300,
-    );
     useCase = new CheckStaleVideoProcessingUseCase(
       videoRepository as never,
-      videoProgressStore as never,
       videoWorkerHealthChecker as never,
       healthFailureStore as never,
-      videoProgressService as never,
       configService as never,
       logger as never,
     );
@@ -94,21 +75,11 @@ describe('CheckStaleVideoProcessingUseCase', () => {
     expect(videoWorkerHealthChecker.isHealthy).not.toHaveBeenCalled();
   });
 
-  it('resets failure counter and publishes non-terminal stale progress when health is ok', async () => {
+  it('resets failure counter and logs stale videos when health is ok', async () => {
     const video = buildVideo({ status: VideoStatus.PROCESSING });
     videoRepository.findStaleByStatus
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([video]);
-    videoProgressStore.get.mockResolvedValue({
-      videoId: 'video-1',
-      stage: 'processing',
-      percent: 32,
-      message: 'Processing',
-      terminal: false,
-      updatedAt: '2026-01-01T00:30:00.000Z',
-      detail: null,
-      errorCode: null,
-    });
 
     await useCase.execute();
 
@@ -117,36 +88,13 @@ describe('CheckStaleVideoProcessingUseCase', () => {
     );
     expect(healthFailureStore.reset).toHaveBeenCalledWith('processing');
     expect(videoRepository.save).not.toHaveBeenCalled();
-    expect(videoProgressService.applyProgressUpdate).toHaveBeenCalledWith(
+    expect(logger.logWarn).toHaveBeenCalledWith(
+      'Video pipeline is stale but worker is healthy',
       expect.objectContaining({
         videoId: 'video-1',
-        stage: 'processing',
-        percent: 32,
-        message: 'Video processing is taking longer than expected',
-        terminal: false,
+        pipeline: 'processing',
       }),
     );
-  });
-
-  it('throttles duplicate stale progress updates', async () => {
-    const video = buildVideo({ status: VideoStatus.PROCESSING });
-    videoRepository.findStaleByStatus
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([video]);
-    videoProgressStore.get.mockResolvedValue({
-      videoId: 'video-1',
-      stage: 'processing',
-      percent: 32,
-      message: 'Video processing is taking longer than expected',
-      terminal: false,
-      updatedAt: '2026-01-01T00:58:00.000Z',
-      detail: null,
-      errorCode: null,
-    });
-
-    await useCase.execute();
-
-    expect(videoProgressService.applyProgressUpdate).not.toHaveBeenCalled();
   });
 
   it('increments health failure counter without failing below threshold', async () => {
@@ -164,7 +112,6 @@ describe('CheckStaleVideoProcessingUseCase', () => {
       300,
     );
     expect(videoRepository.save).not.toHaveBeenCalled();
-    expect(videoProgressService.applyProgressUpdate).not.toHaveBeenCalled();
   });
 
   it('marks stale videos failed when health failure counter reaches threshold', async () => {
@@ -180,16 +127,6 @@ describe('CheckStaleVideoProcessingUseCase', () => {
     expect(video.status).toBe(VideoStatus.FAILED);
     expect(video.errorMessage).toBe('Processing service unavailable');
     expect(videoRepository.save).toHaveBeenCalledWith(video);
-    expect(videoProgressService.applyProgressUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        videoId: 'video-1',
-        stage: 'failed',
-        percent: 100,
-        message: 'Processing service unavailable',
-        terminal: true,
-        errorCode: 'PROCESSING_SERVICE_UNAVAILABLE',
-      }),
-    );
   });
 });
 

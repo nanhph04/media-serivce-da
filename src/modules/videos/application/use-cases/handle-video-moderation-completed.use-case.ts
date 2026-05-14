@@ -20,7 +20,6 @@ import {
   VIDEO_MODERATION_OUTCOME_PUBLISHER,
   type IVideoModerationOutcomePublisher,
 } from '../interfaces/video-moderation-outcome-publisher.interface';
-import { VideoProgressService } from '../services/video-progress.service';
 
 const EVENT_PROCESSED_TTL_SECONDS = 60 * 60 * 24;
 const EVENT_PROCESSING_LOCK_TTL_SECONDS = 300;
@@ -40,7 +39,6 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
     @Inject(IDEMPOTENCY_STORE)
     private readonly idempotencyStore: IIdempotencyStore,
     private readonly loggerService: LoggerService,
-    private readonly videoProgressService: VideoProgressService,
   ) {
     super();
     this.loggerService.setContext(HandleVideoModerationCompletedUseCase.name);
@@ -115,20 +113,14 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
         evidenceTimestampSeconds: command.data.evidenceTimestampSeconds,
         transcodeQueued: true,
       });
-      await this.videoProgressService.applyProgressUpdate(
-        this.videoProgressService.createSnapshot({
-          videoId: command.data.videoId,
-          stage: 'processing',
-          percent: 5,
-          message: 'Video queued for processing',
-          terminal: false,
-        }),
-      );
       return;
     }
 
     if (command.data.status === 'PENDING_MANUAL_REVIEW') {
-      video.markPendingManualReview(command.data.reason);
+      video.markPendingManualReview(
+        command.data.reason,
+        this.toModerationDetails(command.data),
+      );
       await this.videoRepository.save(video);
       await this.publishOutcome({
         videoId: command.data.videoId,
@@ -140,20 +132,14 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
         evidenceTimestampSeconds: command.data.evidenceTimestampSeconds,
         transcodeQueued: false,
       });
-      await this.videoProgressService.applyProgressUpdate(
-        this.videoProgressService.createSnapshot({
-          videoId: command.data.videoId,
-          stage: 'pending_manual_review',
-          percent: 100,
-          message: command.data.reason || 'Video requires manual review',
-          terminal: true,
-        }),
-      );
       return;
     }
 
     if (command.data.status === 'REJECTED') {
-      video.markRejected(command.data.reason);
+      video.markRejected(
+        command.data.reason,
+        this.toModerationDetails(command.data),
+      );
       await this.videoRepository.save(video);
       await this.publishOutcome({
         videoId: command.data.videoId,
@@ -165,15 +151,6 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
         evidenceTimestampSeconds: command.data.evidenceTimestampSeconds,
         transcodeQueued: false,
       });
-      await this.videoProgressService.applyProgressUpdate(
-        this.videoProgressService.createSnapshot({
-          videoId: command.data.videoId,
-          stage: 'rejected',
-          percent: 100,
-          message: command.data.reason || 'Video rejected by moderation',
-          terminal: true,
-        }),
-      );
       return;
     }
 
@@ -189,15 +166,20 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
       evidenceTimestampSeconds: command.data.evidenceTimestampSeconds,
       transcodeQueued: false,
     });
-    await this.videoProgressService.applyProgressUpdate(
-      this.videoProgressService.createSnapshot({
-        videoId: command.data.videoId,
-        stage: 'failed',
-        percent: 100,
-        message: command.data.reason || 'Video moderation failed',
-        terminal: true,
-      }),
-    );
+  }
+
+  private toModerationDetails(
+    data: HandleVideoModerationCompletedCommand['data'],
+  ): {
+    reason: string;
+    confidence: number;
+    evidenceTimestampSeconds: number | null;
+  } {
+    return {
+      reason: data.reason,
+      confidence: data.confidence,
+      evidenceTimestampSeconds: data.evidenceTimestampSeconds,
+    };
   }
 
   private async markEventProcessed(processedKey: string): Promise<void> {

@@ -82,6 +82,9 @@ export class VideoOrmEntity {
   @Column({ type: 'text', name: 'error_message', nullable: true })
   errorMessage!: string | null;
 
+  @Column({ type: 'jsonb', name: 'moderation_details', nullable: true })
+  moderationDetails!: Record<string, unknown> | null;
+
   @Column({ type: 'int', name: 'view_count', default: 0 })
   viewCount!: number;
 

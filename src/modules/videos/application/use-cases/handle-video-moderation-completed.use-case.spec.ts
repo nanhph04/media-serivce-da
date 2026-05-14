@@ -26,11 +26,6 @@ describe('HandleVideoModerationCompletedUseCase', () => {
     logInfo: jest.fn(),
     logWarn: jest.fn(),
   };
-  const videoProgressService = {
-    applyProgressUpdate: jest.fn(),
-    createSnapshot: jest.fn().mockImplementation((input) => input),
-  };
-
   let useCase: HandleVideoModerationCompletedUseCase;
 
   beforeEach(() => {
@@ -45,14 +40,12 @@ describe('HandleVideoModerationCompletedUseCase', () => {
     moderationOutcomePublisher.publishModerationOutcome.mockResolvedValue(
       undefined,
     );
-    videoProgressService.applyProgressUpdate.mockResolvedValue(undefined);
     useCase = new HandleVideoModerationCompletedUseCase(
       videoRepository as never,
       videoProcessingJobDispatcher as never,
       moderationOutcomePublisher as never,
       idempotencyStore as never,
       logger as never,
-      videoProgressService as never,
     );
   });
 
@@ -96,12 +89,6 @@ describe('HandleVideoModerationCompletedUseCase', () => {
       evidenceTimestampSeconds: null,
       transcodeQueued: true,
     });
-    expect(videoProgressService.applyProgressUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        stage: 'processing',
-        percent: 5,
-      }),
-    );
     expect(idempotencyStore.setIfNotExists).toHaveBeenNthCalledWith(
       1,
       'media:event:processing:event-1',
@@ -117,9 +104,6 @@ describe('HandleVideoModerationCompletedUseCase', () => {
     expect(idempotencyStore.delete).toHaveBeenCalledWith(
       'media:event:processing:event-1',
     );
-    expect(
-      videoProgressService.applyProgressUpdate.mock.invocationCallOrder[0],
-    ).toBeLessThan(idempotencyStore.setIfNotExists.mock.invocationCallOrder[1]);
   });
 
   it('marks yellow moderation result as pending manual review without transcoding', async () => {
@@ -143,6 +127,11 @@ describe('HandleVideoModerationCompletedUseCase', () => {
     const savedVideo = videoRepository.save.mock.calls[0][0] as VideoEntity;
     expect(savedVideo.status).toBe(VideoStatus.PENDING_MANUAL_REVIEW);
     expect(savedVideo.errorMessage).toBe('NSFW score 0.72 at 00:12');
+    expect(savedVideo.moderationDetails).toEqual({
+      reason: 'NSFW score 0.72 at 00:12',
+      confidence: 0.72,
+      evidenceTimestampSeconds: 12,
+    });
     expect(
       videoProcessingJobDispatcher.enqueueTranscodeJob,
     ).not.toHaveBeenCalled();
@@ -158,12 +147,6 @@ describe('HandleVideoModerationCompletedUseCase', () => {
       evidenceTimestampSeconds: 12,
       transcodeQueued: false,
     });
-    expect(videoProgressService.applyProgressUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        stage: 'pending_manual_review',
-        terminal: true,
-      }),
-    );
   });
 
   it('marks rejected moderation result as rejected without transcoding', async () => {
@@ -187,6 +170,11 @@ describe('HandleVideoModerationCompletedUseCase', () => {
     const savedVideo = videoRepository.save.mock.calls[0][0] as VideoEntity;
     expect(savedVideo.status).toBe(VideoStatus.REJECTED);
     expect(savedVideo.errorMessage).toBe('NSFW detected at 00:45');
+    expect(savedVideo.moderationDetails).toEqual({
+      reason: 'NSFW detected at 00:45',
+      confidence: 0.95,
+      evidenceTimestampSeconds: 45,
+    });
     expect(
       videoProcessingJobDispatcher.enqueueTranscodeJob,
     ).not.toHaveBeenCalled();
@@ -202,12 +190,6 @@ describe('HandleVideoModerationCompletedUseCase', () => {
       evidenceTimestampSeconds: 45,
       transcodeQueued: false,
     });
-    expect(videoProgressService.applyProgressUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        stage: 'rejected',
-        terminal: true,
-      }),
-    );
   });
 
   it('marks technical moderation errors as failed without transcoding', async () => {
@@ -246,12 +228,6 @@ describe('HandleVideoModerationCompletedUseCase', () => {
       evidenceTimestampSeconds: null,
       transcodeQueued: false,
     });
-    expect(videoProgressService.applyProgressUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        stage: 'failed',
-        terminal: true,
-      }),
-    );
   });
 
   it('skips duplicate moderation events', async () => {
@@ -344,7 +320,6 @@ describe('HandleVideoModerationCompletedUseCase', () => {
       expect(
         moderationOutcomePublisher.publishModerationOutcome,
       ).not.toHaveBeenCalled();
-      expect(videoProgressService.applyProgressUpdate).not.toHaveBeenCalled();
       expect(logger.logWarn).toHaveBeenCalledWith(
         'Ignoring stale video moderation completed event',
         {
@@ -370,14 +345,6 @@ describe('HandleVideoModerationCompletedUseCase', () => {
       fail: () => {
         moderationOutcomePublisher.publishModerationOutcome.mockRejectedValueOnce(
           new Error('kafka down'),
-        );
-      },
-    },
-    {
-      name: 'progress update failure',
-      fail: () => {
-        videoProgressService.applyProgressUpdate.mockRejectedValueOnce(
-          new Error('redis down'),
         );
       },
     },
@@ -443,7 +410,6 @@ describe('HandleVideoModerationCompletedUseCase', () => {
     expect(
       moderationOutcomePublisher.publishModerationOutcome,
     ).toHaveBeenCalled();
-    expect(videoProgressService.applyProgressUpdate).toHaveBeenCalled();
     expect(idempotencyStore.delete).not.toHaveBeenCalled();
   });
 });

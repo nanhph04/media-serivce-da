@@ -13,10 +13,6 @@ describe('HandleVideoProcessedFailedUseCase', () => {
   const idempotencyStore = {
     setIfNotExists: jest.fn(),
   };
-  const videoProgressService = {
-    applyProgressUpdate: jest.fn(),
-    createSnapshot: jest.fn().mockImplementation((input) => input),
-  };
   const logger = {
     setContext: jest.fn(),
     logWarn: jest.fn(),
@@ -28,11 +24,9 @@ describe('HandleVideoProcessedFailedUseCase', () => {
     jest.clearAllMocks();
     idempotencyStore.setIfNotExists.mockResolvedValue(true);
     videoRepository.save.mockResolvedValue(undefined);
-    videoProgressService.applyProgressUpdate.mockResolvedValue(undefined);
     useCase = new HandleVideoProcessedFailedUseCase(
       videoRepository as never,
       idempotencyStore as never,
-      videoProgressService as never,
       logger as never,
     );
   });
@@ -52,14 +46,6 @@ describe('HandleVideoProcessedFailedUseCase', () => {
     expect(video.status).toBe(VideoStatus.FAILED);
     expect(video.errorMessage).toBe('FFmpeg failed');
     expect(videoRepository.save).toHaveBeenCalledWith(video);
-    expect(videoProgressService.applyProgressUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        videoId: 'video-1',
-        stage: 'failed',
-        percent: 100,
-        terminal: true,
-      }),
-    );
   });
 
   it.each([
@@ -81,7 +67,6 @@ describe('HandleVideoProcessedFailedUseCase', () => {
     });
 
     expect(videoRepository.save).not.toHaveBeenCalled();
-    expect(videoProgressService.applyProgressUpdate).not.toHaveBeenCalled();
     expect(logger.logWarn).toHaveBeenCalledWith(
       'Ignoring stale video processed failed event',
       {

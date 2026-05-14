@@ -1,6 +1,10 @@
 import type { VideoEntity } from '../../domain/entities/video.entity';
+import {
+  mapVideoStatusToJobFields,
+  type VideoJobStatusFields,
+} from './video-job-status';
 
-export interface StudioVideoListItemResponse {
+export interface StudioVideoListItemResponse extends VideoJobStatusFields {
   id: string;
   channelId: string;
   title: string;
@@ -43,6 +47,11 @@ export function mapVideoEntityToStudioListItem(
     durationSeconds: video.durationSeconds,
     resolutions: video.resolutions,
     errorMessage: video.errorMessage,
+    ...mapVideoStatusToJobFields({
+      status: video.status,
+      errorMessage: video.errorMessage,
+      moderationDetails: video.moderationDetails,
+    }),
     viewCount: video.viewCount,
     publishedAt: video.publishedAt,
     isDeleted: video.isDeleted,

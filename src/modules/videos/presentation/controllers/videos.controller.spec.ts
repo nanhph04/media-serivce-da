@@ -2,7 +2,6 @@ import {
   VideoStatus,
   VideoVisibility,
 } from '../../domain/entities/video.entity';
-import type { VideoProgressSnapshot } from '../../application/dtos/video-progress.snapshot';
 import { VideosController } from './videos.controller';
 
 describe('VideosController', () => {
@@ -57,12 +56,6 @@ describe('VideosController', () => {
   const unpublishVideoUseCase = {
     execute: jest.fn(),
   };
-  const videoProgressService = {
-    getSnapshotForOwner: jest.fn(),
-  };
-  const videoProgressStream = {
-    observe: jest.fn(),
-  };
   const searchPublicVideosUseCase = {
     execute: jest.fn(),
   };
@@ -84,8 +77,6 @@ describe('VideosController', () => {
     getVideoMetadataUseCase as never,
     updateVideoMetadataUseCase as never,
     unpublishVideoUseCase as never,
-    videoProgressService as never,
-    videoProgressStream as never,
     searchPublicVideosUseCase as never,
   );
 
@@ -112,6 +103,10 @@ describe('VideosController', () => {
       status: VideoStatus.READY,
       visibility: VideoVisibility.PUBLIC,
       errorMessage: null,
+      jobStatus: 'succeeded',
+      jobStatusMessage: 'Video processing completed',
+      failureReason: null,
+      moderationDetails: null,
       publishedAt: '2026-01-01T00:00:00.000Z',
       isDeleted: false,
       deletedAt: null,
@@ -630,28 +625,6 @@ describe('VideosController', () => {
     ]);
   });
 
-  it('returns current upload and processing progress for the owner', async () => {
-    videoProgressService.getSnapshotForOwner.mockResolvedValue(
-      buildProgressSnapshot(),
-    );
-
-    const result = await controller.getProgress('owner-1', 'video-1');
-
-    expect(videoProgressService.getSnapshotForOwner).toHaveBeenCalledWith(
-      'video-1',
-      'owner-1',
-    );
-    expect(result).toEqual({
-      videoId: 'video-1',
-      stage: 'processing',
-      percent: 75,
-      message: 'HLS variants created',
-      terminal: false,
-      updatedAt: '2026-01-03T00:00:00.000Z',
-      detail: null,
-      errorCode: null,
-    });
-  });
 });
 
 function buildMetadata(): {
@@ -667,6 +640,10 @@ function buildMetadata(): {
   status: VideoStatus;
   visibility: VideoVisibility;
   errorMessage: string | null;
+  jobStatus: string;
+  jobStatusMessage: string;
+  failureReason: string | null;
+  moderationDetails: null;
   publishedAt: Date;
   isDeleted: boolean;
   deletedAt: Date | null;
@@ -687,24 +664,15 @@ function buildMetadata(): {
     status: VideoStatus.READY,
     visibility: VideoVisibility.PUBLIC,
     errorMessage: null,
+    jobStatus: 'succeeded',
+    jobStatusMessage: 'Video processing completed',
+    failureReason: null,
+    moderationDetails: null,
     publishedAt: new Date('2026-01-01T00:00:00.000Z'),
     isDeleted: false,
     deletedAt: null,
     deletedBy: null,
     deleteReason: null,
     updatedAt: new Date('2026-01-02T00:00:00.000Z'),
-  };
-}
-
-function buildProgressSnapshot(): VideoProgressSnapshot {
-  return {
-    videoId: 'video-1',
-    stage: 'processing',
-    percent: 75,
-    message: 'HLS variants created',
-    terminal: false,
-    updatedAt: '2026-01-03T00:00:00.000Z',
-    detail: null,
-    errorCode: null,
   };
 }
