@@ -1,7 +1,7 @@
 import type { PaginationDto } from '../../../../shared/presentation/dto/pagination.dto';
-import type { VideoListItemResponse } from './video-list-item.response';
+import type { PurchasedVideoItemResponse } from './purchased-video-item.response';
 
 export interface PurchasedVideosResponse {
-  items: VideoListItemResponse[];
+  items: PurchasedVideoItemResponse[];
   pagination: PaginationDto;
 }

@@ -1,5 +1,4 @@
 import type { VideoPurchaseUnlockEntity } from '../entities/video-purchase-unlock.entity';
-import type { VideoEntity } from '../entities/video.entity';
 
 export const VIDEO_PURCHASE_UNLOCK_REPOSITORY = Symbol(
   'VIDEO_PURCHASE_UNLOCK_REPOSITORY',
@@ -11,8 +10,27 @@ export interface PurchasedVideosPageFilters {
   limit: number;
 }
 
+export type PurchasedVideoAccessStatus = 'ACTIVE';
+
+export interface PurchasedVideoItemReadModel {
+  videoId: string;
+  channelId: string;
+  channelName: string | null;
+  title: string;
+  description: string;
+  thumbnailUrl: string | null;
+  durationSeconds: number | null;
+  categories: string[];
+  tags: string[];
+  priceCoin: number;
+  purchasedAt: Date;
+  publishedAt: Date | null;
+  viewCount: number;
+  accessStatus: PurchasedVideoAccessStatus;
+}
+
 export interface PurchasedVideosPageResult {
-  items: VideoEntity[];
+  items: PurchasedVideoItemReadModel[];
   total: number;
 }
 

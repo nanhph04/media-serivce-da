@@ -1,12 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
-import {
-  mapVideoEntityToListItem,
-  type VideoListItemResponse,
-} from '../dtos/video-list-item.response';
 import type { GetPurchasedVideosQuery } from '../dtos/purchased-videos.query';
+import type { PurchasedVideoItemResponse } from '../dtos/purchased-video-item.response';
 import type { PurchasedVideosResponse } from '../dtos/purchased-videos.response';
 import {
+  type PurchasedVideoItemReadModel,
   type IVideoPurchaseUnlockRepository,
   VIDEO_PURCHASE_UNLOCK_REPOSITORY,
 } from '../../domain/repositories/video-purchase-unlock.repository';
@@ -31,12 +29,10 @@ export class GetPurchasedVideosUseCase extends BaseUseCase<
         userId: query.userId,
         page: query.page,
         limit: query.limit,
-      });
+    });
 
     return {
-      items: result.items.map(
-        (video): VideoListItemResponse => mapVideoEntityToListItem(video),
-      ),
+      items: result.items.map((item) => this.toPurchasedVideoItem(item)),
       pagination: {
         page: query.page,
         limit: query.limit,
@@ -44,6 +40,27 @@ export class GetPurchasedVideosUseCase extends BaseUseCase<
         totalPages:
           result.total === 0 ? 0 : Math.ceil(result.total / query.limit),
       },
+    };
+  }
+
+  private toPurchasedVideoItem(
+    item: PurchasedVideoItemReadModel,
+  ): PurchasedVideoItemResponse {
+    return {
+      videoId: item.videoId,
+      channelId: item.channelId,
+      channelName: item.channelName,
+      title: item.title,
+      description: item.description,
+      thumbnailUrl: item.thumbnailUrl,
+      durationSeconds: item.durationSeconds,
+      categories: item.categories,
+      tags: item.tags,
+      priceCoin: item.priceCoin,
+      purchasedAt: item.purchasedAt,
+      publishedAt: item.publishedAt,
+      viewCount: item.viewCount,
+      accessStatus: item.accessStatus,
     };
   }
 }

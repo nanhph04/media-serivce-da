@@ -27,18 +27,34 @@ export class VideoWatchProgressRepository implements IVideoWatchProgressReposito
   }
 
   async save(progress: VideoWatchProgressEntity): Promise<void> {
-    await this.ormRepository.save({
-      id: progress.id,
-      userId: progress.userId,
-      videoId: progress.videoId,
-      channelId: progress.channelId,
-      lastPositionSeconds: progress.lastPositionSeconds,
-      durationSeconds: progress.durationSeconds,
-      lastWatchedAt: progress.lastWatchedAt,
-      completedAt: progress.completedAt,
-      createdAt: progress.createdAt,
-      updatedAt: progress.updatedAt,
-    });
+    await this.ormRepository
+      .createQueryBuilder()
+      .insert()
+      .into(VideoWatchProgressOrmEntity)
+      .values({
+        id: progress.id,
+        userId: progress.userId,
+        videoId: progress.videoId,
+        channelId: progress.channelId,
+        lastPositionSeconds: progress.lastPositionSeconds,
+        durationSeconds: progress.durationSeconds,
+        lastWatchedAt: progress.lastWatchedAt,
+        completedAt: progress.completedAt,
+        createdAt: progress.createdAt,
+        updatedAt: progress.updatedAt,
+      })
+      .orUpdate(
+        [
+          'channel_id',
+          'last_position_seconds',
+          'duration_seconds',
+          'last_watched_at',
+          'completed_at',
+          'updated_at',
+        ],
+        ['user_id', 'video_id'],
+      )
+      .execute();
   }
 
   private toDomain(row: VideoWatchProgressOrmEntity): VideoWatchProgressEntity {

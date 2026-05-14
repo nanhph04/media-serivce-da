@@ -1,16 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, type SelectQueryBuilder } from 'typeorm';
-import { Category } from '../../../categories/domain/entities/category.entity';
-import { Tag } from '../../../tags/domain/entities/tag.entity';
 import {
   VideoDeletionStatus,
-  VideoEntity,
   VideoStatus,
 } from '../../domain/entities/video.entity';
+import { ChannelOrmEntity } from '../../../channels/infrastructure/persistence/channel.orm-entity';
 import { VideoPurchaseUnlockEntity } from '../../domain/entities/video-purchase-unlock.entity';
 import type {
   IVideoPurchaseUnlockRepository,
+  PurchasedVideoItemReadModel,
   PurchasedVideosPageFilters,
   PurchasedVideosPageResult,
 } from '../../domain/repositories/video-purchase-unlock.repository';
@@ -76,21 +75,46 @@ export class VideoPurchaseUnlockRepository implements IVideoPurchaseUnlockReposi
       };
     }
 
+    const purchasedAtByVideoId = new Map(
+      idRows.map((row) => [row.videoId, new Date(row.lastUnlockedAt)]),
+    );
+
     const rows = await this.ormRepository.manager
       .createQueryBuilder(VideoOrmEntity, 'video')
       .leftJoinAndSelect('video.category', 'category')
       .leftJoinAndSelect('video.videoTags', 'videoTag')
       .leftJoinAndSelect('videoTag.tag', 'tag')
+      .leftJoin(ChannelOrmEntity, 'channel', 'channel.id = video.channel_id')
+      .addSelect('channel.name', 'channelName')
       .where('video.id IN (:...videoIds)', { videoIds })
-      .getMany();
+      .getRawAndEntities();
 
-    const rowsById = new Map(rows.map((row) => [row.id, row]));
+    const channelNameByVideoId = new Map(
+      rows.raw.map((row: { video_id: string; channelName: string | null }) => [
+        row.video_id,
+        row.channelName,
+      ]),
+    );
+    const rowsById = new Map(rows.entities.map((row) => [row.id, row]));
 
     return {
       items: videoIds
-        .map((videoId) => rowsById.get(videoId))
-        .filter((row): row is VideoOrmEntity => row !== undefined)
-        .map((row) => this.toVideoDomain(row)),
+        .map((videoId) => {
+          const row = rowsById.get(videoId);
+          const purchasedAt = purchasedAtByVideoId.get(videoId);
+
+          if (!row || !purchasedAt) {
+            return null;
+          }
+
+          return this.toPurchasedVideoItem(row, {
+            purchasedAt,
+            channelName: channelNameByVideoId.get(videoId) ?? null,
+          });
+        })
+        .filter(
+          (item): item is PurchasedVideoItemReadModel => item !== null,
+        ),
       total,
     };
   }
@@ -121,7 +145,13 @@ export class VideoPurchaseUnlockRepository implements IVideoPurchaseUnlockReposi
     return Number(raw?.total ?? 0);
   }
 
-  private toVideoDomain(row: VideoOrmEntity): VideoEntity {
+  private toPurchasedVideoItem(
+    row: VideoOrmEntity,
+    metadata: {
+      purchasedAt: Date;
+      channelName: string | null;
+    },
+  ): PurchasedVideoItemReadModel {
     const legacyVideoCategories =
       (
         row as VideoOrmEntity & {
@@ -134,60 +164,21 @@ export class VideoPurchaseUnlockRepository implements IVideoPurchaseUnlockReposi
       throw new Error(`Video ${row.id} is missing category relation`);
     }
 
-    return new VideoEntity({
-      id: row.id,
+    return {
+      videoId: row.id,
       channelId: row.channelId,
-      ownerId: row.ownerId,
+      channelName: metadata.channelName,
       title: row.title,
       description: row.description,
-      category: new Category({
-        id: category.id,
-        name: category.name,
-        slug: category.slug,
-        description: category.description,
-        parentId: category.parentId ?? null,
-        status: category.status,
-        displayOrder: category.displayOrder ?? 0,
-        createdAt: category.createdAt,
-        updatedAt: category.updatedAt,
-      }),
-      tags: (row.videoTags ?? []).map(
-        (item) =>
-          new Tag({
-            id: item.tag.id,
-            name: item.tag.name,
-            slug: item.tag.slug,
-            status: item.tag.status,
-            createdAt: item.tag.createdAt,
-            updatedAt: item.tag.updatedAt,
-          }),
-      ),
-      visibility: row.visibility,
-      status: row.status,
-      price: row.price,
-      requiredTierLevel: row.requiredTierLevel,
-      rawFileKey: row.rawFileKey,
-      masterPlaylistKey: row.masterPlaylistKey,
       thumbnailUrl: row.thumbnailUrl,
       durationSeconds: row.durationSeconds,
-      resolutions: row.resolutions.filter((value) => value.length > 0),
-      errorMessage: row.errorMessage,
-      viewCount: row.viewCount,
+      categories: [category.slug],
+      tags: (row.videoTags ?? []).map((item) => item.tag.slug),
+      priceCoin: row.price,
+      purchasedAt: metadata.purchasedAt,
       publishedAt: row.publishedAt,
-      isDeleted: row.isDeleted ?? false,
-      deletedAt: row.deletedAt ?? null,
-      deletedBy: row.deletedBy ?? null,
-      deleteReason: row.deleteReason ?? null,
-      deletionStatus:
-        row.deletionStatus ??
-        (row.isDeleted
-          ? VideoDeletionStatus.PENDING_DELETE
-          : VideoDeletionStatus.ACTIVE),
-      deleteRequestedAt: row.deleteRequestedAt ?? row.deletedAt ?? null,
-      refundCompletedAt: row.refundCompletedAt ?? null,
-      refundSummary: row.refundSummary ?? null,
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
-    });
+      viewCount: row.viewCount,
+      accessStatus: 'ACTIVE',
+    };
   }
 }

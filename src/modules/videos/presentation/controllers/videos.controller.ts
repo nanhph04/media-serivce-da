@@ -52,6 +52,7 @@ import { ReplaceVideoUploadResponseDto } from '../dtos/replace-video-upload.resp
 import { CancelVideoUploadResponseDto } from '../dtos/cancel-video-upload.response';
 import { DeleteFailedVideoResponseDto } from '../dtos/delete-failed-video.response';
 import { PlayVideoResponseDto } from '../dtos/play-video.response';
+import { PurchasedVideoResponseDto } from '../dtos/purchased-video.response';
 import { RefreshPlaybackTokenResponseDto } from '../dtos/refresh-playback-token.response';
 import { UpdateVideoMetadataRequestDto } from '../dtos/update-video-metadata.request';
 import { UpdateVideoProgressRequestDto } from '../dtos/update-video-progress.request';
@@ -61,6 +62,7 @@ import { StudioVideoListItemResponseDto } from '../dtos/studio-video-list-item.r
 import { VideoListItemResponseDto } from '../dtos/video-list-item.response';
 import { VideoMetadataResponseDto } from '../dtos/video-metadata.response';
 import type { StudioVideoListItemResponse } from '../../application/dtos/studio-video-list-item.response';
+import type { PurchasedVideoItemResponse } from '../../application/dtos/purchased-video-item.response';
 import type { VideoMetadataResponse } from '../../application/dtos/video-metadata.response';
 import type { UpdateVideoProgressResponse } from '../../application/dtos/update-video-progress.response';
 
@@ -324,12 +326,12 @@ export class VideosController {
   @Get('library/purchased')
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiSuccessResponse(VideoListItemResponseDto, { isArray: true })
+  @ApiSuccessResponse(PurchasedVideoResponseDto, { isArray: true })
   async purchased(
     @CurrentUserId() userId: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
-  ): Promise<ApiResponse<VideoListItemResponseDto[]>> {
+  ): Promise<ApiResponse<PurchasedVideoResponseDto[]>> {
     const result = await this.getPurchasedVideosUseCase.execute({
       userId,
       page: this.parsePage(page),
@@ -337,7 +339,7 @@ export class VideosController {
     });
 
     return ApiResponse.success(
-      result.items.map((row) => this.toVideoListItemDto(row)),
+      result.items.map((row) => this.toPurchasedVideoDto(row)),
       undefined,
       result.pagination,
     );
@@ -456,6 +458,27 @@ export class VideosController {
       deleteReason: video.deleteReason,
       createdAt: video.createdAt.toISOString(),
       updatedAt: video.updatedAt.toISOString(),
+    };
+  }
+
+  private toPurchasedVideoDto(
+    item: PurchasedVideoItemResponse,
+  ): PurchasedVideoResponseDto {
+    return {
+      videoId: item.videoId,
+      channelId: item.channelId,
+      channelName: item.channelName,
+      title: item.title,
+      description: item.description,
+      thumbnailUrl: item.thumbnailUrl,
+      durationSeconds: item.durationSeconds,
+      categories: item.categories,
+      tags: item.tags,
+      priceCoin: item.priceCoin,
+      purchasedAt: item.purchasedAt.toISOString(),
+      publishedAt: item.publishedAt?.toISOString() ?? null,
+      viewCount: item.viewCount,
+      accessStatus: item.accessStatus,
     };
   }
 

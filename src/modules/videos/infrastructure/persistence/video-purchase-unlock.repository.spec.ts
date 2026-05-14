@@ -1,5 +1,6 @@
 import { Category } from '../../../categories/domain/entities/category.entity';
 import { CategoryStatus } from '../../../categories/domain/entities/category.entity';
+import { Tag, TagStatus } from '../../../tags/domain/entities/tag.entity';
 import {
   VideoStatus,
   VideoVisibility,
@@ -30,7 +31,10 @@ describe('VideoPurchaseUnlockRepository', () => {
   const clone = jest.fn();
   const videoWhere = jest.fn();
   const videoLeftJoinAndSelect = jest.fn();
+  const videoLeftJoin = jest.fn();
+  const videoAddSelect = jest.fn();
   const videoGetMany = jest.fn();
+  const videoGetRawAndEntities = jest.fn();
   const createQueryBuilder = jest.fn();
   const queryBuilder = {
     where,
@@ -57,8 +61,11 @@ describe('VideoPurchaseUnlockRepository', () => {
   };
   const videoQueryBuilder = {
     leftJoinAndSelect: videoLeftJoinAndSelect,
+    leftJoin: videoLeftJoin,
+    addSelect: videoAddSelect,
     where: videoWhere,
     getMany: videoGetMany,
+    getRawAndEntities: videoGetRawAndEntities,
   };
   const manager = {
     createQueryBuilder,
@@ -96,20 +103,30 @@ describe('VideoPurchaseUnlockRepository', () => {
       .mockReturnValueOnce(clonedPageQueryBuilder)
       .mockReturnValueOnce(clonedCountQueryBuilder);
     videoLeftJoinAndSelect.mockReturnValue(videoQueryBuilder);
+    videoLeftJoin.mockReturnValue(videoQueryBuilder);
+    videoAddSelect.mockReturnValue(videoQueryBuilder);
     videoWhere.mockReturnValue(videoQueryBuilder);
   });
 
   it('returns purchased ready videos paged by newest unlock first', async () => {
-    getRawMany.mockResolvedValue([{ videoId: 'video-1' }]);
-    getRawOne.mockResolvedValue({ total: '21' });
-    videoGetMany.mockResolvedValue([
-      buildVideoRow({
-        id: 'video-1',
-        title: 'Premium Video',
-        status: VideoStatus.READY,
-        price: 500,
-      }),
+    getRawMany.mockResolvedValue([
+      {
+        videoId: 'video-1',
+        lastUnlockedAt: new Date('2026-01-03T00:00:00.000Z'),
+      },
     ]);
+    getRawOne.mockResolvedValue({ total: '21' });
+    videoGetRawAndEntities.mockResolvedValue({
+      raw: [{ video_id: 'video-1', channelName: 'Cinema Labs' }],
+      entities: [
+        buildVideoRow({
+          id: 'video-1',
+          title: 'Premium Video',
+          status: VideoStatus.READY,
+          price: 500,
+        }),
+      ],
+    });
 
     const result = await repository.findPurchasedByUserId({
       userId: 'viewer-1',
@@ -137,12 +154,21 @@ describe('VideoPurchaseUnlockRepository', () => {
     });
     expect(result.total).toBe(21);
     expect(result.items[0]).toMatchObject({
-      id: 'video-1',
+      videoId: 'video-1',
+      channelId: 'channel-1',
+      channelName: 'Cinema Labs',
       title: 'Premium Video',
-      status: VideoStatus.READY,
-      price: 500,
+      description: 'Description',
+      thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
+      durationSeconds: 120,
+      categories: ['music'],
+      tags: ['action'],
+      priceCoin: 500,
+      purchasedAt: new Date('2026-01-03T00:00:00.000Z'),
+      publishedAt: new Date('2026-01-01T00:00:00.000Z'),
+      viewCount: 10,
+      accessStatus: 'ACTIVE',
     });
-    expect(result.items[0]?.category.slug).toBe('music');
   });
 
   it('returns an empty page when the user has no purchased videos', async () => {
@@ -198,7 +224,9 @@ function buildVideoRow(
     category: Category;
   }[];
   category: Category;
-  videoTags: [];
+  videoTags: {
+    tag: Tag;
+  }[];
 } {
   return {
     id: overrides.id ?? 'video-1',
@@ -233,7 +261,18 @@ function buildVideoRow(
       createdAt: new Date('2026-01-01T00:00:00.000Z'),
       updatedAt: new Date('2026-01-02T00:00:00.000Z'),
     }),
-    videoTags: [],
+    videoTags: [
+      {
+        tag: new Tag({
+          id: 'tag-1',
+          name: 'Action',
+          slug: 'action',
+          status: TagStatus.ACTIVE,
+          createdAt: new Date('2026-01-01T00:00:00.000Z'),
+          updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+        }),
+      },
+    ],
     videoCategories: [
       {
         category: new Category({

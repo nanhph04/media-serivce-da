@@ -1,12 +1,4 @@
-import {
-  VideoStatus,
-  VideoVisibility,
-} from '../../domain/entities/video.entity';
 import type { IVideoPurchaseUnlockRepository } from '../../domain/repositories/video-purchase-unlock.repository';
-import { Category } from '../../../categories/domain/entities/category.entity';
-import { CategoryStatus } from '../../../categories/domain/entities/category.entity';
-import { Tag, TagStatus } from '../../../tags/domain/entities/tag.entity';
-import { VideoEntity } from '../../domain/entities/video.entity';
 import { GetPurchasedVideosUseCase } from './get-purchased-videos.use-case';
 
 describe('GetPurchasedVideosUseCase', () => {
@@ -41,23 +33,20 @@ describe('GetPurchasedVideosUseCase', () => {
     expect(result).toEqual({
       items: [
         {
-          id: 'video-1',
+          videoId: 'video-1',
           channelId: 'channel-1',
+          channelName: 'Cinema Labs',
           title: 'Premium Video',
           description: 'Description',
-          category: 'music',
-          tags: ['action'],
-          status: VideoStatus.READY,
-          price: 500,
-          requiredTierLevel: null,
           thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
           durationSeconds: 120,
-          resolutions: ['720p'],
-          errorMessage: null,
-          viewCount: 10,
+          categories: ['music'],
+          tags: ['action'],
+          priceCoin: 500,
+          purchasedAt: new Date('2026-01-03T00:00:00.000Z'),
           publishedAt: new Date('2026-01-01T00:00:00.000Z'),
-          createdAt: new Date('2026-01-01T00:00:00.000Z'),
-          updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+          viewCount: 10,
+          accessStatus: 'ACTIVE',
         },
       ],
       pagination: {
@@ -70,45 +59,36 @@ describe('GetPurchasedVideosUseCase', () => {
   });
 });
 
-function buildVideo(): VideoEntity {
-  return new VideoEntity({
-    id: 'video-1',
+function buildVideo(): {
+  videoId: string;
+  channelId: string;
+  channelName: string | null;
+  title: string;
+  description: string;
+  thumbnailUrl: string | null;
+  durationSeconds: number | null;
+  categories: string[];
+  tags: string[];
+  priceCoin: number;
+  purchasedAt: Date;
+  publishedAt: Date | null;
+  viewCount: number;
+  accessStatus: 'ACTIVE';
+} {
+  return {
+    videoId: 'video-1',
     channelId: 'channel-1',
-    ownerId: 'owner-1',
+    channelName: 'Cinema Labs',
     title: 'Premium Video',
     description: 'Description',
-    category: new Category({
-      id: 'category-1',
-      name: 'Music',
-      slug: 'music',
-      description: null,
-      status: CategoryStatus.ACTIVE,
-      createdAt: new Date('2026-01-01T00:00:00.000Z'),
-      updatedAt: new Date('2026-01-02T00:00:00.000Z'),
-    }),
-    tags: [
-      new Tag({
-        id: 'tag-1',
-        name: 'Action',
-        slug: 'action',
-        status: TagStatus.ACTIVE,
-        createdAt: new Date('2026-01-01T00:00:00.000Z'),
-        updatedAt: new Date('2026-01-02T00:00:00.000Z'),
-      }),
-    ],
-    visibility: VideoVisibility.PRIVATE,
-    status: VideoStatus.READY,
-    price: 500,
-    requiredTierLevel: null,
-    rawFileKey: 'raw/video.mp4',
-    masterPlaylistKey: 'processed/master.m3u8',
     thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
     durationSeconds: 120,
-    resolutions: ['720p'],
-    errorMessage: null,
-    viewCount: 10,
+    categories: ['music'],
+    tags: ['action'],
+    priceCoin: 500,
+    purchasedAt: new Date('2026-01-03T00:00:00.000Z'),
     publishedAt: new Date('2026-01-01T00:00:00.000Z'),
-    createdAt: new Date('2026-01-01T00:00:00.000Z'),
-    updatedAt: new Date('2026-01-02T00:00:00.000Z'),
-  });
+    viewCount: 10,
+    accessStatus: 'ACTIVE',
+  };
 }
