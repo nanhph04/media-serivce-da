@@ -24,6 +24,7 @@ import {
   VIDEO_REPOSITORY,
 } from '../../domain/repositories/video.repository';
 import {
+  VideoDeletionStatus,
   VideoStatus,
   VideoVisibility,
 } from '../../domain/entities/video.entity';
@@ -96,7 +97,7 @@ export class VideoQueryService implements IVideoQueryService {
       !video ||
       video.status !== VideoStatus.READY ||
       video.visibility !== VideoVisibility.PUBLIC ||
-      video.isDeleted
+      video.deletionStatus !== VideoDeletionStatus.ACTIVE
     ) {
       throw new NotFoundException('Video not found');
     }
@@ -261,7 +262,9 @@ export class VideoQueryService implements IVideoQueryService {
       .andWhere('progress.completed_at IS NULL')
       .andWhere('progress.last_position_seconds > 0')
       .andWhere('video.status = :status', { status: VideoStatus.READY })
-      .andWhere('video.is_deleted = :isDeleted', { isDeleted: false })
+      .andWhere('video.deletion_status = :deletionStatus', {
+        deletionStatus: VideoDeletionStatus.ACTIVE,
+      })
       .andWhere('video.visibility = :visibility', {
         visibility: VideoVisibility.PUBLIC,
       })

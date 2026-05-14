@@ -10,6 +10,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import {
+  VideoDeletionStatus,
   VideoStatus,
   VideoVisibility,
 } from '../../domain/entities/video.entity';
@@ -103,6 +104,23 @@ export class VideoOrmEntity {
     nullable: true,
   })
   deleteReason!: string | null;
+
+  @Column({
+    type: 'varchar',
+    length: 32,
+    name: 'deletion_status',
+    default: VideoDeletionStatus.ACTIVE,
+  })
+  deletionStatus!: VideoDeletionStatus;
+
+  @Column({ type: 'timestamp', name: 'delete_requested_at', nullable: true })
+  deleteRequestedAt!: Date | null;
+
+  @Column({ type: 'timestamp', name: 'refund_completed_at', nullable: true })
+  refundCompletedAt!: Date | null;
+
+  @Column({ type: 'jsonb', name: 'refund_summary', nullable: true })
+  refundSummary!: Record<string, unknown> | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

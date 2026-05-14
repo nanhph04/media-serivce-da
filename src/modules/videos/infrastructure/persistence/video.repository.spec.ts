@@ -172,6 +172,7 @@ describe('VideoRepository', () => {
     expect(find).toHaveBeenCalledWith({
       where: {
         ownerId: 'owner-1',
+        deletionStatus: 'active',
         status: expect.any(Object),
         visibility: expect.any(Object),
       },

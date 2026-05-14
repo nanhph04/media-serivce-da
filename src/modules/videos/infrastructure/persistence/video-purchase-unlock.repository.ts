@@ -3,7 +3,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, type SelectQueryBuilder } from 'typeorm';
 import { Category } from '../../../categories/domain/entities/category.entity';
 import { Tag } from '../../../tags/domain/entities/tag.entity';
-import { VideoEntity, VideoStatus } from '../../domain/entities/video.entity';
+import {
+  VideoDeletionStatus,
+  VideoEntity,
+  VideoStatus,
+} from '../../domain/entities/video.entity';
 import { VideoPurchaseUnlockEntity } from '../../domain/entities/video-purchase-unlock.entity';
 import type {
   IVideoPurchaseUnlockRepository,
@@ -99,6 +103,9 @@ export class VideoPurchaseUnlockRepository implements IVideoPurchaseUnlockReposi
       .innerJoin(VideoOrmEntity, 'video', 'video.id = unlock.video_id')
       .where('unlock.user_id = :userId', { userId })
       .andWhere('video.status = :status', { status: VideoStatus.READY })
+      .andWhere('video.deletion_status = :deletionStatus', {
+        deletionStatus: VideoDeletionStatus.ACTIVE,
+      })
       .andWhere('video.price > 0');
   }
 
@@ -171,6 +178,14 @@ export class VideoPurchaseUnlockRepository implements IVideoPurchaseUnlockReposi
       deletedAt: row.deletedAt ?? null,
       deletedBy: row.deletedBy ?? null,
       deleteReason: row.deleteReason ?? null,
+      deletionStatus:
+        row.deletionStatus ??
+        (row.isDeleted
+          ? VideoDeletionStatus.PENDING_DELETE
+          : VideoDeletionStatus.ACTIVE),
+      deleteRequestedAt: row.deleteRequestedAt ?? row.deletedAt ?? null,
+      refundCompletedAt: row.refundCompletedAt ?? null,
+      refundSummary: row.refundSummary ?? null,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     });

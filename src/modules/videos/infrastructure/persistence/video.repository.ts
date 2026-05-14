@@ -8,6 +8,7 @@ import {
   type FindOptionsWhere,
 } from 'typeorm';
 import {
+  VideoDeletionStatus,
   VideoEntity,
   VideoStatus,
   VideoVisibility,
@@ -21,7 +22,9 @@ import type {
   IVideoRepository,
   StudioVideoFilters,
 } from '../../domain/repositories/video.repository';
+import { VideoPurchaseUnlockOrmEntity } from './video-purchase-unlock.orm-entity';
 import { VideoTagOrmEntity } from './video-tag.orm-entity';
+import { VideoWatchProgressOrmEntity } from './video-watch-progress.orm-entity';
 import { VideoOrmEntity } from './video.orm-entity';
 
 @Injectable()
@@ -58,6 +61,10 @@ export class VideoRepository implements IVideoRepository {
         deletedAt: video.deletedAt,
         deletedBy: video.deletedBy,
         deleteReason: video.deleteReason,
+        deletionStatus: video.deletionStatus,
+        deleteRequestedAt: video.deleteRequestedAt,
+        refundCompletedAt: video.refundCompletedAt,
+        refundSummary: video.refundSummary,
         createdAt: video.createdAt,
         updatedAt: video.updatedAt,
         statusChangedAt: video.statusChangedAt,
@@ -118,6 +125,18 @@ export class VideoRepository implements IVideoRepository {
     });
   }
 
+  async hardDeleteById(id: string): Promise<void> {
+    await this.dataSource.transaction(async (manager) => {
+      await manager.delete(VideoWatchProgressOrmEntity, { videoId: id });
+      await manager.delete(VideoPurchaseUnlockOrmEntity, { videoId: id });
+      await manager.delete(VideoTagOrmEntity, { videoId: id });
+      await manager.delete(VideoOrmEntity, {
+        id,
+        deletionStatus: VideoDeletionStatus.READY_FOR_HARD_DELETE,
+      });
+    });
+  }
+
   async findExpiredDrafts(
     cutoffDate: Date,
     limit: number,
@@ -130,6 +149,21 @@ export class VideoRepository implements IVideoRepository {
       relations: { category: true, videoTags: { tag: true } },
       order: {
         createdAt: 'ASC',
+      },
+      take: limit,
+    });
+
+    return rows.map((row) => this.toDomain(row));
+  }
+
+  async findReadyForHardDelete(limit: number): Promise<VideoEntity[]> {
+    const rows = await this.ormRepository.find({
+      where: {
+        deletionStatus: VideoDeletionStatus.READY_FOR_HARD_DELETE,
+      },
+      relations: { category: true, videoTags: { tag: true } },
+      order: {
+        updatedAt: 'ASC',
       },
       take: limit,
     });
@@ -200,7 +234,10 @@ export class VideoRepository implements IVideoRepository {
     ownerId: string,
     filters: StudioVideoFilters,
   ): Promise<VideoEntity[]> {
-    const where: FindOptionsWhere<VideoOrmEntity> = { ownerId };
+    const where: FindOptionsWhere<VideoOrmEntity> = {
+      ownerId,
+      deletionStatus: VideoDeletionStatus.ACTIVE,
+    };
 
     if (filters.statuses && filters.statuses.length > 0) {
       where.status = In(filters.statuses as VideoStatus[]);
@@ -455,6 +492,14 @@ export class VideoRepository implements IVideoRepository {
       deletedAt: row.deletedAt ?? null,
       deletedBy: row.deletedBy ?? null,
       deleteReason: row.deleteReason ?? null,
+      deletionStatus:
+        row.deletionStatus ??
+        (row.isDeleted
+          ? VideoDeletionStatus.PENDING_DELETE
+          : VideoDeletionStatus.ACTIVE),
+      deleteRequestedAt: row.deleteRequestedAt ?? row.deletedAt ?? null,
+      refundCompletedAt: row.refundCompletedAt ?? null,
+      refundSummary: row.refundSummary ?? null,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
       statusChangedAt: row.statusChangedAt,

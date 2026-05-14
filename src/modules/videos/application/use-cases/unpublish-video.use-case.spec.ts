@@ -5,6 +5,7 @@ import {
 } from '@shared/domain/exceptions/domain.exception';
 import {
   VideoEntity,
+  VideoDeletionStatus,
   VideoStatus,
   VideoVisibility,
 } from '../../domain/entities/video.entity';
@@ -15,14 +16,23 @@ describe('UnpublishVideoUseCase', () => {
     findById: jest.fn(),
     save: jest.fn(),
   };
-  const useCase = new UnpublishVideoUseCase(videoRepository as never);
+  const videoDeleteRequestPublisher = {
+    publishVideoDeleteRequested: jest.fn(),
+  };
+  const useCase = new UnpublishVideoUseCase(
+    videoRepository as never,
+    videoDeleteRequestPublisher as never,
+  );
 
   beforeEach(() => {
     jest.clearAllMocks();
     videoRepository.save.mockResolvedValue(undefined);
+    videoDeleteRequestPublisher.publishVideoDeleteRequested.mockResolvedValue(
+      undefined,
+    );
   });
 
-  it('soft deletes a ready video owned by the current user', async () => {
+  it('marks a ready video pending delete and publishes delete request', async () => {
     videoRepository.findById.mockResolvedValue(buildVideo());
 
     const result = await useCase.execute({
@@ -32,9 +42,20 @@ describe('UnpublishVideoUseCase', () => {
 
     const savedVideo = videoRepository.save.mock.calls[0][0] as VideoEntity;
     expect(savedVideo.isDeleted).toBe(true);
+    expect(savedVideo.deletionStatus).toBe(VideoDeletionStatus.PENDING_DELETE);
     expect(savedVideo.deletedAt).toBeInstanceOf(Date);
     expect(savedVideo.deletedBy).toBe('owner-1');
-    expect(savedVideo.deleteReason).toBe('creator_unpublish');
+    expect(savedVideo.deleteReason).toBe('creator_delete');
+    expect(
+      videoDeleteRequestPublisher.publishVideoDeleteRequested,
+    ).toHaveBeenCalledWith({
+      videoId: 'video-1',
+      channelId: 'channel-1',
+      ownerId: 'owner-1',
+      deletedBy: 'owner-1',
+      deletedAt: expect.any(String),
+      refundWindowHours: 72,
+    });
     expect(result).toEqual({
       videoId: 'video-1',
       unpublished: true,

@@ -29,6 +29,7 @@ export class VideoWatchAccessService {
 
   async assertCanWatch(video: VideoEntity, userId: string): Promise<void> {
     this.assertNotBanned(video);
+    this.assertNotPendingDelete(video);
 
     const accessContext =
       await this.channelAccessService.getViewerAccessContext(
@@ -51,13 +52,6 @@ export class VideoWatchAccessService {
       video.id,
       userId,
     );
-
-    if (video.isDeleted) {
-      if (hasPurchaseUnlock) {
-        return;
-      }
-      throw new NotFoundException('Video is not available for playback');
-    }
 
     if (video.price === 0 && video.requiredTierLevel === null) {
       return;
@@ -88,6 +82,12 @@ export class VideoWatchAccessService {
 
   private assertNotBanned(video: VideoEntity): void {
     if (video.status === VideoStatus.BANNED) {
+      throw new NotFoundException('Video is not available for playback');
+    }
+  }
+
+  private assertNotPendingDelete(video: VideoEntity): void {
+    if (!video.isAvailableForPlayback) {
       throw new NotFoundException('Video is not available for playback');
     }
   }

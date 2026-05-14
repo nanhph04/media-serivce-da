@@ -5,6 +5,7 @@ import {
 import { ChannelStatus } from '../../../channels/domain/entities/channel.entity';
 import {
   VideoEntity,
+  VideoDeletionStatus,
   VideoStatus,
   VideoVisibility,
 } from '../../domain/entities/video.entity';
@@ -128,7 +129,7 @@ describe('VideoWatchAccessService', () => {
     ).resolves.toBeUndefined();
   });
 
-  it('allows purchased users to watch a soft-deleted ready video', async () => {
+  it('rejects purchased users when video is pending delete', async () => {
     channelAccessService.getViewerAccessContext.mockResolvedValue({
       channelOwnerId: 'owner-1',
       channelStatus: ChannelStatus.ACTIVE,
@@ -141,16 +142,17 @@ describe('VideoWatchAccessService', () => {
         buildVideo({
           price: 10,
           isDeleted: true,
+          deletionStatus: VideoDeletionStatus.PENDING_DELETE,
           deletedAt: new Date('2026-01-02T00:00:00.000Z'),
           deletedBy: 'owner-1',
-          deleteReason: 'creator_unpublish',
+          deleteReason: 'creator_delete',
         }),
         'viewer-1',
       ),
-    ).resolves.toBeUndefined();
+    ).rejects.toThrow(NotFoundException);
   });
 
-  it('rejects non-purchased users for a soft-deleted ready video', async () => {
+  it('rejects non-purchased users when video is pending delete', async () => {
     channelAccessService.getViewerAccessContext.mockResolvedValue({
       channelOwnerId: 'owner-1',
       channelStatus: ChannelStatus.ACTIVE,
@@ -161,9 +163,10 @@ describe('VideoWatchAccessService', () => {
       service.assertCanWatch(
         buildVideo({
           isDeleted: true,
+          deletionStatus: VideoDeletionStatus.PENDING_DELETE,
           deletedAt: new Date('2026-01-02T00:00:00.000Z'),
           deletedBy: 'owner-1',
-          deleteReason: 'creator_unpublish',
+          deleteReason: 'creator_delete',
         }),
         'viewer-1',
       ),

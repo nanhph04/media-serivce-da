@@ -8,6 +8,7 @@ import { ConfirmVideoUploadUseCase } from './application/use-cases/confirm-video
 import { CancelVideoUploadUseCase } from './application/use-cases/cancel-video-upload.use-case';
 import { CheckStaleVideoProcessingUseCase } from './application/use-cases/check-stale-video-processing.use-case';
 import { CleanupExpiredDraftUploadsUseCase } from './application/use-cases/cleanup-expired-draft-uploads.use-case';
+import { CleanupHardDeletedVideosUseCase } from './application/use-cases/cleanup-hard-deleted-videos.use-case';
 import { DeleteFailedVideoUseCase } from './application/use-cases/delete-failed-video.use-case';
 import { GetContinueWatchingUseCase } from './application/use-cases/get-continue-watching.use-case';
 import { GetLatestVideosUseCase } from './application/use-cases/get-latest-videos.use-case';
@@ -20,6 +21,7 @@ import { HandleVideoProcessedFailedUseCase } from './application/use-cases/handl
 import { HandleVideoProcessedSuccessUseCase } from './application/use-cases/handle-video-processed-success.use-case';
 import { HandleVideoModerationCompletedUseCase } from './application/use-cases/handle-video-moderation-completed.use-case';
 import { HandleVideoPaymentSuccessUseCase } from './application/use-cases/handle-video-payment-success.use-case';
+import { HandleVideoDeleteRefundCompletedUseCase } from './application/use-cases/handle-video-delete-refund-completed.use-case';
 import { HandleVideoViewedUseCase } from './application/use-cases/handle-video-viewed.use-case';
 import { InitVideoUploadUseCase } from './application/use-cases/init-video-upload.use-case';
 import { PlayVideoUseCase } from './application/use-cases/play-video.use-case';
@@ -36,12 +38,15 @@ import { VideoProcessingConsumer } from './infrastructure/consumers/video-proces
 import { VideoProgressConsumer } from './infrastructure/consumers/video-progress.consumer';
 import { VideoModerationConsumer } from './infrastructure/consumers/video-moderation.consumer';
 import { VideoPaymentConsumer } from './infrastructure/consumers/video-payment.consumer';
+import { VideoDeleteRefundCompletedConsumer } from './infrastructure/consumers/video-delete-refund-completed.consumer';
 import { VideoViewedConsumer } from './infrastructure/consumers/video-viewed.consumer';
 import { VideoViewFlushWorker } from './infrastructure/queue/video-view-flush.worker';
 import { VideoDraftUploadCleanupWorker } from './infrastructure/queue/video-draft-upload-cleanup.worker';
+import { VideoHardDeleteCleanupWorker } from './infrastructure/queue/video-hard-delete-cleanup.worker';
 import { VideoProcessingWatchdogWorker } from './infrastructure/queue/video-processing-watchdog.worker';
 import { VideoModerationRequestPublisher } from './infrastructure/messaging/video-moderation-request.publisher';
 import { VideoModerationOutcomePublisher } from './infrastructure/messaging/video-moderation-outcome.publisher';
+import { VideoDeleteRequestPublisher } from './infrastructure/messaging/video-delete-request.publisher';
 import { VideoWorkerHealthCheckerService } from './infrastructure/health/video-worker-health-checker.service';
 import { VideoWatchdogHealthFailureStore } from './infrastructure/health/video-watchdog-health-failure-store.service';
 import { VideoCacheInvalidator } from './infrastructure/cache/video-cache-invalidator.service';
@@ -62,6 +67,7 @@ import { CategoryVideosController } from './presentation/controllers/category-vi
 import { VIDEO_CACHE_INVALIDATOR } from './application/interfaces/video-cache-invalidator.interface';
 import { VIDEO_MODERATION_REQUEST_PUBLISHER } from './application/interfaces/video-moderation-request-publisher.interface';
 import { VIDEO_MODERATION_OUTCOME_PUBLISHER } from './application/interfaces/video-moderation-outcome-publisher.interface';
+import { VIDEO_DELETE_REQUEST_PUBLISHER } from './application/interfaces/video-delete-request-publisher.interface';
 import { VIDEO_QUERY_SERVICE } from './application/interfaces/video-query.service.interface';
 import { VIDEO_PROGRESS_STORE } from './application/interfaces/video-progress-store.interface';
 import { VIDEO_PROGRESS_STREAM } from './application/interfaces/video-progress-stream.interface';
@@ -107,6 +113,7 @@ import { VideoProgressService } from './application/services/video-progress.serv
     DeleteFailedVideoUseCase,
     CheckStaleVideoProcessingUseCase,
     CleanupExpiredDraftUploadsUseCase,
+    CleanupHardDeletedVideosUseCase,
     PlayVideoUseCase,
     UpdateVideoProgressUseCase,
     RefreshPlaybackTokenUseCase,
@@ -125,18 +132,22 @@ import { VideoProgressService } from './application/services/video-progress.serv
     HandleVideoProcessedFailedUseCase,
     HandleVideoModerationCompletedUseCase,
     HandleVideoPaymentSuccessUseCase,
+    HandleVideoDeleteRefundCompletedUseCase,
     HandleVideoViewedUseCase,
     FlushPendingVideoViewsUseCase,
     VideoProcessingConsumer,
     VideoProgressConsumer,
     VideoModerationConsumer,
     VideoPaymentConsumer,
+    VideoDeleteRefundCompletedConsumer,
     VideoViewedConsumer,
     VideoViewFlushWorker,
     VideoDraftUploadCleanupWorker,
+    VideoHardDeleteCleanupWorker,
     VideoProcessingWatchdogWorker,
     VideoModerationRequestPublisher,
     VideoModerationOutcomePublisher,
+    VideoDeleteRequestPublisher,
     VideoWorkerHealthCheckerService,
     VideoWatchdogHealthFailureStore,
     {
@@ -182,6 +193,10 @@ import { VideoProgressService } from './application/services/video-progress.serv
     {
       provide: VIDEO_MODERATION_OUTCOME_PUBLISHER,
       useExisting: VideoModerationOutcomePublisher,
+    },
+    {
+      provide: VIDEO_DELETE_REQUEST_PUBLISHER,
+      useExisting: VideoDeleteRequestPublisher,
     },
     {
       provide: VIDEO_WORKER_HEALTH_CHECKER,
