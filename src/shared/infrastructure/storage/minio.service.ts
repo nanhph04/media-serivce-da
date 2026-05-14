@@ -14,6 +14,9 @@ export class MinioService implements OnModuleInit, IObjectStorageService {
   private readonly client: Client;
   private readonly rawBucket: string;
   private readonly processedBucket: string;
+  private readonly publicEndpoint: string | null;
+  private readonly publicPort: number | null;
+  private readonly publicUseSSL: boolean | null;
 
   constructor(
     private readonly configService: ConfigService,
@@ -24,6 +27,9 @@ export class MinioService implements OnModuleInit, IObjectStorageService {
     this.processedBucket = this.configService.getOrThrow<string>(
       'MINIO_PROCESSED_BUCKET',
     );
+    this.publicEndpoint = this.configService.get<string>('MINIO_PUBLIC_ENDPOINT');
+    this.publicPort = this.resolveOptionalNumber('MINIO_PUBLIC_PORT');
+    this.publicUseSSL = this.resolveOptionalBoolean('MINIO_PUBLIC_USE_SSL');
     this.client = new Client({
       endPoint: this.configService.getOrThrow<string>('MINIO_ENDPOINT'),
       port: this.configService.getNumberOrThrow('MINIO_PORT'),
@@ -55,24 +61,30 @@ export class MinioService implements OnModuleInit, IObjectStorageService {
     objectKey: string,
     expirySeconds = 900,
   ): Promise<string> {
-    return bucket === 'raw'
-      ? this.createRawUploadUrl(objectKey, expirySeconds)
-      : this.client.presignedPutObject(
-          this.processedBucket,
-          objectKey,
-          expirySeconds,
-        );
+    if (bucket === 'raw') {
+      return this.createRawUploadUrl(objectKey, expirySeconds);
+    }
+
+    const presignedUrl = await this.client.presignedPutObject(
+      this.processedBucket,
+      objectKey,
+      expirySeconds,
+    );
+
+    return this.rewritePublicUrlIfNeeded(presignedUrl);
   }
 
   async createRawUploadUrl(
     objectKey: string,
     expirySeconds = 900,
   ): Promise<string> {
-    return this.client.presignedPutObject(
+    const presignedUrl = await this.client.presignedPutObject(
       this.rawBucket,
       objectKey,
       expirySeconds,
     );
+
+    return this.rewritePublicUrlIfNeeded(presignedUrl);
   }
 
   async objectExists(
@@ -152,5 +164,63 @@ export class MinioService implements OnModuleInit, IObjectStorageService {
 
     await this.client.makeBucket(bucket);
     this.logger.logInfo('Created MinIO bucket', { bucket });
+  }
+
+  private rewritePublicUrlIfNeeded(url: string): string {
+    if (!this.publicEndpoint) {
+      return url;
+    }
+
+    const parsedUrl = new URL(url);
+    parsedUrl.hostname = this.publicEndpoint;
+
+    if (this.publicPort !== null) {
+      parsedUrl.port = String(this.publicPort);
+    }
+
+    if (this.publicUseSSL !== null) {
+      parsedUrl.protocol = this.publicUseSSL ? 'https:' : 'http:';
+    }
+
+    return parsedUrl.toString();
+  }
+
+  private resolveOptionalNumber(key: string): number | null {
+    const value = this.configService.get<string | number>(key);
+    if (value === null || value === undefined || value === '') {
+      return null;
+    }
+
+    if (typeof value === 'number') {
+      return value;
+    }
+
+    const parsed = Number(value);
+    if (Number.isNaN(parsed)) {
+      throw new Error(`Config key "${key}" must be a valid number`);
+    }
+
+    return parsed;
+  }
+
+  private resolveOptionalBoolean(key: string): boolean | null {
+    const value = this.configService.get<string | boolean>(key);
+    if (value === null || value === undefined || value === '') {
+      return null;
+    }
+
+    if (typeof value === 'boolean') {
+      return value;
+    }
+
+    if (value === 'true') {
+      return true;
+    }
+
+    if (value === 'false') {
+      return false;
+    }
+
+    throw new Error(`Config key "${key}" must be "true" or "false"`);
   }
 }

@@ -35,6 +35,7 @@ describe('MinioService', () => {
   let service: MinioService;
   let configService: {
     getOrThrow: jest.Mock;
+    get: jest.Mock;
     getNumberOrThrow: jest.Mock;
     getBooleanOrThrow: jest.Mock;
   };
@@ -52,6 +53,13 @@ describe('MinioService', () => {
     }));
     bucketExists.mockResolvedValue(true);
     configService = {
+      get: jest.fn((key: string) => {
+        if (key in requiredConfig) {
+          return requiredConfig[key as keyof typeof requiredConfig];
+        }
+
+        return null;
+      }),
       getOrThrow: jest.fn((key: keyof typeof requiredConfig) => {
         if (!(key in requiredConfig)) {
           throw new Error(`Config key "${key}" is not defined`);
@@ -88,6 +96,38 @@ describe('MinioService', () => {
       'media-raw',
       'video/raw.mp4',
       900,
+    );
+  });
+
+  it('rewrites presigned upload URLs to the configured public MinIO host', async () => {
+    configService.get.mockImplementation((key: string) => {
+      if (key === 'MINIO_PUBLIC_ENDPOINT') {
+        return '192.168.1.10';
+      }
+
+      if (key === 'MINIO_PUBLIC_PORT') {
+        return 9000;
+      }
+
+      if (key === 'MINIO_PUBLIC_USE_SSL') {
+        return false;
+      }
+
+      if (key in requiredConfig) {
+        return requiredConfig[key as keyof typeof requiredConfig];
+      }
+
+      return null;
+    });
+    service = new MinioService(configService as never, logger as never);
+    presignedPutObject.mockResolvedValue(
+      'http://localhost:9000/media-raw/video/raw.mp4?X-Amz-Signature=test',
+    );
+
+    await expect(
+      service.createUploadUrl('raw', 'video/raw.mp4'),
+    ).resolves.toBe(
+      'http://192.168.1.10:9000/media-raw/video/raw.mp4?X-Amz-Signature=test',
     );
   });
 

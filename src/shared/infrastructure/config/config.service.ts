@@ -169,7 +169,7 @@ export class ConfigService
   getMediaProcessingServiceHealthUrl(): string {
     return this.get<string>(
       'MEDIA_PROCESSING_SERVICE_HEALTH_URL',
-      'http://localhost:3000/health/ready',
+      'http://localhost:4003/health/ready',
     );
   }
 
