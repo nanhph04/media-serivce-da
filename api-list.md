@@ -1,4 +1,4 @@
-date 13/05/2026
+date 14/05/2026
 
 MEDIA SERVICE API LIST
 Base URL: /api/media
@@ -392,8 +392,16 @@ Ghi chu chung
     - `durationSeconds` (number | null)
     - `resolutions` (string[])
     - `errorMessage` (string | null)
+    - `jobStatus` (string | null)
+    - `jobStatusMessage` (string | null)
+    - `failureReason` (string | null)
+    - `moderationDetails` (object | null)
     - `viewCount` (number)
     - `publishedAt` (string ISO | null)
+    - `isDeleted` (boolean)
+    - `deletedAt` (string ISO | null)
+    - `deletedBy` (string | null)
+    - `deleteReason` (string | null)
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
 
@@ -524,7 +532,45 @@ Ghi chu chung
     - `videoId` (string)
     - `cancelled` (boolean)
 
-4.5) GET /api/media/videos/:id/play
+4.5) DELETE /api/media/videos/:id/failed-upload
+- Muc dich: xoa video upload/xu ly that bai khoi studio cua owner.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-internal-secret`: He thong tu set
+- Path param:
+  - `id` (string): videoId
+- Request:
+  - Khong co body.
+- He thong tu set them khi xu ly:
+  - `userId`: lay tu header `x-user-id`
+- Ghi chu:
+  - Chi owner duoc xoa.
+  - Chi dung cho video o trang thai failed theo rule cua use case.
+- Response HTTP 200:
+  - Envelope `data`:
+    - `videoId` (string)
+    - `deleted` (boolean)
+
+4.6) DELETE /api/media/videos/:id
+- Muc dich: unpublish/xoa mem video cua owner.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-internal-secret`: He thong tu set
+- Path param:
+  - `id` (string): videoId
+- Request:
+  - Khong co body.
+- He thong tu set them khi xu ly:
+  - `userId`: lay tu header `x-user-id`
+- Ghi chu:
+  - Chi owner duoc thuc hien.
+  - Endpoint nay khong hard delete file ngay lap tuc; use case tra ket qua unpublish/delete theo rule hien tai.
+- Response HTTP 200:
+  - Envelope `data`:
+    - `videoId` (string)
+    - `unpublished` (boolean)
+
+4.7) GET /api/media/videos/:id/play
 - Muc dich: lay thong tin phat video cho user hien tai.
 - Header:
   - `x-user-id`: He thong tu set
@@ -543,7 +589,7 @@ Ghi chu chung
     - `resumePositionSeconds` (number): vi tri tiep tuc xem, `0` neu chua co tien do
     - `isResumeAvailable` (boolean): `true` neu co the xem tiep tu tien do da luu
 
-4.6) POST /api/media/videos/:id/progress
+4.8) POST /api/media/videos/:id/progress
 - Muc dich: luu tien do xem video cua user hien tai.
 - Header:
   - `x-user-id`: He thong tu set
@@ -562,7 +608,7 @@ Ghi chu chung
     - `positionSeconds` (number)
     - `completed` (boolean)
 
-4.7) POST /api/media/videos/:id/playback-token/refresh
+4.9) POST /api/media/videos/:id/playback-token/refresh
 - Muc dich: cap moi playback token cho video dang xem.
 - Header:
   - `x-user-id`: He thong tu set
@@ -577,7 +623,7 @@ Ghi chu chung
     - `playbackToken` (string)
     - `playbackUrl` (string)
 
-4.8) GET /api/media/videos/:id/metadata
+4.10) GET /api/media/videos/:id/metadata
 - Muc dich: lay metadata public cua video.
 - Public API: khong can `x-internal-secret`.
 - Path param:
@@ -601,63 +647,16 @@ Ghi chu chung
     - `status` (string)
     - `visibility` (string)
     - `errorMessage` (string | null)
+    - `jobStatus` (string | null)
+    - `jobStatusMessage` (string | null)
+    - `failureReason` (string | null)
+    - `moderationDetails` (object | null)
     - `publishedAt` (string ISO | null)
+    - `isDeleted` (boolean)
+    - `deletedAt` (string ISO | null)
+    - `deletedBy` (string | null)
+    - `deleteReason` (string | null)
     - `updatedAt` (string ISO)
-
-4.9) GET /api/media/videos/:id/progress
-- Muc dich: lay processing/moderation progress cua video cho owner.
-- Header:
-  - `x-user-id`: He thong tu set
-  - `x-internal-secret`: He thong tu set
-- Path param:
-  - `id` (string): videoId
-- Ghi chu:
-  - API nay KHONG phai watch-progress.
-  - Chi owner cua video moi xem duoc; non-owner tra `FORBIDDEN` / HTTP 403.
-  - Stage hop le co the gom: `pending_moderation`, `moderating`, `processing`, `ready`, `pending_manual_review`, `rejected`, `failed`.
-  - Neu watchdog phat hien video qua timeout nhung service moderation/processing van `/health/ready` OK, API co the tra progress non-terminal:
-    - moderation: `stage = pending_moderation`, `percent` khoang `10`, `message = "Moderation is taking longer than expected"`
-    - processing: `stage = processing`, `percent` giu theo snapshot hien tai neu co, `message = "Video processing is taking longer than expected"`
-  - Neu service `/health/ready` fail lien tiep du nguong watchdog, video co the thanh `failed` voi `errorCode = MODERATION_SERVICE_UNAVAILABLE` hoac `PROCESSING_SERVICE_UNAVAILABLE`.
-- Response HTTP 200:
-  - Envelope `data`:
-    - `videoId` (string)
-    - `stage` (string)
-    - `percent` (number)
-    - `message` (string)
-    - `terminal` (boolean)
-    - `updatedAt` (string ISO)
-    - `detail` (object | null)
-    - `errorCode` (string | null)
-
-4.10) GET /api/media/videos/:id/progress/stream
-- Muc dich: stream processing/moderation progress real-time qua SSE cho owner.
-- Header:
-  - `x-user-id`: He thong tu set
-  - `x-internal-secret`: He thong tu set
-- Path param:
-  - `id` (string): videoId
-- Ghi chu:
-  - SSE event dau tien la snapshot hien tai.
-  - Event type co the la:
-    - `snapshot`
-    - `progress`
-    - `end`
-    - `ping`
-  - `ping` duoc gui dinh ky ~15 giay.
-  - Chi owner cua video moi xem duoc; non-owner tra `FORBIDDEN` / HTTP 403.
-  - Watchdog stale progress neu co cung duoc stream qua SSE nhu progress binh thuong; khi watchdog fail terminal thi event type la `end`.
-- Response HTTP 200:
-  - Content-Type: `text/event-stream`
-  - Event data cho `snapshot|progress|end`:
-    - `videoId` (string)
-    - `stage` (string)
-    - `percent` (number)
-    - `message` (string)
-    - `terminal` (boolean)
-    - `updatedAt` (string ISO)
-    - `detail` (object | null)
-    - `errorCode` (string | null)
 
 4.11) PATCH /api/media/videos/:id/metadata
 - Muc dich: creator cap nhat metadata cua video.
@@ -689,7 +688,15 @@ Ghi chu chung
     - `status` (string)
     - `visibility` (string)
     - `errorMessage` (string | null)
+    - `jobStatus` (string | null)
+    - `jobStatusMessage` (string | null)
+    - `failureReason` (string | null)
+    - `moderationDetails` (object | null)
     - `publishedAt` (string ISO | null)
+    - `isDeleted` (boolean)
+    - `deletedAt` (string ISO | null)
+    - `deletedBy` (string | null)
+    - `deleteReason` (string | null)
     - `updatedAt` (string ISO)
 
 4.12) GET /api/media/videos/discovery/latest?limit=20
@@ -999,6 +1006,18 @@ Ghi chu chung
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
 
+7.2A) GET /api/media/categories/admin/all?q=...
+- Muc dich: admin lay tat ca category hoac search category qua route categories controller.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-user-role`: Bat buoc la `admin`
+  - `x-internal-secret`: He thong tu set
+- Query:
+  - `q` (string, optional): keyword search theo `name` hoac `slug`.
+- Ghi chu:
+  - Route nay dang ton tai song song voi `GET /api/media/admin/categories`.
+  - Response shape va rule admin giong `GET /api/media/admin/categories`.
+
 7.3) POST /api/media/admin/categories
 - Muc dich: admin tao category moi.
 - Header:
@@ -1021,6 +1040,15 @@ Ghi chu chung
     - `displayOrder` (number)
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
+
+7.3A) POST /api/media/categories
+- Muc dich: admin tao category moi qua route categories controller.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-user-role`: Bat buoc la `admin`
+  - `x-internal-secret`: He thong tu set
+- Body/response/rule:
+  - Giong `POST /api/media/admin/categories`.
 
 7.4) PATCH /api/media/admin/categories/:id
 - Muc dich: admin cap nhat category.
@@ -1048,6 +1076,15 @@ Ghi chu chung
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
 
+7.4A) PATCH /api/media/categories/:id
+- Muc dich: admin cap nhat category qua route categories controller.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-user-role`: Bat buoc la `admin`
+  - `x-internal-secret`: He thong tu set
+- Path/body/response/rule:
+  - Giong `PATCH /api/media/admin/categories/:id`.
+
 7.5) DELETE /api/media/admin/categories/:id
 - Muc dich: admin xoa mem category bang cach chuyen `status` ve `inactive`.
 - Header:
@@ -1058,6 +1095,15 @@ Ghi chu chung
   - `id` (string): categoryId
 - Response HTTP 200:
   - Envelope `data`: category sau khi inactive.
+
+7.5A) DELETE /api/media/categories/:id
+- Muc dich: admin xoa mem category qua route categories controller.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-user-role`: Bat buoc la `admin`
+  - `x-internal-secret`: He thong tu set
+- Path/response/rule:
+  - Giong `DELETE /api/media/admin/categories/:id`.
 
 ==================================================
 8. TAG APIs
