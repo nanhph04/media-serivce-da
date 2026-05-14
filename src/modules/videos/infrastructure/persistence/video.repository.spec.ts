@@ -197,6 +197,18 @@ describe('VideoRepository', () => {
     });
   });
 
+  it('deletes only failed videos by id', async () => {
+    await repository.deleteFailedById('video-1');
+
+    expect(manager.delete).toHaveBeenCalledWith(expect.any(Function), {
+      videoId: 'video-1',
+    });
+    expect(manager.delete).toHaveBeenCalledWith(expect.any(Function), {
+      id: 'video-1',
+      status: 'failed',
+    });
+  });
+
   it('loads expired drafts ordered by creation time', async () => {
     find.mockResolvedValue([]);
     const cutoffDate = new Date('2026-01-01T00:00:00.000Z');

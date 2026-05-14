@@ -188,6 +188,10 @@ function buildVideoRow(
   errorMessage: string | null;
   viewCount: number;
   publishedAt: Date | null;
+  isDeleted: boolean;
+  deletedAt: Date | null;
+  deletedBy: string | null;
+  deleteReason: string | null;
   createdAt: Date;
   updatedAt: Date;
   videoCategories: {
@@ -214,6 +218,10 @@ function buildVideoRow(
     errorMessage: null,
     viewCount: 10,
     publishedAt: new Date('2026-01-01T00:00:00.000Z'),
+    isDeleted: false,
+    deletedAt: null,
+    deletedBy: null,
+    deleteReason: null,
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
     updatedAt: new Date('2026-01-02T00:00:00.000Z'),
     category: new Category({

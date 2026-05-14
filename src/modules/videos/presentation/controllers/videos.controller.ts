@@ -48,7 +48,9 @@ import { ReplaceVideoUploadUseCase } from '../../application/use-cases/replace-v
 import { SearchPublicVideosUseCase } from '../../application/use-cases/search-public-videos.use-case';
 import { UpdateVideoProgressUseCase } from '../../application/use-cases/update-video-progress.use-case';
 import { UpdateVideoMetadataUseCase } from '../../application/use-cases/update-video-metadata.use-case';
+import { UnpublishVideoUseCase } from '../../application/use-cases/unpublish-video.use-case';
 import { CancelVideoUploadUseCase } from '../../application/use-cases/cancel-video-upload.use-case';
+import { DeleteFailedVideoUseCase } from '../../application/use-cases/delete-failed-video.use-case';
 import { VideoProgressService } from '../../application/services/video-progress.service';
 import type { VideoProgressSnapshot } from '../../application/dtos/video-progress.snapshot';
 import type { ContinueWatchingItemResponse } from '../../application/dtos/continue-watching-item.response';
@@ -59,11 +61,13 @@ import { InitVideoUploadRequestDto } from '../dtos/init-video-upload.request';
 import { InitVideoUploadResponseDto } from '../dtos/init-video-upload.response';
 import { ReplaceVideoUploadResponseDto } from '../dtos/replace-video-upload.response';
 import { CancelVideoUploadResponseDto } from '../dtos/cancel-video-upload.response';
+import { DeleteFailedVideoResponseDto } from '../dtos/delete-failed-video.response';
 import { PlayVideoResponseDto } from '../dtos/play-video.response';
 import { RefreshPlaybackTokenResponseDto } from '../dtos/refresh-playback-token.response';
 import { UpdateVideoMetadataRequestDto } from '../dtos/update-video-metadata.request';
 import { UpdateVideoProgressRequestDto } from '../dtos/update-video-progress.request';
 import { UpdateVideoProgressResponseDto } from '../dtos/update-video-progress.response';
+import { UnpublishVideoResponseDto } from '../dtos/unpublish-video.response';
 import { StudioVideoListItemResponseDto } from '../dtos/studio-video-list-item.response';
 import { VideoListItemResponseDto } from '../dtos/video-list-item.response';
 import { VideoMetadataResponseDto } from '../dtos/video-metadata.response';
@@ -88,6 +92,7 @@ export class VideosController {
     private readonly confirmVideoUploadUseCase: ConfirmVideoUploadUseCase,
     private readonly replaceVideoUploadUseCase: ReplaceVideoUploadUseCase,
     private readonly cancelVideoUploadUseCase: CancelVideoUploadUseCase,
+    private readonly deleteFailedVideoUseCase: DeleteFailedVideoUseCase,
     private readonly playVideoUseCase: PlayVideoUseCase,
     private readonly updateVideoProgressUseCase: UpdateVideoProgressUseCase,
     private readonly refreshPlaybackTokenUseCase: RefreshPlaybackTokenUseCase,
@@ -99,6 +104,7 @@ export class VideosController {
     private readonly getSubscribedVideosUseCase: GetSubscribedVideosUseCase,
     private readonly getVideoMetadataUseCase: GetVideoMetadataUseCase,
     private readonly updateVideoMetadataUseCase: UpdateVideoMetadataUseCase,
+    private readonly unpublishVideoUseCase: UnpublishVideoUseCase,
     private readonly videoProgressService: VideoProgressService,
     @Inject(VIDEO_PROGRESS_STREAM)
     private readonly videoProgressStream: IVideoProgressStream,
@@ -212,6 +218,34 @@ export class VideosController {
   ): Promise<ApiResponse<CancelVideoUploadResponseDto>> {
     return apiResponseContract(
       await this.cancelVideoUploadUseCase.execute({
+        userId,
+        videoId,
+      }),
+    );
+  }
+
+  @Delete(':id/failed-upload')
+  @ApiSuccessResponse(DeleteFailedVideoResponseDto)
+  async deleteFailedVideo(
+    @CurrentUserId() userId: string,
+    @Param('id') videoId: string,
+  ): Promise<ApiResponse<DeleteFailedVideoResponseDto>> {
+    return apiResponseContract(
+      await this.deleteFailedVideoUseCase.execute({
+        userId,
+        videoId,
+      }),
+    );
+  }
+
+  @Delete(':id')
+  @ApiSuccessResponse(UnpublishVideoResponseDto)
+  async unpublishVideo(
+    @CurrentUserId() userId: string,
+    @Param('id') videoId: string,
+  ): Promise<ApiResponse<UnpublishVideoResponseDto>> {
+    return apiResponseContract(
+      await this.unpublishVideoUseCase.execute({
         userId,
         videoId,
       }),
@@ -489,6 +523,10 @@ export class VideosController {
       errorMessage: video.errorMessage,
       viewCount: video.viewCount,
       publishedAt: video.publishedAt?.toISOString() ?? null,
+      isDeleted: video.isDeleted,
+      deletedAt: video.deletedAt?.toISOString() ?? null,
+      deletedBy: video.deletedBy,
+      deleteReason: video.deleteReason,
       createdAt: video.createdAt.toISOString(),
       updatedAt: video.updatedAt.toISOString(),
     };
@@ -511,6 +549,10 @@ export class VideosController {
       visibility: metadata.visibility,
       errorMessage: metadata.errorMessage,
       publishedAt: metadata.publishedAt?.toISOString() ?? null,
+      isDeleted: metadata.isDeleted,
+      deletedAt: metadata.deletedAt?.toISOString() ?? null,
+      deletedBy: metadata.deletedBy,
+      deleteReason: metadata.deleteReason,
       updatedAt: metadata.updatedAt.toISOString(),
     };
   }

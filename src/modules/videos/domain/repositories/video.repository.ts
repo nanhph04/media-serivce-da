@@ -36,6 +36,7 @@ export interface IVideoRepository {
   findById(id: string): Promise<VideoEntity | null>;
   findBasicById(id: string): Promise<VideoEntity | null>;
   deleteDraftById(id: string): Promise<void>;
+  deleteFailedById(id: string): Promise<void>;
   findExpiredDrafts(cutoffDate: Date, limit: number): Promise<VideoEntity[]>;
   findStaleByStatus(
     status: string,

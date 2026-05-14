@@ -8,6 +8,7 @@ import { ConfirmVideoUploadUseCase } from './application/use-cases/confirm-video
 import { CancelVideoUploadUseCase } from './application/use-cases/cancel-video-upload.use-case';
 import { CheckStaleVideoProcessingUseCase } from './application/use-cases/check-stale-video-processing.use-case';
 import { CleanupExpiredDraftUploadsUseCase } from './application/use-cases/cleanup-expired-draft-uploads.use-case';
+import { DeleteFailedVideoUseCase } from './application/use-cases/delete-failed-video.use-case';
 import { GetContinueWatchingUseCase } from './application/use-cases/get-continue-watching.use-case';
 import { GetLatestVideosUseCase } from './application/use-cases/get-latest-videos.use-case';
 import { GetPurchasedVideosUseCase } from './application/use-cases/get-purchased-videos.use-case';
@@ -28,6 +29,7 @@ import { SearchPublicVideosUseCase } from './application/use-cases/search-public
 import { FlushPendingVideoViewsUseCase } from './application/use-cases/flush-pending-video-views.use-case';
 import { UpdateVideoProgressUseCase } from './application/use-cases/update-video-progress.use-case';
 import { UpdateVideoMetadataUseCase } from './application/use-cases/update-video-metadata.use-case';
+import { UnpublishVideoUseCase } from './application/use-cases/unpublish-video.use-case';
 import { UnlockVideoUseCase } from './application/use-cases/unlock-video.use-case';
 import { VideoWatchAccessService } from './application/services/video-watch-access.service';
 import { VideoProcessingConsumer } from './infrastructure/consumers/video-processing.consumer';
@@ -102,12 +104,14 @@ import { VideoProgressService } from './application/services/video-progress.serv
     ConfirmVideoUploadUseCase,
     ReplaceVideoUploadUseCase,
     CancelVideoUploadUseCase,
+    DeleteFailedVideoUseCase,
     CheckStaleVideoProcessingUseCase,
     CleanupExpiredDraftUploadsUseCase,
     PlayVideoUseCase,
     UpdateVideoProgressUseCase,
     RefreshPlaybackTokenUseCase,
     SearchPublicVideosUseCase,
+    UnpublishVideoUseCase,
     UnlockVideoUseCase,
     GetContinueWatchingUseCase,
     GetVideoMetadataUseCase,

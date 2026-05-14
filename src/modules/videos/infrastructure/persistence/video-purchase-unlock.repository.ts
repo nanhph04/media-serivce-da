@@ -167,6 +167,10 @@ export class VideoPurchaseUnlockRepository implements IVideoPurchaseUnlockReposi
       errorMessage: row.errorMessage,
       viewCount: row.viewCount,
       publishedAt: row.publishedAt,
+      isDeleted: row.isDeleted ?? false,
+      deletedAt: row.deletedAt ?? null,
+      deletedBy: row.deletedBy ?? null,
+      deleteReason: row.deleteReason ?? null,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     });

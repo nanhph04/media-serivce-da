@@ -87,6 +87,23 @@ export class VideoOrmEntity {
   @Column({ type: 'timestamp', name: 'published_at', nullable: true })
   publishedAt!: Date | null;
 
+  @Column({ type: 'boolean', name: 'is_deleted', default: false })
+  isDeleted!: boolean;
+
+  @Column({ type: 'timestamp', name: 'deleted_at', nullable: true })
+  deletedAt!: Date | null;
+
+  @Column({ type: 'varchar', length: 36, name: 'deleted_by', nullable: true })
+  deletedBy!: string | null;
+
+  @Column({
+    type: 'varchar',
+    length: 100,
+    name: 'delete_reason',
+    nullable: true,
+  })
+  deleteReason!: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 

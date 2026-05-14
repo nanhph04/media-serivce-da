@@ -42,9 +42,10 @@ type CachedVideoListItem = Omit<
 
 type CachedVideoMetadata = Omit<
   VideoMetadataResponse,
-  'publishedAt' | 'updatedAt'
+  'publishedAt' | 'deletedAt' | 'updatedAt'
 > & {
   publishedAt: string | null;
+  deletedAt: string | null;
   updatedAt: string;
 };
 
@@ -94,7 +95,8 @@ export class VideoQueryService implements IVideoQueryService {
     if (
       !video ||
       video.status !== VideoStatus.READY ||
-      video.visibility !== VideoVisibility.PUBLIC
+      video.visibility !== VideoVisibility.PUBLIC ||
+      video.isDeleted
     ) {
       throw new NotFoundException('Video not found');
     }
@@ -113,6 +115,10 @@ export class VideoQueryService implements IVideoQueryService {
       visibility: video.visibility,
       errorMessage: video.errorMessage,
       publishedAt: video.publishedAt,
+      isDeleted: video.isDeleted,
+      deletedAt: video.deletedAt,
+      deletedBy: video.deletedBy,
+      deleteReason: video.deleteReason,
       updatedAt: video.updatedAt,
     };
 
@@ -255,6 +261,7 @@ export class VideoQueryService implements IVideoQueryService {
       .andWhere('progress.completed_at IS NULL')
       .andWhere('progress.last_position_seconds > 0')
       .andWhere('video.status = :status', { status: VideoStatus.READY })
+      .andWhere('video.is_deleted = :isDeleted', { isDeleted: false })
       .andWhere('video.visibility = :visibility', {
         visibility: VideoVisibility.PUBLIC,
       })
@@ -362,6 +369,7 @@ export class VideoQueryService implements IVideoQueryService {
     return {
       ...metadata,
       publishedAt: metadata.publishedAt?.toISOString() ?? null,
+      deletedAt: metadata.deletedAt?.toISOString() ?? null,
       updatedAt: metadata.updatedAt.toISOString(),
     };
   }
@@ -372,6 +380,10 @@ export class VideoQueryService implements IVideoQueryService {
     return {
       ...metadata,
       publishedAt: metadata.publishedAt ? new Date(metadata.publishedAt) : null,
+      isDeleted: metadata.isDeleted ?? false,
+      deletedAt: metadata.deletedAt ? new Date(metadata.deletedAt) : null,
+      deletedBy: metadata.deletedBy ?? null,
+      deleteReason: metadata.deleteReason ?? null,
       updatedAt: new Date(metadata.updatedAt),
     };
   }

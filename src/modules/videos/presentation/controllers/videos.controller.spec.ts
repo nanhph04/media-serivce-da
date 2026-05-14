@@ -18,6 +18,9 @@ describe('VideosController', () => {
   const cancelVideoUploadUseCase = {
     execute: jest.fn(),
   };
+  const deleteFailedVideoUseCase = {
+    execute: jest.fn(),
+  };
   const playVideoUseCase = {
     execute: jest.fn(),
   };
@@ -51,6 +54,9 @@ describe('VideosController', () => {
   const updateVideoMetadataUseCase = {
     execute: jest.fn(),
   };
+  const unpublishVideoUseCase = {
+    execute: jest.fn(),
+  };
   const videoProgressService = {
     getSnapshotForOwner: jest.fn(),
   };
@@ -65,6 +71,7 @@ describe('VideosController', () => {
     confirmVideoUploadUseCase as never,
     replaceVideoUploadUseCase as never,
     cancelVideoUploadUseCase as never,
+    deleteFailedVideoUseCase as never,
     playVideoUseCase as never,
     updateVideoProgressUseCase as never,
     refreshPlaybackTokenUseCase as never,
@@ -76,6 +83,7 @@ describe('VideosController', () => {
     getSubscribedVideosUseCase as never,
     getVideoMetadataUseCase as never,
     updateVideoMetadataUseCase as never,
+    unpublishVideoUseCase as never,
     videoProgressService as never,
     videoProgressStream as never,
     searchPublicVideosUseCase as never,
@@ -105,6 +113,10 @@ describe('VideosController', () => {
       visibility: VideoVisibility.PUBLIC,
       errorMessage: null,
       publishedAt: '2026-01-01T00:00:00.000Z',
+      isDeleted: false,
+      deletedAt: null,
+      deletedBy: null,
+      deleteReason: null,
       updatedAt: '2026-01-02T00:00:00.000Z',
     });
   });
@@ -225,6 +237,42 @@ describe('VideosController', () => {
     expect(result).toEqual({
       videoId: 'video-1',
       cancelled: true,
+    });
+  });
+
+  it('deletes a failed video for the current user', async () => {
+    deleteFailedVideoUseCase.execute.mockResolvedValue({
+      videoId: 'video-1',
+      deleted: true,
+    });
+
+    const result = await controller.deleteFailedVideo('owner-1', 'video-1');
+
+    expect(deleteFailedVideoUseCase.execute).toHaveBeenCalledWith({
+      userId: 'owner-1',
+      videoId: 'video-1',
+    });
+    expect(result).toEqual({
+      videoId: 'video-1',
+      deleted: true,
+    });
+  });
+
+  it('unpublishes a ready video for the current user', async () => {
+    unpublishVideoUseCase.execute.mockResolvedValue({
+      videoId: 'video-1',
+      unpublished: true,
+    });
+
+    const result = await controller.unpublishVideo('owner-1', 'video-1');
+
+    expect(unpublishVideoUseCase.execute).toHaveBeenCalledWith({
+      userId: 'owner-1',
+      videoId: 'video-1',
+    });
+    expect(result).toEqual({
+      videoId: 'video-1',
+      unpublished: true,
     });
   });
 
@@ -496,6 +544,10 @@ describe('VideosController', () => {
         errorMessage: null,
         viewCount: 0,
         publishedAt: null,
+        isDeleted: false,
+        deletedAt: null,
+        deletedBy: null,
+        deleteReason: null,
         createdAt: new Date('2026-01-01T00:00:00.000Z'),
         updatedAt: new Date('2026-01-02T00:00:00.000Z'),
       },
@@ -532,6 +584,10 @@ describe('VideosController', () => {
         errorMessage: null,
         viewCount: 0,
         publishedAt: null,
+        isDeleted: false,
+        deletedAt: null,
+        deletedBy: null,
+        deleteReason: null,
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-02T00:00:00.000Z',
       },
@@ -612,6 +668,10 @@ function buildMetadata(): {
   visibility: VideoVisibility;
   errorMessage: string | null;
   publishedAt: Date;
+  isDeleted: boolean;
+  deletedAt: Date | null;
+  deletedBy: string | null;
+  deleteReason: string | null;
   updatedAt: Date;
 } {
   return {
@@ -628,6 +688,10 @@ function buildMetadata(): {
     visibility: VideoVisibility.PUBLIC,
     errorMessage: null,
     publishedAt: new Date('2026-01-01T00:00:00.000Z'),
+    isDeleted: false,
+    deletedAt: null,
+    deletedBy: null,
+    deleteReason: null,
     updatedAt: new Date('2026-01-02T00:00:00.000Z'),
   };
 }

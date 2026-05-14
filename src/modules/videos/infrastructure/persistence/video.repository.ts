@@ -54,6 +54,10 @@ export class VideoRepository implements IVideoRepository {
         errorMessage: video.errorMessage,
         viewCount: video.viewCount,
         publishedAt: video.publishedAt,
+        isDeleted: video.isDeleted,
+        deletedAt: video.deletedAt,
+        deletedBy: video.deletedBy,
+        deleteReason: video.deleteReason,
         createdAt: video.createdAt,
         updatedAt: video.updatedAt,
         statusChangedAt: video.statusChangedAt,
@@ -100,6 +104,16 @@ export class VideoRepository implements IVideoRepository {
       await manager.delete(VideoOrmEntity, {
         id,
         status: VideoStatus.DRAFT,
+      });
+    });
+  }
+
+  async deleteFailedById(id: string): Promise<void> {
+    await this.dataSource.transaction(async (manager) => {
+      await manager.delete(VideoTagOrmEntity, { videoId: id });
+      await manager.delete(VideoOrmEntity, {
+        id,
+        status: VideoStatus.FAILED,
       });
     });
   }
@@ -217,6 +231,7 @@ export class VideoRepository implements IVideoRepository {
       .leftJoinAndSelect('videoTag.tag', 'tag')
       .where('video.channelId = :channelId', { channelId })
       .andWhere('video.status = :status', { status: VideoStatus.READY })
+      .andWhere('video.isDeleted = :isDeleted', { isDeleted: false })
       .andWhere('video.visibility = :visibility', {
         visibility: VideoVisibility.PUBLIC,
       })
@@ -234,6 +249,7 @@ export class VideoRepository implements IVideoRepository {
       .leftJoinAndSelect('video.videoTags', 'videoTag')
       .leftJoinAndSelect('videoTag.tag', 'tag')
       .where('video.status = :status', { status: VideoStatus.READY })
+      .andWhere('video.isDeleted = :isDeleted', { isDeleted: false })
       .andWhere('video.visibility = :visibility', {
         visibility: VideoVisibility.PUBLIC,
       })
@@ -262,6 +278,7 @@ export class VideoRepository implements IVideoRepository {
       .leftJoinAndSelect('video.videoTags', 'videoTag')
       .leftJoinAndSelect('videoTag.tag', 'tag')
       .where('video.status = :status', { status: VideoStatus.READY })
+      .andWhere('video.isDeleted = :isDeleted', { isDeleted: false })
       .andWhere('video.visibility = :visibility', {
         visibility: VideoVisibility.PUBLIC,
       })
@@ -290,6 +307,7 @@ export class VideoRepository implements IVideoRepository {
       .leftJoinAndSelect('video.videoTags', 'videoTag')
       .leftJoinAndSelect('videoTag.tag', 'tag')
       .where('video.status = :status', { status: VideoStatus.READY })
+      .andWhere('video.isDeleted = :isDeleted', { isDeleted: false })
       .andWhere('video.visibility = :visibility', {
         visibility: VideoVisibility.PUBLIC,
       });
@@ -370,6 +388,7 @@ export class VideoRepository implements IVideoRepository {
       where: {
         channelId: In(channelIds),
         status: VideoStatus.READY,
+        isDeleted: false,
         visibility: VideoVisibility.PUBLIC,
       },
       relations: { category: true, videoTags: { tag: true } },
@@ -432,6 +451,10 @@ export class VideoRepository implements IVideoRepository {
       errorMessage: row.errorMessage,
       viewCount: row.viewCount,
       publishedAt: row.publishedAt,
+      isDeleted: row.isDeleted ?? false,
+      deletedAt: row.deletedAt ?? null,
+      deletedBy: row.deletedBy ?? null,
+      deleteReason: row.deleteReason ?? null,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
       statusChangedAt: row.statusChangedAt,

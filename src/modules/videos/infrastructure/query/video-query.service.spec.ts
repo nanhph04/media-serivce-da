@@ -58,6 +58,10 @@ describe('VideoQueryService', () => {
       visibility: VideoVisibility.PUBLIC,
       errorMessage: null,
       publishedAt: '2026-01-01T00:00:00.000Z',
+      isDeleted: false,
+      deletedAt: null,
+      deletedBy: null,
+      deleteReason: null,
       updatedAt: '2026-01-02T00:00:00.000Z',
     });
 
@@ -77,6 +81,10 @@ describe('VideoQueryService', () => {
       visibility: VideoVisibility.PUBLIC,
       errorMessage: null,
       publishedAt: new Date('2026-01-01T00:00:00.000Z'),
+      isDeleted: false,
+      deletedAt: null,
+      deletedBy: null,
+      deleteReason: null,
       updatedAt: new Date('2026-01-02T00:00:00.000Z'),
     });
     expect(videoRepository.findBasicById).not.toHaveBeenCalled();
@@ -100,6 +108,10 @@ describe('VideoQueryService', () => {
       tags: ['action'],
       errorMessage: null,
       publishedAt: new Date('2026-01-01T00:00:00.000Z'),
+      isDeleted: false,
+      deletedAt: null,
+      deletedBy: null,
+      deleteReason: null,
       updatedAt: new Date('2026-01-02T00:00:00.000Z'),
     });
     expect(cacheService.set).toHaveBeenCalledWith(
@@ -118,6 +130,10 @@ describe('VideoQueryService', () => {
         visibility: VideoVisibility.PUBLIC,
         errorMessage: null,
         publishedAt: '2026-01-01T00:00:00.000Z',
+        isDeleted: false,
+        deletedAt: null,
+        deletedBy: null,
+        deleteReason: null,
         updatedAt: '2026-01-02T00:00:00.000Z',
       },
       VIDEO_CACHE_TTL_SECONDS.metadata,
@@ -350,6 +366,10 @@ describe('VideoQueryService', () => {
         errorMessage: null,
         viewCount: 10,
         publishedAt: new Date('2026-01-01T00:00:00.000Z'),
+        isDeleted: false,
+        deletedAt: null,
+        deletedBy: null,
+        deleteReason: null,
         createdAt: new Date('2026-01-01T00:00:00.000Z'),
         updatedAt: new Date('2026-01-02T00:00:00.000Z'),
       },

@@ -13,6 +13,7 @@ export enum VideoStatus {
   REJECTED = 'rejected',
   READY = 'ready',
   FAILED = 'failed',
+  BANNED = 'banned',
 }
 
 export enum VideoVisibility {
@@ -40,6 +41,10 @@ export interface VideoProps {
   errorMessage: string | null;
   viewCount: number;
   publishedAt: Date | null;
+  isDeleted?: boolean;
+  deletedAt?: Date | null;
+  deletedBy?: string | null;
+  deleteReason?: string | null;
   createdAt: Date;
   updatedAt: Date;
   statusChangedAt?: Date;
@@ -125,6 +130,22 @@ export class VideoEntity {
     return this.props.publishedAt;
   }
 
+  get isDeleted(): boolean {
+    return this.props.isDeleted ?? false;
+  }
+
+  get deletedAt(): Date | null {
+    return this.props.deletedAt ?? null;
+  }
+
+  get deletedBy(): string | null {
+    return this.props.deletedBy ?? null;
+  }
+
+  get deleteReason(): string | null {
+    return this.props.deleteReason ?? null;
+  }
+
   get createdAt(): Date {
     return this.props.createdAt;
   }
@@ -172,6 +193,10 @@ export class VideoEntity {
       errorMessage: null,
       viewCount: 0,
       publishedAt: null,
+      isDeleted: false,
+      deletedAt: null,
+      deletedBy: null,
+      deleteReason: null,
       createdAt: now,
       updatedAt: now,
       statusChangedAt: now,
@@ -267,6 +292,23 @@ export class VideoEntity {
   markFailed(errorMessage: string): void {
     this.changeStatus(VideoStatus.FAILED);
     this.props.errorMessage = errorMessage;
+  }
+
+  unpublish(input: { deletedBy: string; reason: string }): void {
+    if (this.props.status !== VideoStatus.READY) {
+      throw new ConflictException('Only ready videos can be unpublished');
+    }
+    this.props.isDeleted = true;
+    this.props.deletedAt = new Date();
+    this.props.deletedBy = input.deletedBy;
+    this.props.deleteReason = input.reason;
+    this.touch();
+  }
+
+  ban(reason: string): void {
+    this.changeStatus(VideoStatus.BANNED);
+    this.props.errorMessage = reason;
+    this.props.deleteReason = reason;
   }
 
   incrementViewCount(): void {

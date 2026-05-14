@@ -87,6 +87,10 @@ export class UpdateVideoMetadataUseCase extends BaseUseCase<
       visibility: video.visibility,
       errorMessage: video.errorMessage,
       publishedAt: video.publishedAt,
+      isDeleted: video.isDeleted,
+      deletedAt: video.deletedAt,
+      deletedBy: video.deletedBy,
+      deleteReason: video.deleteReason,
       updatedAt: video.updatedAt,
     };
   }

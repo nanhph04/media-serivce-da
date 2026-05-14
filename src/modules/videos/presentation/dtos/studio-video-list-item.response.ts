@@ -50,6 +50,18 @@ export class StudioVideoListItemResponseDto {
   publishedAt!: string | null;
 
   @ApiProperty()
+  isDeleted!: boolean;
+
+  @ApiProperty({ nullable: true })
+  deletedAt!: string | null;
+
+  @ApiProperty({ nullable: true })
+  deletedBy!: string | null;
+
+  @ApiProperty({ nullable: true })
+  deleteReason!: string | null;
+
+  @ApiProperty()
   createdAt!: string;
 
   @ApiProperty()

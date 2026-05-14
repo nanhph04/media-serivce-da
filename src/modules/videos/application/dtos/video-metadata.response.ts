@@ -17,5 +17,9 @@ export interface VideoMetadataResponse {
   visibility: VideoVisibility;
   errorMessage: string | null;
   publishedAt: Date | null;
+  isDeleted: boolean;
+  deletedAt: Date | null;
+  deletedBy: string | null;
+  deleteReason: string | null;
   updatedAt: Date;
 }

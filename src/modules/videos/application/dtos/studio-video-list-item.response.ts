@@ -17,6 +17,10 @@ export interface StudioVideoListItemResponse {
   errorMessage: string | null;
   viewCount: number;
   publishedAt: Date | null;
+  isDeleted: boolean;
+  deletedAt: Date | null;
+  deletedBy: string | null;
+  deleteReason: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -41,6 +45,10 @@ export function mapVideoEntityToStudioListItem(
     errorMessage: video.errorMessage,
     viewCount: video.viewCount,
     publishedAt: video.publishedAt,
+    isDeleted: video.isDeleted,
+    deletedAt: video.deletedAt,
+    deletedBy: video.deletedBy,
+    deleteReason: video.deleteReason,
     createdAt: video.createdAt,
     updatedAt: video.updatedAt,
   };

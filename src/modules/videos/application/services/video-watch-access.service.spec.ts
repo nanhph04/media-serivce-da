@@ -128,6 +128,66 @@ describe('VideoWatchAccessService', () => {
     ).resolves.toBeUndefined();
   });
 
+  it('allows purchased users to watch a soft-deleted ready video', async () => {
+    channelAccessService.getViewerAccessContext.mockResolvedValue({
+      channelOwnerId: 'owner-1',
+      channelStatus: ChannelStatus.ACTIVE,
+      activeMembershipTierLevel: null,
+    });
+    unlockRepository.exists.mockResolvedValue(true);
+
+    await expect(
+      service.assertCanWatch(
+        buildVideo({
+          price: 10,
+          isDeleted: true,
+          deletedAt: new Date('2026-01-02T00:00:00.000Z'),
+          deletedBy: 'owner-1',
+          deleteReason: 'creator_unpublish',
+        }),
+        'viewer-1',
+      ),
+    ).resolves.toBeUndefined();
+  });
+
+  it('rejects non-purchased users for a soft-deleted ready video', async () => {
+    channelAccessService.getViewerAccessContext.mockResolvedValue({
+      channelOwnerId: 'owner-1',
+      channelStatus: ChannelStatus.ACTIVE,
+      activeMembershipTierLevel: null,
+    });
+
+    await expect(
+      service.assertCanWatch(
+        buildVideo({
+          isDeleted: true,
+          deletedAt: new Date('2026-01-02T00:00:00.000Z'),
+          deletedBy: 'owner-1',
+          deleteReason: 'creator_unpublish',
+        }),
+        'viewer-1',
+      ),
+    ).rejects.toThrow(NotFoundException);
+  });
+
+  it('rejects banned videos for every user', async () => {
+    channelAccessService.getViewerAccessContext.mockResolvedValue({
+      channelOwnerId: 'owner-1',
+      channelStatus: ChannelStatus.ACTIVE,
+      activeMembershipTierLevel: null,
+    });
+    unlockRepository.exists.mockResolvedValue(true);
+
+    await expect(
+      service.assertCanWatch(
+        buildVideo({
+          status: VideoStatus.BANNED,
+        }),
+        'viewer-1',
+      ),
+    ).rejects.toThrow(NotFoundException);
+  });
+
   it('rejects viewers without any eligible access path', async () => {
     channelAccessService.getViewerAccessContext.mockResolvedValue({
       channelOwnerId: 'owner-1',
