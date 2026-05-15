@@ -1,5 +1,8 @@
 import type { VideoEntity } from '../entities/video.entity';
-import type { VideoStatus } from '../entities/video.entity';
+import type {
+  VideoStatus,
+  VideoVisibility,
+} from '../entities/video.entity';
 
 export const VIDEO_REPOSITORY = Symbol('VIDEO_REPOSITORY');
 
@@ -56,6 +59,21 @@ export interface AdminReportsPage {
   total: number;
 }
 
+export interface AdminVideoFilters {
+  page: number;
+  limit: number;
+  status?: VideoStatus;
+  visibility?: VideoVisibility;
+  channelId?: string;
+  ownerId?: string;
+  q?: string;
+}
+
+export interface AdminVideosPage {
+  items: VideoEntity[];
+  total: number;
+}
+
 export interface IVideoRepository {
   save(video: VideoEntity): Promise<void>;
   findById(id: string): Promise<VideoEntity | null>;
@@ -90,4 +108,5 @@ export interface IVideoRepository {
   getAdminChannelVideoMetrics(now: Date): Promise<AdminChannelVideoMetrics>;
   getAdminReportsSummary(now: Date): Promise<AdminReportsSummary>;
   findAdminReports(filters: AdminReportsFilters): Promise<AdminReportsPage>;
+  findAdminVideos(filters: AdminVideoFilters): Promise<AdminVideosPage>;
 }

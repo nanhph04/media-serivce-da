@@ -277,6 +277,14 @@ describe('VideoRepository', () => {
       activeCreators30d: 3,
       uploadingNow: 5,
     });
+    expect(queryBuilder.select).toHaveBeenCalledWith(
+      expect.stringContaining('video.created_at'),
+      'activeCreators30d',
+    );
+    expect(queryBuilder.select).toHaveBeenCalledWith(
+      expect.stringContaining('video.channel_id'),
+      'activeCreators30d',
+    );
   });
 
   it('aggregates admin reports summary', async () => {
@@ -304,6 +312,14 @@ describe('VideoRepository', () => {
       rejectedLast30d: 1,
       averageResolutionHours: null,
     });
+    expect(queryBuilder.addSelect).toHaveBeenCalledWith(
+      expect.stringContaining('video.moderation_details'),
+      'autoFlaggedVideos',
+    );
+    expect(queryBuilder.addSelect).toHaveBeenCalledWith(
+      expect.stringContaining('video.status_changed_at'),
+      'rejectedLast30d',
+    );
   });
 
   it('loads admin reports ordered by oldest review first', async () => {
@@ -356,6 +372,106 @@ describe('VideoRepository', () => {
       skip: 5,
       take: 5,
     });
+    expect(result.total).toBe(1);
+    expect(result.items[0]?.id).toBe('video-1');
+  });
+
+  it('loads admin videos with filters, search, and pagination', async () => {
+    const queryBuilder = {
+      addOrderBy: jest.fn(),
+      andWhere: jest.fn(),
+      getManyAndCount: jest.fn().mockResolvedValue([
+        [
+          {
+            id: 'video-1',
+            channelId: 'channel-1',
+            ownerId: 'owner-1',
+            title: 'Video',
+            description: 'Description',
+            visibility: 'private',
+            status: 'draft',
+            price: 0,
+            requiredTierLevel: null,
+            rawFileKey: 'raw/video.mp4',
+            masterPlaylistKey: null,
+            thumbnailUrl: null,
+            durationSeconds: null,
+            resolutions: [],
+            errorMessage: null,
+            moderationDetails: null,
+            viewCount: 0,
+            publishedAt: null,
+            createdAt: new Date('2026-01-01T00:00:00.000Z'),
+            updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+            statusChangedAt: new Date('2026-01-02T00:00:00.000Z'),
+            category: buildCategoryRow(),
+            videoTags: [],
+          },
+        ],
+        1,
+      ]),
+      leftJoinAndSelect: jest.fn(),
+      orderBy: jest.fn(),
+      skip: jest.fn(),
+      take: jest.fn(),
+    };
+    queryBuilder.leftJoinAndSelect.mockReturnValue(queryBuilder);
+    queryBuilder.andWhere.mockReturnValue(queryBuilder);
+    queryBuilder.orderBy.mockReturnValue(queryBuilder);
+    queryBuilder.addOrderBy.mockReturnValue(queryBuilder);
+    queryBuilder.skip.mockReturnValue(queryBuilder);
+    queryBuilder.take.mockReturnValue(queryBuilder);
+    createQueryBuilder.mockReturnValue(queryBuilder);
+
+    const result = await repository.findAdminVideos({
+      status: VideoStatus.DRAFT,
+      visibility: 'private',
+      channelId: 'channel-1',
+      ownerId: 'owner-1',
+      q: 'Video',
+      page: 2,
+      limit: 5,
+    });
+
+    expect(queryBuilder.leftJoinAndSelect).toHaveBeenCalledWith(
+      'video.category',
+      'category',
+    );
+    expect(queryBuilder.leftJoinAndSelect).toHaveBeenCalledWith(
+      'video.videoTags',
+      'videoTag',
+    );
+    expect(queryBuilder.leftJoinAndSelect).toHaveBeenCalledWith(
+      'videoTag.tag',
+      'tag',
+    );
+    expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+      'video.status = :status',
+      { status: 'draft' },
+    );
+    expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+      'video.visibility = :visibility',
+      { visibility: 'private' },
+    );
+    expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+      'video.channelId = :channelId',
+      { channelId: 'channel-1' },
+    );
+    expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+      'video.ownerId = :ownerId',
+      { ownerId: 'owner-1' },
+    );
+    expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+      expect.stringContaining('LOWER(video.title)'),
+      { partial: '%video%' },
+    );
+    expect(queryBuilder.orderBy).toHaveBeenCalledWith('video.updatedAt', 'DESC');
+    expect(queryBuilder.addOrderBy).toHaveBeenCalledWith(
+      'video.createdAt',
+      'DESC',
+    );
+    expect(queryBuilder.skip).toHaveBeenCalledWith(5);
+    expect(queryBuilder.take).toHaveBeenCalledWith(5);
     expect(result.total).toBe(1);
     expect(result.items[0]?.id).toBe('video-1');
   });

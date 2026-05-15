@@ -24,5 +24,13 @@ describe('ChannelRepositoryImpl', () => {
       membershipClosedByAdmin: 2,
     });
     expect(ormRepository.createQueryBuilder).toHaveBeenCalledWith('channel');
+    expect(queryBuilder.addSelect).toHaveBeenCalledWith(
+      expect.stringContaining('channel.is_eligible_for_membership'),
+      'eligibleForMembership',
+    );
+    expect(queryBuilder.addSelect).toHaveBeenCalledWith(
+      expect.stringContaining('channel.is_membership_closed_by_admin'),
+      'membershipClosedByAdmin',
+    );
   });
 });

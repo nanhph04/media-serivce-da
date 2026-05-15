@@ -1224,6 +1224,60 @@
       - `total` (number)
       - `totalPages` (number)
 
+### 9.4 GET `/api/media/admin/videos?page=1&limit=20&status=ready&visibility=public&channelId=...&ownerId=...&q=...`
+- Muc dich: admin lay danh sach tat ca video trong he thong, gom public/private/draft/processing/rejected/failed/ready va video da soft delete.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-user-role`: Bat buoc la `admin`
+  - `x-internal-secret`: He thong tu set
+- Query:
+  - `page` (number, optional, default 1, min 1)
+  - `limit` (number, optional, default 20, min 1, max 100)
+  - `status` optional: `draft`, `pending_moderation`, `processing`, `pending_manual_review`, `rejected`, `ready`, `failed`
+  - `visibility` optional: `public`, `private`
+  - `channelId` optional: loc theo channel
+  - `ownerId` optional: loc theo creator/user owner
+  - `q` optional: search theo `title` hoac `description`
+- Ghi chu:
+  - Neu thieu role hoac role khac `admin` thi tra `FORBIDDEN` / HTTP 403 voi message `Admin role is required`.
+  - `status` hoac `visibility` khong hop le bi validation reject `BAD_REQUEST` / HTTP 400.
+  - Sap xep mac dinh theo `updatedAt DESC`, fallback `createdAt DESC`.
+- Response HTTP 200:
+  - Envelope `data`:
+    - `items` (array), moi object gom:
+      - `id` (string)
+      - `channelId` (string)
+      - `ownerId` (string)
+      - `title` (string)
+      - `description` (string)
+      - `category` (string)
+      - `tags` (string[])
+      - `status` (string)
+      - `visibility` (string)
+      - `price` (number)
+      - `requiredTierLevel` (number | null)
+      - `thumbnailUrl` (string | null)
+      - `durationSeconds` (number | null)
+      - `resolutions` (string[])
+      - `errorMessage` (string | null)
+      - `jobStatus` (string)
+      - `jobStatusMessage` (string)
+      - `failureReason` (string | null)
+      - `moderationDetails` (object | null)
+      - `viewCount` (number)
+      - `publishedAt` (string ISO | null)
+      - `isDeleted` (boolean)
+      - `deletedAt` (string ISO | null)
+      - `deletedBy` (string | null)
+      - `deleteReason` (string | null)
+      - `createdAt` (string ISO)
+      - `updatedAt` (string ISO)
+    - `pagination`:
+      - `page` (number)
+      - `limit` (number)
+      - `total` (number)
+      - `totalPages` (number)
+
 ## 10. ERROR RESPONSE CHUNG
 
 Khi loi, service dung format:

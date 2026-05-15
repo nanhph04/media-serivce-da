@@ -28,6 +28,7 @@ import { HandleVideoDeleteRefundCompletedUseCase } from './application/use-cases
 import { HandleVideoViewedUseCase } from './application/use-cases/handle-video-viewed.use-case';
 import { InitVideoUploadUseCase } from './application/use-cases/init-video-upload.use-case';
 import { ListAdminReportsUseCase } from './application/use-cases/list-admin-reports.use-case';
+import { ListAdminVideosUseCase } from './application/use-cases/list-admin-videos.use-case';
 import { PlayVideoUseCase } from './application/use-cases/play-video.use-case';
 import { RefreshPlaybackTokenUseCase } from './application/use-cases/refresh-playback-token.use-case';
 import { ReplaceVideoUploadUseCase } from './application/use-cases/replace-video-upload.use-case';
@@ -64,6 +65,7 @@ import { VideoWatchProgressOrmEntity } from './infrastructure/persistence/video-
 import { VideoWatchProgressRepository } from './infrastructure/persistence/video-watch-progress.repository';
 import { VideoQueryService } from './infrastructure/query/video-query.service';
 import { AdminReportController } from './presentation/controllers/admin-report.controller';
+import { AdminVideoController } from './presentation/controllers/admin-video.controller';
 import { VideosController } from './presentation/controllers/videos.controller';
 import { CategoryVideosController } from './presentation/controllers/category-videos.controller';
 import { VIDEO_CACHE_INVALIDATOR } from './application/interfaces/video-cache-invalidator.interface';
@@ -96,6 +98,7 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
     EngagementModule,
   ],
   controllers: [
+    AdminVideoController,
     AdminReportController,
     VideosController,
     CategoryVideosController,
@@ -124,6 +127,7 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
     UnlockVideoUseCase,
     GetAdminReportsSummaryUseCase,
     ListAdminReportsUseCase,
+    ListAdminVideosUseCase,
     GetContinueWatchingUseCase,
     GetVideoMetadataUseCase,
     UpdateVideoMetadataUseCase,

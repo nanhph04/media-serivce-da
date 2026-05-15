@@ -18,6 +18,8 @@ import { Category } from '../../../categories/domain/entities/category.entity';
 import { Tag } from '../../../tags/domain/entities/tag.entity';
 import type {
   AdminChannelVideoMetrics,
+  AdminVideoFilters,
+  AdminVideosPage,
   AdminReportsFilters,
   AdminReportsPage,
   AdminReportsSummary,
@@ -453,7 +455,7 @@ export class VideoRepository implements IVideoRepository {
       .createQueryBuilder('video')
       .select(
         `COUNT(DISTINCT CASE
-          WHEN video.createdAt >= :activeCreatorStart THEN video.channelId
+          WHEN video.created_at >= :activeCreatorStart THEN video.channel_id
           ELSE NULL
         END)`,
         'activeCreators30d',
@@ -495,7 +497,7 @@ export class VideoRepository implements IVideoRepository {
       )
       .addSelect(
         `COUNT(*) FILTER (
-          WHERE video.moderationDetails IS NOT NULL
+          WHERE video.moderation_details IS NOT NULL
           AND video.status IN (:...flaggedStatuses)
         )`,
         'autoFlaggedVideos',
@@ -503,7 +505,7 @@ export class VideoRepository implements IVideoRepository {
       .addSelect(
         `COUNT(*) FILTER (
           WHERE video.status = :rejectedStatus
-          AND video.statusChangedAt >= :rejectedStart
+          AND video.status_changed_at >= :rejectedStart
         )`,
         'rejectedLast30d',
       )
@@ -549,6 +551,61 @@ export class VideoRepository implements IVideoRepository {
       skip: (filters.page - 1) * filters.limit,
       take: filters.limit,
     });
+
+    return {
+      items: rows.map((row) => this.toDomain(row)),
+      total,
+    };
+  }
+
+  async findAdminVideos(filters: AdminVideoFilters): Promise<AdminVideosPage> {
+    const queryBuilder = this.ormRepository
+      .createQueryBuilder('video')
+      .leftJoinAndSelect('video.category', 'category')
+      .leftJoinAndSelect('video.videoTags', 'videoTag')
+      .leftJoinAndSelect('videoTag.tag', 'tag');
+
+    if (filters.status) {
+      queryBuilder.andWhere('video.status = :status', {
+        status: filters.status,
+      });
+    }
+
+    if (filters.visibility) {
+      queryBuilder.andWhere('video.visibility = :visibility', {
+        visibility: filters.visibility,
+      });
+    }
+
+    if (filters.channelId) {
+      queryBuilder.andWhere('video.channelId = :channelId', {
+        channelId: filters.channelId,
+      });
+    }
+
+    if (filters.ownerId) {
+      queryBuilder.andWhere('video.ownerId = :ownerId', {
+        ownerId: filters.ownerId,
+      });
+    }
+
+    if (filters.q) {
+      const partial = `%${escapeLikePattern(filters.q.toLowerCase())}%`;
+      queryBuilder.andWhere(
+        `(
+          LOWER(video.title) LIKE :partial ESCAPE '\\'
+          OR LOWER(video.description) LIKE :partial ESCAPE '\\'
+        )`,
+        { partial },
+      );
+    }
+
+    const [rows, total] = await queryBuilder
+      .orderBy('video.updatedAt', 'DESC')
+      .addOrderBy('video.createdAt', 'DESC')
+      .skip((filters.page - 1) * filters.limit)
+      .take(filters.limit)
+      .getManyAndCount();
 
     return {
       items: rows.map((row) => this.toDomain(row)),

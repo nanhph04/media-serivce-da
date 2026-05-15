@@ -104,13 +104,13 @@ export class ChannelRepositoryImpl implements IChannelRepository {
       .select('COUNT(*)', 'totalChannels')
       .addSelect(
         `COUNT(*) FILTER (
-          WHERE channel.isEligibleForMembership = true
+          WHERE channel.is_eligible_for_membership = true
         )`,
         'eligibleForMembership',
       )
       .addSelect(
         `COUNT(*) FILTER (
-          WHERE channel.isMembershipClosedByAdmin = true
+          WHERE channel.is_membership_closed_by_admin = true
         )`,
         'membershipClosedByAdmin',
       )
