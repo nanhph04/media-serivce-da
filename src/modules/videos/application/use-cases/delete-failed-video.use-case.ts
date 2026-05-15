@@ -41,8 +41,10 @@ export class DeleteFailedVideoUseCase extends BaseUseCase<
     if (video.ownerId !== command.userId) {
       throw new ForbiddenException('You do not own this video');
     }
-    if (video.status !== VideoStatus.FAILED) {
-      throw new ConflictException('Only failed videos can be deleted');
+    if (![VideoStatus.FAILED, VideoStatus.REJECTED].includes(video.status)) {
+      throw new ConflictException(
+        'Only failed or rejected videos can be deleted',
+      );
     }
 
     if (await this.objectStorageService.objectExists('raw', video.rawFileKey)) {

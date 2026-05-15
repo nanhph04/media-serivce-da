@@ -124,7 +124,7 @@ export class VideoRepository implements IVideoRepository {
       await manager.delete(VideoTagOrmEntity, { videoId: id });
       await manager.delete(VideoOrmEntity, {
         id,
-        status: VideoStatus.FAILED,
+        status: In([VideoStatus.FAILED, VideoStatus.REJECTED]),
       });
     });
   }

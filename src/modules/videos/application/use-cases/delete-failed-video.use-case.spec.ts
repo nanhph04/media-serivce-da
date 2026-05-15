@@ -60,6 +60,22 @@ describe('DeleteFailedVideoUseCase', () => {
     expect(videoRepository.deleteFailedById).toHaveBeenCalledWith('video-1');
   });
 
+  it('deletes rejected video row', async () => {
+    videoRepository.findById.mockResolvedValue(
+      buildVideo({ status: VideoStatus.REJECTED }),
+    );
+
+    const result = await useCase.execute({
+      userId: 'owner-1',
+      videoId: 'video-1',
+    });
+
+    expect(videoRepository.deleteFailedById).toHaveBeenCalledWith('video-1');
+    expect(result).toEqual({
+      videoId: 'video-1',
+      deleted: true,
+    });
+  });
   it('throws not found when video does not exist', async () => {
     videoRepository.findById.mockResolvedValue(null);
 
@@ -83,7 +99,6 @@ describe('DeleteFailedVideoUseCase', () => {
     VideoStatus.PENDING_MODERATION,
     VideoStatus.PROCESSING,
     VideoStatus.PENDING_MANUAL_REVIEW,
-    VideoStatus.REJECTED,
     VideoStatus.READY,
   ])('throws conflict when video status is %s', async (status) => {
     videoRepository.findById.mockResolvedValue(buildVideo({ status }));
