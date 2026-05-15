@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { IChannelRepository } from '../../domain/repositories/channel.repository';
+import {
+  type AdminChannelCounts,
+  IChannelRepository,
+} from '../../domain/repositories/channel.repository';
 import {
   ChannelEntity,
   ChannelStatus,
@@ -93,5 +96,34 @@ export class ChannelRepositoryImpl implements IChannelRepository {
       createdAt: ormEntity.createdAt,
       updatedAt: ormEntity.updatedAt,
     });
+  }
+
+  async getAdminChannelCounts(): Promise<AdminChannelCounts> {
+    const row = await this.ormRepository
+      .createQueryBuilder('channel')
+      .select('COUNT(*)', 'totalChannels')
+      .addSelect(
+        `COUNT(*) FILTER (
+          WHERE channel.isEligibleForMembership = true
+        )`,
+        'eligibleForMembership',
+      )
+      .addSelect(
+        `COUNT(*) FILTER (
+          WHERE channel.isMembershipClosedByAdmin = true
+        )`,
+        'membershipClosedByAdmin',
+      )
+      .getRawOne<{
+        totalChannels?: string | number | null;
+        eligibleForMembership?: string | number | null;
+        membershipClosedByAdmin?: string | number | null;
+      }>();
+
+    return {
+      totalChannels: Number(row?.totalChannels ?? 0),
+      eligibleForMembership: Number(row?.eligibleForMembership ?? 0),
+      membershipClosedByAdmin: Number(row?.membershipClosedByAdmin ?? 0),
+    };
   }
 }

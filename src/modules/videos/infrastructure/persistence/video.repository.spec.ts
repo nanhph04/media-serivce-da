@@ -1,4 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { VideoRepository } from './video.repository';
+import { VideoStatus } from '../../domain/entities/video.entity';
 
 describe('VideoRepository', () => {
   const execute = jest.fn();
@@ -11,18 +13,19 @@ describe('VideoRepository', () => {
   const createQueryBuilder = jest.fn();
   const findOne = jest.fn();
   const find = jest.fn();
+  const findAndCount = jest.fn();
   const ormRepository = {
     createQueryBuilder,
     find,
+    findAndCount,
     findOne,
   };
   const manager = {
     delete: jest.fn(),
   };
   const dataSource = {
-    transaction: jest.fn(
-      async (callback: (managerArg: typeof manager) => void) =>
-        callback(manager),
+    transaction: jest.fn((callback: (managerArg: typeof manager) => void) =>
+      Promise.resolve(callback(manager)),
     ),
   };
 
@@ -249,6 +252,112 @@ describe('VideoRepository', () => {
       },
       take: 50,
     });
+  });
+
+  it('aggregates admin channel video metrics', async () => {
+    const queryBuilder = {
+      addSelect: jest.fn(),
+      getRawOne: jest.fn().mockResolvedValue({
+        activeCreators30d: '3',
+        uploadingNow: '5',
+      }),
+      select: jest.fn(),
+      setParameters: jest.fn(),
+    };
+    queryBuilder.select.mockReturnValue(queryBuilder);
+    queryBuilder.addSelect.mockReturnValue(queryBuilder);
+    queryBuilder.setParameters.mockReturnValue(queryBuilder);
+    createQueryBuilder.mockReturnValue(queryBuilder);
+
+    await expect(
+      repository.getAdminChannelVideoMetrics(
+        new Date('2026-05-15T00:00:00.000Z'),
+      ),
+    ).resolves.toEqual({
+      activeCreators30d: 3,
+      uploadingNow: 5,
+    });
+  });
+
+  it('aggregates admin reports summary', async () => {
+    const queryBuilder = {
+      addSelect: jest.fn(),
+      getRawOne: jest.fn().mockResolvedValue({
+        pendingManualReviewVideos: '2',
+        autoFlaggedVideos: '3',
+        rejectedLast30d: '1',
+      }),
+      select: jest.fn(),
+      setParameters: jest.fn(),
+    };
+    queryBuilder.select.mockReturnValue(queryBuilder);
+    queryBuilder.addSelect.mockReturnValue(queryBuilder);
+    queryBuilder.setParameters.mockReturnValue(queryBuilder);
+    createQueryBuilder.mockReturnValue(queryBuilder);
+
+    await expect(
+      repository.getAdminReportsSummary(new Date('2026-05-15T00:00:00.000Z')),
+    ).resolves.toEqual({
+      pendingReports: 2,
+      pendingManualReviewVideos: 2,
+      autoFlaggedVideos: 3,
+      rejectedLast30d: 1,
+      averageResolutionHours: null,
+    });
+  });
+
+  it('loads admin reports ordered by oldest review first', async () => {
+    findAndCount.mockResolvedValue([
+      [
+        {
+          id: 'video-1',
+          channelId: 'channel-1',
+          ownerId: 'owner-1',
+          title: 'Video',
+          description: 'Description',
+          visibility: 'public',
+          status: 'pending_manual_review',
+          price: 0,
+          requiredTierLevel: null,
+          rawFileKey: 'raw/video.mp4',
+          masterPlaylistKey: null,
+          thumbnailUrl: null,
+          durationSeconds: null,
+          resolutions: [],
+          errorMessage: 'Needs review',
+          moderationDetails: null,
+          viewCount: 0,
+          publishedAt: null,
+          createdAt: new Date('2026-01-01T00:00:00.000Z'),
+          updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+          statusChangedAt: new Date('2026-01-02T00:00:00.000Z'),
+          category: buildCategoryRow(),
+          videoTags: [],
+        },
+      ],
+      1,
+    ]);
+
+    const result = await repository.findAdminReports({
+      status: VideoStatus.PENDING_MANUAL_REVIEW,
+      page: 2,
+      limit: 5,
+    });
+
+    expect(findAndCount).toHaveBeenCalledWith({
+      where: {
+        status: 'pending_manual_review',
+      },
+      relations: { category: true, videoTags: { tag: true } },
+      order: {
+        statusChangedAt: 'ASC',
+        createdAt: 'ASC',
+      },
+      skip: 5,
+      take: 5,
+    });
+    expect(result.total).toBe(1);
+    expect(result.items[0]?.id).toBe('video-1');
   });
 });
 

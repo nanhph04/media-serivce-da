@@ -13,6 +13,7 @@ import { CleanupExpiredDraftUploadsUseCase } from './application/use-cases/clean
 import { CleanupHardDeletedVideosUseCase } from './application/use-cases/cleanup-hard-deleted-videos.use-case';
 import { DeleteFailedVideoUseCase } from './application/use-cases/delete-failed-video.use-case';
 import { GetContinueWatchingUseCase } from './application/use-cases/get-continue-watching.use-case';
+import { GetAdminReportsSummaryUseCase } from './application/use-cases/get-admin-reports-summary.use-case';
 import { GetLatestVideosUseCase } from './application/use-cases/get-latest-videos.use-case';
 import { GetPurchasedVideosUseCase } from './application/use-cases/get-purchased-videos.use-case';
 import { GetStudioVideosUseCase } from './application/use-cases/get-studio-videos.use-case';
@@ -26,6 +27,7 @@ import { HandleVideoPaymentSuccessUseCase } from './application/use-cases/handle
 import { HandleVideoDeleteRefundCompletedUseCase } from './application/use-cases/handle-video-delete-refund-completed.use-case';
 import { HandleVideoViewedUseCase } from './application/use-cases/handle-video-viewed.use-case';
 import { InitVideoUploadUseCase } from './application/use-cases/init-video-upload.use-case';
+import { ListAdminReportsUseCase } from './application/use-cases/list-admin-reports.use-case';
 import { PlayVideoUseCase } from './application/use-cases/play-video.use-case';
 import { RefreshPlaybackTokenUseCase } from './application/use-cases/refresh-playback-token.use-case';
 import { ReplaceVideoUploadUseCase } from './application/use-cases/replace-video-upload.use-case';
@@ -61,6 +63,7 @@ import { VideoRepository } from './infrastructure/persistence/video.repository';
 import { VideoWatchProgressOrmEntity } from './infrastructure/persistence/video-watch-progress.orm-entity';
 import { VideoWatchProgressRepository } from './infrastructure/persistence/video-watch-progress.repository';
 import { VideoQueryService } from './infrastructure/query/video-query.service';
+import { AdminReportController } from './presentation/controllers/admin-report.controller';
 import { VideosController } from './presentation/controllers/videos.controller';
 import { CategoryVideosController } from './presentation/controllers/category-videos.controller';
 import { VIDEO_CACHE_INVALIDATOR } from './application/interfaces/video-cache-invalidator.interface';
@@ -92,7 +95,11 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
     forwardRef(() => ChannelsModule),
     EngagementModule,
   ],
-  controllers: [VideosController, CategoryVideosController],
+  controllers: [
+    AdminReportController,
+    VideosController,
+    CategoryVideosController,
+  ],
   providers: [
     VideoRepository,
     VideoPurchaseUnlockRepository,
@@ -115,6 +122,8 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
     SearchPublicVideosUseCase,
     UnpublishVideoUseCase,
     UnlockVideoUseCase,
+    GetAdminReportsSummaryUseCase,
+    ListAdminReportsUseCase,
     GetContinueWatchingUseCase,
     GetVideoMetadataUseCase,
     UpdateVideoMetadataUseCase,

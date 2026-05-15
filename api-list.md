@@ -1,4 +1,4 @@
-date 14/05/2026
+date 15/05/2026
 
 MEDIA SERVICE API LIST
 Base URL: /api/media
@@ -636,6 +636,18 @@ Ghi chu chung
 - Response HTTP 200:
   - Envelope `data`:
     - `id` (string)
+    - `channelId` (string)
+    - `channelName` (string)
+    - `avatarUrlChannel` (string)
+    - `membershipTiers` (array)
+      - `id` (string)
+      - `channelId` (string)
+      - `name` (string)
+      - `level` (number)
+      - `priceCoin` (number)
+      - `isAcceptingNew` (boolean)
+      - `createdAt` (string ISO)
+      - `updatedAt` (string ISO)
     - `title` (string)
     - `description` (string)
     - `categoryId` (string): id cua category chinh hien tai
@@ -677,6 +689,18 @@ Ghi chu chung
 - Response HTTP 200:
   - Envelope `data`:
     - `id` (string)
+    - `channelId` (string)
+    - `channelName` (string)
+    - `avatarUrlChannel` (string)
+    - `membershipTiers` (array)
+      - `id` (string)
+      - `channelId` (string)
+      - `name` (string)
+      - `level` (number)
+      - `priceCoin` (number)
+      - `isAcceptingNew` (boolean)
+      - `createdAt` (string ISO)
+      - `updatedAt` (string ISO)
     - `title` (string)
     - `description` (string)
     - `categoryId` (string): id cua category chinh sau update
@@ -1153,7 +1177,69 @@ Ghi chu chung
   - Envelope `data`: tag sau khi inactive.
 
 ==================================================
-9. ERROR RESPONSE CHUNG
+9. ADMIN DASHBOARD APIs
+==================================================
+
+9.1) GET /api/media/admin/channels/summary
+- Muc dich: lay summary creator/channel cho admin dashboard.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-user-role`: Bat buoc la `admin`
+  - `x-internal-secret`: He thong tu set
+- Response HTTP 200:
+  - Envelope `data`:
+    - `totalChannels` (number): tong channel trong he thong
+    - `activeCreators30d` (number): so channel co video tao trong 30 ngay gan nhat
+    - `eligibleForMembership` (number): so channel du dieu kien membership
+    - `membershipClosedByAdmin` (number): so channel bi admin dong membership
+    - `uploadingNow` (number): so video dang draft/pending_moderation/processing
+
+9.2) GET /api/media/admin/reports/summary
+- Muc dich: lay summary moderation queue cho admin dashboard.
+- Ghi chu:
+  - V1 chua co bang user-submitted reports rieng.
+  - `reports` o day la synthetic reports tu video auto-moderation queue.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-user-role`: Bat buoc la `admin`
+  - `x-internal-secret`: He thong tu set
+- Response HTTP 200:
+  - Envelope `data`:
+    - `pendingReports` (number): bang `pendingManualReviewVideos` trong v1
+    - `pendingManualReviewVideos` (number): video status `pending_manual_review`
+    - `autoFlaggedVideos` (number): video co `moderationDetails` va status pending/rejected
+    - `rejectedLast30d` (number): video rejected trong 30 ngay gan nhat
+    - `averageResolutionHours` (number | null): hien tai `null`
+
+9.3) GET /api/media/admin/reports?status=pending&page=1&limit=5
+- Muc dich: lay danh sach moderation report/queue item cho dashboard.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-user-role`: Bat buoc la `admin`
+  - `x-internal-secret`: He thong tu set
+- Query:
+  - `status` (`pending` | `rejected`, optional, default `pending`)
+  - `page` (number, optional, default 1, min 1)
+  - `limit` (number, optional, default 20, min 1, max 100)
+- Response HTTP 200:
+  - Envelope `data`:
+    - `items` (array), moi object gom:
+      - `id` (string): synthetic report id, hien map bang video id
+      - `targetVideoId` (string)
+      - `title` (string)
+      - `reporterLabel` (string): hien tai `"Auto moderation"`
+      - `reason` (string)
+      - `confidencePercent` (number | null)
+      - `createdAt` (string ISO): thoi diem video vao status moderation hien tai
+      - `priority` (`low` | `medium` | `high` | `critical`)
+    - `pagination`:
+      - `page` (number)
+      - `limit` (number)
+      - `total` (number)
+      - `totalPages` (number)
+
+==================================================
+10. ERROR RESPONSE CHUNG
 ==================================================
 
 Khi loi, service dung format:

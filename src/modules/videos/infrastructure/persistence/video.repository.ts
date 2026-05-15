@@ -17,6 +17,10 @@ import {
 import { Category } from '../../../categories/domain/entities/category.entity';
 import { Tag } from '../../../tags/domain/entities/tag.entity';
 import type {
+  AdminChannelVideoMetrics,
+  AdminReportsFilters,
+  AdminReportsPage,
+  AdminReportsSummary,
   PublicVideoSearchFilters,
   PublicVideosByCategoryPageFilters,
   PublicVideosByCategoryPageResult,
@@ -437,6 +441,119 @@ export class VideoRepository implements IVideoRepository {
       take: limit,
     });
     return rows.map((row) => this.toDomain(row));
+  }
+
+  async getAdminChannelVideoMetrics(
+    now: Date,
+  ): Promise<AdminChannelVideoMetrics> {
+    const activeCreatorStart = new Date(now);
+    activeCreatorStart.setDate(activeCreatorStart.getDate() - 30);
+
+    const row = await this.ormRepository
+      .createQueryBuilder('video')
+      .select(
+        `COUNT(DISTINCT CASE
+          WHEN video.createdAt >= :activeCreatorStart THEN video.channelId
+          ELSE NULL
+        END)`,
+        'activeCreators30d',
+      )
+      .addSelect(
+        `COUNT(*) FILTER (WHERE video.status IN (:...uploadingStatuses))`,
+        'uploadingNow',
+      )
+      .setParameters({
+        activeCreatorStart,
+        uploadingStatuses: [
+          VideoStatus.DRAFT,
+          VideoStatus.PENDING_MODERATION,
+          VideoStatus.PROCESSING,
+        ],
+      })
+      .getRawOne<{
+        activeCreators30d?: string | number | null;
+        uploadingNow?: string | number | null;
+      }>();
+
+    return {
+      activeCreators30d: Number(row?.activeCreators30d ?? 0),
+      uploadingNow: Number(row?.uploadingNow ?? 0),
+    };
+  }
+
+  async getAdminReportsSummary(now: Date): Promise<AdminReportsSummary> {
+    const rejectedStart = new Date(now);
+    rejectedStart.setDate(rejectedStart.getDate() - 30);
+
+    const row = await this.ormRepository
+      .createQueryBuilder('video')
+      .select(
+        `COUNT(*) FILTER (
+          WHERE video.status = :pendingManualReviewStatus
+        )`,
+        'pendingManualReviewVideos',
+      )
+      .addSelect(
+        `COUNT(*) FILTER (
+          WHERE video.moderationDetails IS NOT NULL
+          AND video.status IN (:...flaggedStatuses)
+        )`,
+        'autoFlaggedVideos',
+      )
+      .addSelect(
+        `COUNT(*) FILTER (
+          WHERE video.status = :rejectedStatus
+          AND video.statusChangedAt >= :rejectedStart
+        )`,
+        'rejectedLast30d',
+      )
+      .setParameters({
+        flaggedStatuses: [
+          VideoStatus.PENDING_MANUAL_REVIEW,
+          VideoStatus.REJECTED,
+        ],
+        pendingManualReviewStatus: VideoStatus.PENDING_MANUAL_REVIEW,
+        rejectedStart,
+        rejectedStatus: VideoStatus.REJECTED,
+      })
+      .getRawOne<{
+        pendingManualReviewVideos?: string | number | null;
+        autoFlaggedVideos?: string | number | null;
+        rejectedLast30d?: string | number | null;
+      }>();
+    const pendingManualReviewVideos = Number(
+      row?.pendingManualReviewVideos ?? 0,
+    );
+
+    return {
+      pendingReports: pendingManualReviewVideos,
+      pendingManualReviewVideos,
+      autoFlaggedVideos: Number(row?.autoFlaggedVideos ?? 0),
+      rejectedLast30d: Number(row?.rejectedLast30d ?? 0),
+      averageResolutionHours: null,
+    };
+  }
+
+  async findAdminReports(
+    filters: AdminReportsFilters,
+  ): Promise<AdminReportsPage> {
+    const [rows, total] = await this.ormRepository.findAndCount({
+      where: {
+        status: filters.status,
+      },
+      relations: { category: true, videoTags: { tag: true } },
+      order: {
+        statusChangedAt: 'ASC',
+        createdAt: 'ASC',
+      },
+      skip: (filters.page - 1) * filters.limit,
+      take: filters.limit,
+    });
+
+    return {
+      items: rows.map((row) => this.toDomain(row)),
+      total,
+    };
   }
 
   private toDomain(row: VideoOrmEntity): VideoEntity {
