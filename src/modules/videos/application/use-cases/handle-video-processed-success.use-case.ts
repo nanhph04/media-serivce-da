@@ -5,6 +5,10 @@ import {
   type IIdempotencyStore,
 } from '@shared/application/interfaces/cache-store.interface';
 import {
+  OBJECT_STORAGE_SERVICE,
+  type IObjectStorageService,
+} from '@shared/application/interfaces/object-storage.service.interface';
+import {
   CHANNEL_MEMBERSHIP_ELIGIBILITY_SERVICE,
   type IChannelMembershipEligibilityService,
 } from '../../../channels/application/interfaces/channel-membership-eligibility.service.interface';
@@ -32,6 +36,8 @@ export class HandleVideoProcessedSuccessUseCase extends BaseUseCase<
     private readonly channelMembershipEligibilityService: IChannelMembershipEligibilityService,
     @Inject(IDEMPOTENCY_STORE)
     private readonly idempotencyStore: IIdempotencyStore,
+    @Inject(OBJECT_STORAGE_SERVICE)
+    private readonly objectStorageService: IObjectStorageService,
     private readonly loggerService: LoggerService,
     @Inject(VIDEO_CACHE_INVALIDATOR)
     private readonly videoCacheInvalidator: IVideoCacheInvalidator,
@@ -75,6 +81,7 @@ export class HandleVideoProcessedSuccessUseCase extends BaseUseCase<
     await this.channelMembershipEligibilityService.syncChannelEligibility(
       video.channelId,
     );
+    await this.deleteRawFileIfPresent(video.id, video.rawFileKey);
   }
 
   private async markEventProcessed(eventId: string): Promise<boolean> {
@@ -83,5 +90,25 @@ export class HandleVideoProcessedSuccessUseCase extends BaseUseCase<
       '1',
       60 * 60 * 24,
     );
+  }
+
+  private async deleteRawFileIfPresent(
+    videoId: string,
+    rawFileKey: string,
+  ): Promise<void> {
+    try {
+      if (await this.objectStorageService.objectExists('raw', rawFileKey)) {
+        await this.objectStorageService.deleteObject('raw', rawFileKey);
+      }
+    } catch (error: unknown) {
+      this.loggerService.logWarn(
+        'Failed to delete processed video raw object',
+        {
+          videoId,
+          rawFileKey,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+      );
+    }
   }
 }

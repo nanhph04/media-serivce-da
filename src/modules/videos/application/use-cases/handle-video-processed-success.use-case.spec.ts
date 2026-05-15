@@ -16,6 +16,10 @@ describe('HandleVideoProcessedSuccessUseCase', () => {
   const cacheService = {
     setIfNotExists: jest.fn(),
   };
+  const objectStorageService = {
+    objectExists: jest.fn(),
+    deleteObject: jest.fn(),
+  };
   const logger = {
     setContext: jest.fn(),
     logWarn: jest.fn(),
@@ -30,6 +34,8 @@ describe('HandleVideoProcessedSuccessUseCase', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     cacheService.setIfNotExists.mockResolvedValue(true);
+    objectStorageService.objectExists.mockResolvedValue(true);
+    objectStorageService.deleteObject.mockResolvedValue(undefined);
     videoRepository.save.mockResolvedValue(undefined);
     eligibilityService.syncChannelEligibility.mockResolvedValue(undefined);
     videoCacheInvalidator.invalidateMetadata.mockResolvedValue(undefined);
@@ -38,6 +44,7 @@ describe('HandleVideoProcessedSuccessUseCase', () => {
       videoRepository as never,
       eligibilityService as never,
       cacheService as never,
+      objectStorageService as never,
       logger as never,
       videoCacheInvalidator as never,
     );
@@ -69,6 +76,71 @@ describe('HandleVideoProcessedSuccessUseCase', () => {
     expect(eligibilityService.syncChannelEligibility).toHaveBeenCalledWith(
       'channel-1',
     );
+    expect(objectStorageService.objectExists).toHaveBeenCalledWith(
+      'raw',
+      'raw/video.mp4',
+    );
+    expect(objectStorageService.deleteObject).toHaveBeenCalledWith(
+      'raw',
+      'raw/video.mp4',
+    );
+  });
+
+  it('does not delete raw when the raw object is already missing', async () => {
+    objectStorageService.objectExists.mockResolvedValue(false);
+    videoRepository.findById.mockResolvedValue(
+      buildVideo({ status: VideoStatus.PROCESSING }),
+    );
+
+    await useCase.execute({
+      eventId: 'event-1',
+      data: {
+        videoId: 'video-1',
+        masterPlaylistKey: 'processed/master.m3u8',
+        durationSeconds: 120,
+        thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
+        resolution: ['1080p'],
+      },
+    });
+
+    expect(videoRepository.save).toHaveBeenCalled();
+    expect(objectStorageService.objectExists).toHaveBeenCalledWith(
+      'raw',
+      'raw/video.mp4',
+    );
+    expect(objectStorageService.deleteObject).not.toHaveBeenCalled();
+  });
+
+  it('keeps the video ready when raw deletion fails', async () => {
+    objectStorageService.deleteObject.mockRejectedValue(new Error('MinIO down'));
+    videoRepository.findById.mockResolvedValue(
+      buildVideo({ status: VideoStatus.PROCESSING }),
+    );
+
+    await expect(
+      useCase.execute({
+        eventId: 'event-1',
+        data: {
+          videoId: 'video-1',
+          masterPlaylistKey: 'processed/master.m3u8',
+          durationSeconds: 120,
+          thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
+          resolution: ['1080p'],
+        },
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(videoRepository.save).toHaveBeenCalled();
+    const savedVideo = videoRepository.save.mock.calls[0][0] as VideoEntity;
+    expect(savedVideo.status).toBe(VideoStatus.READY);
+    expect(logger.logWarn).toHaveBeenCalledWith(
+      'Failed to delete processed video raw object',
+      {
+        videoId: 'video-1',
+        rawFileKey: 'raw/video.mp4',
+        error: 'MinIO down',
+      },
+    );
   });
 
   it.each([
@@ -98,6 +170,8 @@ describe('HandleVideoProcessedSuccessUseCase', () => {
       videoCacheInvalidator.invalidateDiscoveryLists,
     ).not.toHaveBeenCalled();
     expect(eligibilityService.syncChannelEligibility).not.toHaveBeenCalled();
+    expect(objectStorageService.objectExists).not.toHaveBeenCalled();
+    expect(objectStorageService.deleteObject).not.toHaveBeenCalled();
     expect(logger.logWarn).toHaveBeenCalledWith(
       'Ignoring stale video processed success event',
       {
@@ -128,6 +202,8 @@ describe('HandleVideoProcessedSuccessUseCase', () => {
     expect(
       videoCacheInvalidator.invalidateDiscoveryLists,
     ).not.toHaveBeenCalled();
+    expect(objectStorageService.objectExists).not.toHaveBeenCalled();
+    expect(objectStorageService.deleteObject).not.toHaveBeenCalled();
   });
 
   it('returns without side effects when video is missing', async () => {
@@ -150,6 +226,8 @@ describe('HandleVideoProcessedSuccessUseCase', () => {
       videoCacheInvalidator.invalidateDiscoveryLists,
     ).not.toHaveBeenCalled();
     expect(eligibilityService.syncChannelEligibility).not.toHaveBeenCalled();
+    expect(objectStorageService.objectExists).not.toHaveBeenCalled();
+    expect(objectStorageService.deleteObject).not.toHaveBeenCalled();
   });
 });
 
