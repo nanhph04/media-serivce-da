@@ -13,6 +13,11 @@ import {
 } from '../../../categories/domain/entities/category.entity';
 import { Tag, TagStatus } from '../../../tags/domain/entities/tag.entity';
 import { UpdateVideoMetadataUseCase } from './update-video-metadata.use-case';
+import {
+  ChannelEntity,
+  ChannelStatus,
+} from '../../../channels/domain/entities/channel.entity';
+import { MembershipTierEntity } from '../../../channels/domain/entities/membership-tier.entity';
 
 describe('UpdateVideoMetadataUseCase', () => {
   const videoRepository = {
@@ -28,11 +33,19 @@ describe('UpdateVideoMetadataUseCase', () => {
   const tagRepository = {
     findByIds: jest.fn(),
   };
+  const channelRepository = {
+    findById: jest.fn(),
+  };
+  const membershipTierRepository = {
+    findByChannelId: jest.fn(),
+  };
   const useCase = new UpdateVideoMetadataUseCase(
     videoRepository as never,
     videoCacheInvalidator as never,
     categoryRepository as never,
     tagRepository as never,
+    channelRepository as never,
+    membershipTierRepository as never,
   );
 
   beforeEach(() => {
@@ -44,6 +57,10 @@ describe('UpdateVideoMetadataUseCase', () => {
     videoRepository.findById.mockResolvedValue(video);
     videoRepository.save.mockResolvedValue(undefined);
     videoCacheInvalidator.invalidateMetadata.mockResolvedValue(undefined);
+    channelRepository.findById.mockResolvedValue(buildChannel());
+    membershipTierRepository.findByChannelId.mockResolvedValue([
+      buildMembershipTier(),
+    ]);
 
     const result = await useCase.execute({
       userId: 'owner-1',
@@ -59,6 +76,10 @@ describe('UpdateVideoMetadataUseCase', () => {
     );
     expect(result).toMatchObject({
       id: 'video-1',
+      channelId: 'channel-1',
+      channelName: 'Cinema Labs',
+      avatarUrlChannel: 'https://cdn.example.com/channel-avatar.jpg',
+      membershipTiers: [buildMembershipTier()],
       title: 'Updated Video',
       description: 'Updated description',
       categoryId: 'category-1',
@@ -72,6 +93,10 @@ describe('UpdateVideoMetadataUseCase', () => {
   it('returns category and tag ids with slug fields after updating metadata', async () => {
     const video = buildVideo();
     videoRepository.findById.mockResolvedValue(video);
+    channelRepository.findById.mockResolvedValue(buildChannel());
+    membershipTierRepository.findByChannelId.mockResolvedValue([
+      buildMembershipTier(),
+    ]);
     categoryRepository.findById.mockResolvedValue(
       new Category({
         id: 'category-2',
@@ -144,6 +169,10 @@ describe('UpdateVideoMetadataUseCase', () => {
     videoRepository.findById.mockResolvedValue(buildVideo());
     videoRepository.save.mockResolvedValue(undefined);
     videoCacheInvalidator.invalidateMetadata.mockResolvedValue(undefined);
+    channelRepository.findById.mockResolvedValue(buildChannel());
+    membershipTierRepository.findByChannelId.mockResolvedValue([
+      buildMembershipTier(),
+    ]);
 
     await expect(
       useCase.execute({
@@ -199,5 +228,34 @@ function buildVideo(): VideoEntity {
     publishedAt: new Date('2026-01-01T00:00:00.000Z'),
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
     updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+  });
+}
+
+function buildChannel(): ChannelEntity {
+  return new ChannelEntity({
+    id: 'channel-1',
+    userId: 'owner-1',
+    name: 'Cinema Labs',
+    bio: 'Short films',
+    avatarUrl: 'https://cdn.example.com/channel-avatar.jpg',
+    bannerUrl: '',
+    status: ChannelStatus.ACTIVE,
+    isEligibleForMembership: false,
+    isMembershipClosedByAdmin: false,
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+  });
+}
+
+function buildMembershipTier(): MembershipTierEntity {
+  return new MembershipTierEntity({
+    id: 'tier-1',
+    channelId: 'channel-1',
+    name: 'Supporter',
+    level: 1,
+    priceCoin: 100,
+    isAcceptingNew: true,
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    updatedAt: new Date('2026-01-02T00:00:00.000Z'),
   });
 }

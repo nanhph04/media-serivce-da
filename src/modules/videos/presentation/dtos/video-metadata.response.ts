@@ -11,9 +11,47 @@ class VideoModerationDetailsDto {
   evidenceTimestampSeconds!: number | null;
 }
 
+class VideoMetadataMembershipTierDto {
+  @ApiProperty()
+  id!: string;
+
+  @ApiProperty()
+  channelId!: string;
+
+  @ApiProperty()
+  name!: string;
+
+  @ApiProperty()
+  level!: number;
+
+  @ApiProperty()
+  priceCoin!: number;
+
+  @ApiProperty()
+  isAcceptingNew!: boolean;
+
+  @ApiProperty()
+  createdAt!: string;
+
+  @ApiProperty()
+  updatedAt!: string;
+}
+
 export class VideoMetadataResponseDto {
   @ApiProperty()
   id!: string;
+
+  @ApiProperty()
+  channelId!: string;
+
+  @ApiProperty()
+  channelName!: string;
+
+  @ApiProperty()
+  avatarUrlChannel!: string;
+
+  @ApiProperty({ type: [VideoMetadataMembershipTierDto] })
+  membershipTiers!: VideoMetadataMembershipTierDto[];
 
   @ApiProperty()
   title!: string;

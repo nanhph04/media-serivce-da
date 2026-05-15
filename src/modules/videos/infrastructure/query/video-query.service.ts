@@ -20,6 +20,8 @@ import {
   PublicChannelVideoSummary,
 } from '../../application/interfaces/video-query.service.interface';
 import type { SearchPublicVideosQuery } from '../../application/interfaces/video-search-query.service.interface';
+import { ChannelOrmEntity } from '../../../channels/infrastructure/persistence/channel.orm-entity';
+import { MembershipTierOrmEntity } from '../../../channels/infrastructure/persistence/membership-tier.orm-entity';
 import {
   type IVideoRepository,
   VIDEO_REPOSITORY,
@@ -44,8 +46,14 @@ type CachedVideoListItem = Omit<
 
 type CachedVideoMetadata = Omit<
   VideoMetadataResponse,
-  'publishedAt' | 'deletedAt' | 'updatedAt'
+  'membershipTiers' | 'publishedAt' | 'deletedAt' | 'updatedAt'
 > & {
+  membershipTiers: Array<
+    Omit<VideoMetadataResponse['membershipTiers'][number], 'createdAt' | 'updatedAt'> & {
+      createdAt: string;
+      updatedAt: string;
+    }
+  >;
   publishedAt: string | null;
   deletedAt: string | null;
   updatedAt: string;
@@ -58,6 +66,10 @@ export class VideoQueryService implements IVideoQueryService {
     private readonly videoRepository: IVideoRepository,
     @InjectRepository(VideoWatchProgressOrmEntity)
     private readonly watchProgressOrmRepository: Repository<VideoWatchProgressOrmEntity>,
+    @InjectRepository(ChannelOrmEntity)
+    private readonly channelOrmRepository: Repository<ChannelOrmEntity>,
+    @InjectRepository(MembershipTierOrmEntity)
+    private readonly membershipTierOrmRepository: Repository<MembershipTierOrmEntity>,
     private readonly cacheService: CacheService,
   ) {}
 
@@ -89,7 +101,7 @@ export class VideoQueryService implements IVideoQueryService {
     const cacheKey = VIDEO_CACHE_KEYS.metadata(videoId);
     const cached = await this.getCachedValue<CachedVideoMetadata>(cacheKey);
 
-    if (cached) {
+    if (cached && this.isCachedMetadataComplete(cached)) {
       return this.cachedMetadataToResponse(cached);
     }
 
@@ -103,8 +115,24 @@ export class VideoQueryService implements IVideoQueryService {
       throw new NotFoundException('Video not found');
     }
 
+    const channel = await this.channelOrmRepository.findOne({
+      where: { id: video.channelId },
+      select: { id: true, name: true, avatarUrl: true },
+    });
+    if (!channel) {
+      throw new NotFoundException('Video not found');
+    }
+    const membershipTiers = await this.membershipTierOrmRepository.find({
+      where: { channelId: video.channelId },
+      order: { level: 'ASC' },
+    });
+
     const response: VideoMetadataResponse = {
       id: video.id,
+      channelId: video.channelId,
+      channelName: channel.name,
+      avatarUrlChannel: channel.avatarUrl,
+      membershipTiers,
       title: video.title,
       description: video.description,
       categoryId: video.category.id,
@@ -377,6 +405,11 @@ export class VideoQueryService implements IVideoQueryService {
   ): CachedVideoMetadata {
     return {
       ...metadata,
+      membershipTiers: metadata.membershipTiers.map((tier) => ({
+        ...tier,
+        createdAt: tier.createdAt.toISOString(),
+        updatedAt: tier.updatedAt.toISOString(),
+      })),
       publishedAt: metadata.publishedAt?.toISOString() ?? null,
       deletedAt: metadata.deletedAt?.toISOString() ?? null,
       updatedAt: metadata.updatedAt.toISOString(),
@@ -388,6 +421,11 @@ export class VideoQueryService implements IVideoQueryService {
   ): VideoMetadataResponse {
     return {
       ...metadata,
+      membershipTiers: metadata.membershipTiers.map((tier) => ({
+        ...tier,
+        createdAt: new Date(tier.createdAt),
+        updatedAt: new Date(tier.updatedAt),
+      })),
       publishedAt: metadata.publishedAt ? new Date(metadata.publishedAt) : null,
       isDeleted: metadata.isDeleted ?? false,
       deletedAt: metadata.deletedAt ? new Date(metadata.deletedAt) : null,
@@ -395,6 +433,21 @@ export class VideoQueryService implements IVideoQueryService {
       deleteReason: metadata.deleteReason ?? null,
       updatedAt: new Date(metadata.updatedAt),
     };
+  }
+
+  private isCachedMetadataComplete(
+    metadata: CachedVideoMetadata,
+  ): metadata is CachedVideoMetadata & {
+    channelId: string;
+    channelName: string;
+    avatarUrlChannel: string;
+  } {
+    return (
+      typeof metadata.channelId === 'string' &&
+      typeof metadata.channelName === 'string' &&
+      typeof metadata.avatarUrlChannel === 'string' &&
+      Array.isArray(metadata.membershipTiers)
+    );
   }
 
   private toPagination(

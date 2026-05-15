@@ -28,6 +28,12 @@ describe('VideoQueryService', () => {
   const watchProgressOrmRepository = {
     createQueryBuilder,
   };
+  const channelOrmRepository = {
+    findOne: jest.fn(),
+  };
+  const membershipTierOrmRepository = {
+    find: jest.fn(),
+  };
   const cacheService = {
     get: jest.fn(),
     set: jest.fn(),
@@ -36,6 +42,8 @@ describe('VideoQueryService', () => {
   const service = new VideoQueryService(
     videoRepository as never,
     watchProgressOrmRepository as never,
+    channelOrmRepository as never,
+    membershipTierOrmRepository as never,
     cacheService as never,
   );
 
@@ -46,6 +54,10 @@ describe('VideoQueryService', () => {
   it('returns metadata from cache without querying database', async () => {
     cacheService.get.mockResolvedValue({
       id: 'video-1',
+      channelId: 'channel-1',
+      channelName: 'Cinema Labs',
+      avatarUrlChannel: 'https://cdn.example.com/channel-avatar.jpg',
+      membershipTiers: [buildCachedMembershipTier()],
       title: 'Cached Video',
       description: 'Cached description',
       categoryId: 'category-1',
@@ -69,6 +81,16 @@ describe('VideoQueryService', () => {
 
     expect(result).toEqual({
       id: 'video-1',
+      channelId: 'channel-1',
+      channelName: 'Cinema Labs',
+      avatarUrlChannel: 'https://cdn.example.com/channel-avatar.jpg',
+      membershipTiers: [
+        {
+          ...buildMembershipTier(),
+          createdAt: new Date('2026-01-01T00:00:00.000Z'),
+          updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+        },
+      ],
       title: 'Cached Video',
       description: 'Cached description',
       categoryId: 'category-1',
@@ -93,9 +115,15 @@ describe('VideoQueryService', () => {
   it('caches metadata on cache miss', async () => {
     cacheService.get.mockResolvedValue(null);
     videoRepository.findBasicById.mockResolvedValue(buildVideo());
+    channelOrmRepository.findOne.mockResolvedValue(buildChannelRow());
+    membershipTierOrmRepository.find.mockResolvedValue([buildMembershipTier()]);
 
     await expect(service.getVideoMetadata('video-1')).resolves.toEqual({
       id: 'video-1',
+      channelId: 'channel-1',
+      channelName: 'Cinema Labs',
+      avatarUrlChannel: 'https://cdn.example.com/channel-avatar.jpg',
+      membershipTiers: [buildMembershipTier()],
       title: 'Video',
       description: 'Description',
       thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
@@ -122,6 +150,10 @@ describe('VideoQueryService', () => {
       VIDEO_CACHE_KEYS.metadata('video-1'),
       {
         id: 'video-1',
+        channelId: 'channel-1',
+        channelName: 'Cinema Labs',
+        avatarUrlChannel: 'https://cdn.example.com/channel-avatar.jpg',
+        membershipTiers: [buildCachedMembershipTier()],
         title: 'Video',
         description: 'Description',
         categoryId: 'category-1',
@@ -163,6 +195,8 @@ describe('VideoQueryService', () => {
   it('falls back to database when metadata cache get fails', async () => {
     cacheService.get.mockRejectedValue(new Error('redis unavailable'));
     videoRepository.findBasicById.mockResolvedValue(buildVideo());
+    channelOrmRepository.findOne.mockResolvedValue(buildChannelRow());
+    membershipTierOrmRepository.find.mockResolvedValue([buildMembershipTier()]);
 
     await expect(service.getVideoMetadata('video-1')).resolves.toMatchObject({
       id: 'video-1',
@@ -174,6 +208,8 @@ describe('VideoQueryService', () => {
     cacheService.get.mockResolvedValue(null);
     cacheService.set.mockRejectedValue(new Error('redis unavailable'));
     videoRepository.findBasicById.mockResolvedValue(buildVideo());
+    channelOrmRepository.findOne.mockResolvedValue(buildChannelRow());
+    membershipTierOrmRepository.find.mockResolvedValue([buildMembershipTier()]);
 
     await expect(service.getVideoMetadata('video-1')).resolves.toMatchObject({
       id: 'video-1',
@@ -536,6 +572,57 @@ function buildCachedListItem(): {
     errorMessage: null,
     viewCount: 10,
     publishedAt: '2026-01-01T00:00:00.000Z',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-02T00:00:00.000Z',
+  };
+}
+
+function buildChannelRow(): {
+  id: string;
+  name: string;
+  avatarUrl: string;
+} {
+  return {
+    id: 'channel-1',
+    name: 'Cinema Labs',
+    avatarUrl: 'https://cdn.example.com/channel-avatar.jpg',
+  };
+}
+
+function buildMembershipTier(): {
+  id: string;
+  channelId: string;
+  name: string;
+  level: number;
+  priceCoin: number;
+  isAcceptingNew: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+} {
+  return {
+    id: 'tier-1',
+    channelId: 'channel-1',
+    name: 'Supporter',
+    level: 1,
+    priceCoin: 100,
+    isAcceptingNew: true,
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+  };
+}
+
+function buildCachedMembershipTier(): {
+  id: string;
+  channelId: string;
+  name: string;
+  level: number;
+  priceCoin: number;
+  isAcceptingNew: boolean;
+  createdAt: string;
+  updatedAt: string;
+} {
+  return {
+    ...buildMembershipTier(),
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-02T00:00:00.000Z',
   };

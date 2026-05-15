@@ -487,6 +487,19 @@ export class VideosController {
   ): VideoMetadataResponseDto {
     return {
       id: metadata.id,
+      channelId: metadata.channelId,
+      channelName: metadata.channelName,
+      avatarUrlChannel: metadata.avatarUrlChannel,
+      membershipTiers: metadata.membershipTiers.map((tier) => ({
+        id: tier.id,
+        channelId: tier.channelId,
+        name: tier.name,
+        level: tier.level,
+        priceCoin: tier.priceCoin,
+        isAcceptingNew: tier.isAcceptingNew,
+        createdAt: tier.createdAt.toISOString(),
+        updatedAt: tier.updatedAt.toISOString(),
+      })),
       title: metadata.title,
       description: metadata.description,
       categoryId: metadata.categoryId,

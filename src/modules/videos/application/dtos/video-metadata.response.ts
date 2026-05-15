@@ -2,10 +2,15 @@ import type {
   VideoStatus,
   VideoVisibility,
 } from '../../domain/entities/video.entity';
+import type { MembershipTierResponse } from '../../../channels/application/dtos/membership-tier.response';
 import type { VideoJobStatusFields } from './video-job-status';
 
 export interface VideoMetadataResponse extends VideoJobStatusFields {
   id: string;
+  channelId: string;
+  channelName: string;
+  avatarUrlChannel: string;
+  membershipTiers: MembershipTierResponse[];
   title: string;
   description: string;
   categoryId: string;

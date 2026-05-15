@@ -92,6 +92,21 @@ describe('VideosController', () => {
     expect(getVideoMetadataUseCase.execute).toHaveBeenCalledWith('video-1');
     expect(result).toEqual({
       id: 'video-1',
+      channelId: 'channel-1',
+      channelName: 'Cinema Labs',
+      avatarUrlChannel: 'https://cdn.example.com/channel-avatar.jpg',
+      membershipTiers: [
+        {
+          id: 'tier-1',
+          channelId: 'channel-1',
+          name: 'Supporter',
+          level: 1,
+          priceCoin: 100,
+          isAcceptingNew: true,
+          createdAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-02T00:00:00.000Z',
+        },
+      ],
       title: 'Video',
       description: 'Description',
       categoryId: 'category-1',
@@ -623,6 +638,19 @@ describe('VideosController', () => {
 
 function buildMetadata(): {
   id: string;
+  channelId: string;
+  channelName: string;
+  avatarUrlChannel: string;
+  membershipTiers: Array<{
+    id: string;
+    channelId: string;
+    name: string;
+    level: number;
+    priceCoin: number;
+    isAcceptingNew: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+  }>;
   title: string;
   description: string;
   categoryId: string;
@@ -647,6 +675,21 @@ function buildMetadata(): {
 } {
   return {
     id: 'video-1',
+    channelId: 'channel-1',
+    channelName: 'Cinema Labs',
+    avatarUrlChannel: 'https://cdn.example.com/channel-avatar.jpg',
+    membershipTiers: [
+      {
+        id: 'tier-1',
+        channelId: 'channel-1',
+        name: 'Supporter',
+        level: 1,
+        priceCoin: 100,
+        isAcceptingNew: true,
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+      },
+    ],
     title: 'Video',
     description: 'Description',
     categoryId: 'category-1',

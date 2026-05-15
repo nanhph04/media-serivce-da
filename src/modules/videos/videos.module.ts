@@ -2,6 +2,8 @@ import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CategoriesModule } from '../categories/categories.module';
 import { ChannelsModule } from '../channels/channels.module';
+import { ChannelOrmEntity } from '../channels/infrastructure/persistence/channel.orm-entity';
+import { MembershipTierOrmEntity } from '../channels/infrastructure/persistence/membership-tier.orm-entity';
 import { EngagementModule } from '../engagement/engagement.module';
 import { TagsModule } from '../tags/tags.module';
 import { ConfirmVideoUploadUseCase } from './application/use-cases/confirm-video-upload.use-case';
@@ -82,6 +84,8 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
       VideoTagOrmEntity,
       VideoPurchaseUnlockOrmEntity,
       VideoWatchProgressOrmEntity,
+      ChannelOrmEntity,
+      MembershipTierOrmEntity,
     ]),
     CategoriesModule,
     TagsModule,

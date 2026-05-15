@@ -18,6 +18,14 @@ import {
   TAG_REPOSITORY,
   type ITagRepository,
 } from '../../../tags/domain/repositories/tag.repository';
+import {
+  CHANNEL_REPOSITORY,
+  type IChannelRepository,
+} from '../../../channels/domain/repositories/channel.repository';
+import {
+  MEMBERSHIP_TIER_REPOSITORY,
+  type IMembershipTierRepository,
+} from '../../../channels/domain/repositories/membership-tier.repository';
 import type { UpdateVideoMetadataCommand } from '../dtos/update-video-metadata.command';
 import type { VideoMetadataResponse } from '../dtos/video-metadata.response';
 import { mapVideoStatusToJobFields } from '../dtos/video-job-status';
@@ -44,6 +52,10 @@ export class UpdateVideoMetadataUseCase extends BaseUseCase<
     private readonly categoryRepository: ICategoryRepository,
     @Inject(TAG_REPOSITORY)
     private readonly tagRepository: ITagRepository,
+    @Inject(CHANNEL_REPOSITORY)
+    private readonly channelRepository: IChannelRepository,
+    @Inject(MEMBERSHIP_TIER_REPOSITORY)
+    private readonly membershipTierRepository: IMembershipTierRepository,
   ) {
     super();
   }
@@ -74,8 +86,20 @@ export class UpdateVideoMetadataUseCase extends BaseUseCase<
     await this.videoRepository.save(video);
     await this.videoCacheInvalidator.invalidateMetadata(video.id);
 
+    const channel = await this.channelRepository.findById(video.channelId);
+    if (!channel) {
+      throw new NotFoundException('Channel not found');
+    }
+    const membershipTiers = await this.membershipTierRepository.findByChannelId(
+      video.channelId,
+    );
+
     return {
       id: video.id,
+      channelId: video.channelId,
+      channelName: channel.name,
+      avatarUrlChannel: channel.avatarUrl,
+      membershipTiers,
       title: video.title,
       description: video.description,
       categoryId: video.category.id,
