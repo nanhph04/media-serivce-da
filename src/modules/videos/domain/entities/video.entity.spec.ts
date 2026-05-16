@@ -29,6 +29,40 @@ describe('VideoEntity', () => {
     expect(video.statusChangedAt).toEqual(now);
   });
 
+  it('rejects a paid video price that is not divisible by 10', () => {
+    expect(() =>
+      VideoEntity.create({
+        channelId: 'channel-1',
+        ownerId: 'owner-1',
+        title: 'Video',
+        description: 'Description',
+        category: buildCategory(),
+        tags: [],
+        visibility: VideoVisibility.PUBLIC,
+        price: 15,
+        requiredTierLevel: null,
+        rawFileKey: 'raw/video.mp4',
+      }),
+    ).toThrow('Video price must be divisible by 10');
+  });
+
+  it('allows a paid video price that is divisible by 10', () => {
+    const video = VideoEntity.create({
+      channelId: 'channel-1',
+      ownerId: 'owner-1',
+      title: 'Video',
+      description: 'Description',
+      category: buildCategory(),
+      tags: [],
+      visibility: VideoVisibility.PUBLIC,
+      price: 100,
+      requiredTierLevel: null,
+      rawFileKey: 'raw/video.mp4',
+    });
+
+    expect(video.price).toBe(100);
+  });
+
   it('updates statusChangedAt when status changes', () => {
     const video = buildVideo({
       status: VideoStatus.PENDING_MODERATION,

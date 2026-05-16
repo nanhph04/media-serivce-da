@@ -428,6 +428,9 @@ export class VideoEntity {
     if (price < 0) {
       throw new BadRequestException('Video price cannot be negative');
     }
+    if (price > 0 && price % 10 !== 0) {
+      throw new BadRequestException('Video price must be divisible by 10');
+    }
     if (
       requiredTierLevel !== null &&
       (requiredTierLevel < 1 || requiredTierLevel > 3)
