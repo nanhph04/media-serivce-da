@@ -3,6 +3,13 @@ export enum ChannelMembershipStatus {
   CANCELLED = 'cancelled',
 }
 
+export enum ChannelMembershipRenewalStatus {
+  IDLE = 'idle',
+  PENDING = 'pending',
+  RETRYING = 'retrying',
+  DISABLED = 'disabled',
+}
+
 export interface ChannelMembershipProps {
   id: string;
   userId: string;
@@ -11,6 +18,11 @@ export interface ChannelMembershipProps {
   expiryDate: Date | null;
   retryCount: number;
   status: ChannelMembershipStatus;
+  autoRenewEnabled: boolean;
+  renewalStatus: ChannelMembershipRenewalStatus;
+  renewalReminderSentAt: Date | null;
+  lastRenewalAttemptAt: Date | null;
+  nextRenewalAttemptAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -50,6 +62,26 @@ export class ChannelMembershipEntity {
     return this.props.status;
   }
 
+  get autoRenewEnabled(): boolean {
+    return this.props.autoRenewEnabled;
+  }
+
+  get renewalStatus(): ChannelMembershipRenewalStatus {
+    return this.props.renewalStatus;
+  }
+
+  get renewalReminderSentAt(): Date | null {
+    return this.props.renewalReminderSentAt;
+  }
+
+  get lastRenewalAttemptAt(): Date | null {
+    return this.props.lastRenewalAttemptAt;
+  }
+
+  get nextRenewalAttemptAt(): Date | null {
+    return this.props.nextRenewalAttemptAt;
+  }
+
   get createdAt(): Date {
     return this.props.createdAt;
   }
@@ -72,6 +104,11 @@ export class ChannelMembershipEntity {
       expiryDate: input.expiryDate,
       retryCount: 0,
       status: ChannelMembershipStatus.ACTIVE,
+      autoRenewEnabled: true,
+      renewalStatus: ChannelMembershipRenewalStatus.IDLE,
+      renewalReminderSentAt: null,
+      lastRenewalAttemptAt: null,
+      nextRenewalAttemptAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -82,6 +119,9 @@ export class ChannelMembershipEntity {
       return;
     }
     this.props.status = ChannelMembershipStatus.CANCELLED;
+    this.props.autoRenewEnabled = false;
+    this.props.renewalStatus = ChannelMembershipRenewalStatus.DISABLED;
+    this.props.nextRenewalAttemptAt = null;
     this.props.updatedAt = new Date();
   }
 
@@ -90,6 +130,8 @@ export class ChannelMembershipEntity {
       return;
     }
     this.props.status = ChannelMembershipStatus.ACTIVE;
+    this.props.autoRenewEnabled = true;
+    this.props.renewalStatus = ChannelMembershipRenewalStatus.IDLE;
     this.props.updatedAt = new Date();
   }
 
@@ -104,6 +146,56 @@ export class ChannelMembershipEntity {
     this.props.membershipId = input.membershipId;
     this.props.expiryDate = input.expiryDate;
     this.props.status = ChannelMembershipStatus.ACTIVE;
+    this.props.autoRenewEnabled = true;
+    this.props.retryCount = 0;
+    this.props.renewalStatus = ChannelMembershipRenewalStatus.IDLE;
+    this.props.renewalReminderSentAt = null;
+    this.props.lastRenewalAttemptAt = null;
+    this.props.nextRenewalAttemptAt = null;
+    this.props.updatedAt = new Date();
+  }
+
+  public setAutoRenewEnabled(enabled: boolean): void {
+    this.props.autoRenewEnabled = enabled;
+    this.props.renewalStatus = enabled
+      ? ChannelMembershipRenewalStatus.IDLE
+      : ChannelMembershipRenewalStatus.DISABLED;
+    this.props.nextRenewalAttemptAt = null;
+    this.props.updatedAt = new Date();
+  }
+
+  public markRenewalReminderSent(sentAt: Date): void {
+    this.props.renewalReminderSentAt = sentAt;
+    this.props.updatedAt = new Date();
+  }
+
+  public markRenewalRequested(requestedAt: Date): void {
+    this.props.renewalStatus = ChannelMembershipRenewalStatus.PENDING;
+    this.props.lastRenewalAttemptAt = requestedAt;
+    this.props.nextRenewalAttemptAt = null;
+    this.props.updatedAt = new Date();
+  }
+
+  public markRenewalFailed(input: {
+    attemptedAt: Date;
+    maxRetryCount: number;
+    retryDelayHours: number;
+  }): void {
+    this.props.retryCount += 1;
+    this.props.lastRenewalAttemptAt = input.attemptedAt;
+
+    if (this.props.retryCount >= input.maxRetryCount) {
+      this.props.autoRenewEnabled = false;
+      this.props.renewalStatus = ChannelMembershipRenewalStatus.DISABLED;
+      this.props.nextRenewalAttemptAt = null;
+      this.props.updatedAt = new Date();
+      return;
+    }
+
+    this.props.renewalStatus = ChannelMembershipRenewalStatus.RETRYING;
+    this.props.nextRenewalAttemptAt = new Date(
+      input.attemptedAt.getTime() + input.retryDelayHours * 60 * 60 * 1000,
+    );
     this.props.updatedAt = new Date();
   }
 

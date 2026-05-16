@@ -3,34 +3,36 @@ import type { IIntegrationEvent } from '@shared/domain/types/events/base-integra
 import { ConfigService } from '@shared/infrastructure/config/config.service';
 import { KAFKA_SERVICE } from '@shared/infrastructure/messaging/kafka.constants';
 import { KafkaService } from '@shared/infrastructure/messaging/kafka.service';
-import { HandleMembershipPaymentSuccessUseCase } from '../../application/use-cases/handle-membership-payment-success.use-case';
+import { HandleMembershipAutoRenewFailedUseCase } from '../../application/use-cases/handle-membership-auto-renew-failed.use-case';
+
+interface MembershipAutoRenewFailedEventData {
+  membershipRecordId: string;
+  userId: string;
+  channelId: string;
+  membershipTierId: string;
+  reasonCode: string;
+  retryable: boolean;
+  idempotencyKey: string;
+}
 
 @Injectable()
-export class MembershipPaymentConsumer implements OnModuleInit {
+export class MembershipAutoRenewFailedConsumer implements OnModuleInit {
   constructor(
     private readonly configService: ConfigService,
     @Inject(KAFKA_SERVICE) private readonly kafkaService: KafkaService,
-    private readonly handleMembershipPaymentSuccessUseCase: HandleMembershipPaymentSuccessUseCase,
+    private readonly handleMembershipAutoRenewFailedUseCase: HandleMembershipAutoRenewFailedUseCase,
   ) {}
 
   async onModuleInit(): Promise<void> {
     await this.kafkaService.on<
-      IIntegrationEvent<{
-        userId: string;
-        channelId: string;
-        membershipTierId: string;
-        paymentType?: 'new' | 'renew' | 'upgrade';
-        chargedCoinAmount?: number | null;
-        ledgerReferenceId?: string | null;
-        expiryDate?: string | null;
-      }>
+      IIntegrationEvent<MembershipAutoRenewFailedEventData>
     >(
       this.configService.get<string>(
-        'KAFKA_MEMBERSHIP_PAYMENT_SUCCESS_TOPIC',
-        'membership.payment.success',
+        'KAFKA_MEMBERSHIP_AUTO_RENEW_FAILED_TOPIC',
+        'membership.auto_renew.failed',
       ),
       async ({ value }) => {
-        await this.handleMembershipPaymentSuccessUseCase.execute({
+        await this.handleMembershipAutoRenewFailedUseCase.execute({
           eventId: value.eventId,
           data: value.data,
         });

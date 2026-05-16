@@ -1,11 +1,22 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiHeader, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ApiResponse } from '@shared/presentation/dto/api-response.dto';
 import { CurrentUserId } from '@shared/presentation/decorators/user-id.decorator';
 import { ApiSuccessResponse } from '@shared/presentation/decorators/api-success-response.decorator';
 import { InternalGatewayGuard } from '@shared/presentation/guards/internal-gateway.guard';
 import { GetMyMembershipsUseCase } from '../../application/use-cases/get-my-memberships.use-case';
+import { UpdateMembershipAutoRenewUseCase } from '../../application/use-cases/update-membership-auto-renew.use-case';
+import { ChannelMembershipResponseDto } from '../dtos/channel-membership.response';
 import { MyMembershipItemResponseDto } from '../dtos/my-membership-item.response';
+import { UpdateMembershipAutoRenewRequestDto } from '../dtos/update-membership-auto-renew.request';
 import { toMyMembershipItemResponseDto } from '../mappers/channel-response.mapper';
 
 @ApiTags('memberships')
@@ -15,6 +26,7 @@ import { toMyMembershipItemResponseDto } from '../mappers/channel-response.mappe
 export class MembershipController {
   constructor(
     private readonly getMyMembershipsUseCase: GetMyMembershipsUseCase,
+    private readonly updateMembershipAutoRenewUseCase: UpdateMembershipAutoRenewUseCase,
   ) {}
 
   @Get('me')
@@ -36,6 +48,24 @@ export class MembershipController {
       result.items.map(toMyMembershipItemResponseDto),
       undefined,
       result.pagination,
+    );
+  }
+
+  @Patch(':membershipId/auto-renew')
+  @ApiSuccessResponse(ChannelMembershipResponseDto)
+  async updateAutoRenew(
+    @CurrentUserId() userId: string,
+    @Param('membershipId') membershipId: string,
+    @Body() dto: UpdateMembershipAutoRenewRequestDto,
+  ): Promise<ApiResponse<ChannelMembershipResponseDto>> {
+    const membership = await this.updateMembershipAutoRenewUseCase.execute({
+      userId,
+      membershipId,
+      enabled: dto.enabled,
+    });
+
+    return ApiResponse.success(
+      ChannelMembershipResponseDto.fromApplicationDto(membership),
     );
   }
 

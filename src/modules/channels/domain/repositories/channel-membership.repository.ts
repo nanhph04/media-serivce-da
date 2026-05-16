@@ -19,5 +19,14 @@ export interface IChannelMembershipRepository {
     userId: string,
     channelId: string,
   ): Promise<ChannelMembershipEntity | null>;
+  findDueRenewalReminders(input: {
+    now: Date;
+    reminderBefore: Date;
+    limit: number;
+  }): Promise<ChannelMembershipEntity[]>;
+  findDueRenewals(input: {
+    now: Date;
+    limit: number;
+  }): Promise<ChannelMembershipEntity[]>;
   upsert(membership: ChannelMembershipEntity): Promise<void>;
 }

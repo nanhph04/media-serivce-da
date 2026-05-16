@@ -7,6 +7,7 @@ import {
   Index,
 } from 'typeorm';
 import { ChannelMembershipStatus } from '../../domain/entities/channel-membership.entity';
+import { ChannelMembershipRenewalStatus } from '../../domain/entities/channel-membership.entity';
 
 @Entity('channel_memberships')
 @Index(['userId', 'channelId'], { unique: true })
@@ -31,6 +32,38 @@ export class ChannelMembershipOrmEntity {
 
   @Column({ type: 'enum', enum: ChannelMembershipStatus })
   status!: ChannelMembershipStatus;
+
+  @Column({ type: 'boolean', name: 'auto_renew_enabled', default: true })
+  autoRenewEnabled!: boolean;
+
+  @Column({
+    type: 'enum',
+    enum: ChannelMembershipRenewalStatus,
+    name: 'renewal_status',
+    default: ChannelMembershipRenewalStatus.IDLE,
+  })
+  renewalStatus!: ChannelMembershipRenewalStatus;
+
+  @Column({
+    type: 'timestamp',
+    name: 'renewal_reminder_sent_at',
+    nullable: true,
+  })
+  renewalReminderSentAt!: Date | null;
+
+  @Column({
+    type: 'timestamp',
+    name: 'last_renewal_attempt_at',
+    nullable: true,
+  })
+  lastRenewalAttemptAt!: Date | null;
+
+  @Column({
+    type: 'timestamp',
+    name: 'next_renewal_attempt_at',
+    nullable: true,
+  })
+  nextRenewalAttemptAt!: Date | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

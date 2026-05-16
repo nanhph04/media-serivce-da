@@ -1,5 +1,6 @@
 import {
   ChannelMembershipEntity,
+  ChannelMembershipRenewalStatus,
   ChannelMembershipStatus,
   type ChannelMembershipProps,
 } from '../../domain/entities/channel-membership.entity';
@@ -15,6 +16,12 @@ export class ChannelMembershipMapper {
       expiryDate: ormEntity.expiryDate,
       retryCount: ormEntity.retryCount,
       status: ormEntity.status,
+      autoRenewEnabled: ormEntity.autoRenewEnabled ?? true,
+      renewalStatus:
+        ormEntity.renewalStatus ?? ChannelMembershipRenewalStatus.IDLE,
+      renewalReminderSentAt: ormEntity.renewalReminderSentAt ?? null,
+      lastRenewalAttemptAt: ormEntity.lastRenewalAttemptAt ?? null,
+      nextRenewalAttemptAt: ormEntity.nextRenewalAttemptAt ?? null,
       createdAt: ormEntity.createdAt,
       updatedAt: ormEntity.updatedAt,
     };
@@ -33,6 +40,11 @@ export class ChannelMembershipMapper {
       existing.expiryDate = domainEntity.expiryDate;
       existing.retryCount = domainEntity.retryCount;
       existing.status = domainEntity.status;
+      existing.autoRenewEnabled = domainEntity.autoRenewEnabled;
+      existing.renewalStatus = domainEntity.renewalStatus;
+      existing.renewalReminderSentAt = domainEntity.renewalReminderSentAt;
+      existing.lastRenewalAttemptAt = domainEntity.lastRenewalAttemptAt;
+      existing.nextRenewalAttemptAt = domainEntity.nextRenewalAttemptAt;
       existing.updatedAt = domainEntity.updatedAt;
       return existing;
     }
@@ -45,6 +57,11 @@ export class ChannelMembershipMapper {
     ormEntity.expiryDate = domainEntity.expiryDate;
     ormEntity.retryCount = domainEntity.retryCount;
     ormEntity.status = domainEntity.status;
+    ormEntity.autoRenewEnabled = domainEntity.autoRenewEnabled;
+    ormEntity.renewalStatus = domainEntity.renewalStatus;
+    ormEntity.renewalReminderSentAt = domainEntity.renewalReminderSentAt;
+    ormEntity.lastRenewalAttemptAt = domainEntity.lastRenewalAttemptAt;
+    ormEntity.nextRenewalAttemptAt = domainEntity.nextRenewalAttemptAt;
     ormEntity.createdAt = domainEntity.createdAt;
     ormEntity.updatedAt = domainEntity.updatedAt;
     return ormEntity;

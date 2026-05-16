@@ -16,7 +16,11 @@ import { GetMembershipTierUseCase } from './application/use-cases/get-membership
 import { UpdateMembershipTierUseCase } from './application/use-cases/update-membership-tier.use-case';
 import { DisableMembershipTierUseCase } from './application/use-cases/disable-membership-tier.use-case';
 import { HandleMembershipPaymentSuccessUseCase } from './application/use-cases/handle-membership-payment-success.use-case';
+import { HandleMembershipAutoRenewFailedUseCase } from './application/use-cases/handle-membership-auto-renew-failed.use-case';
 import { ModerateChannelMembershipUseCase } from './application/use-cases/moderate-channel-membership.use-case';
+import { RequestDueMembershipRenewalsUseCase } from './application/use-cases/request-due-membership-renewals.use-case';
+import { SendDueMembershipRenewalRemindersUseCase } from './application/use-cases/send-due-membership-renewal-reminders.use-case';
+import { UpdateMembershipAutoRenewUseCase } from './application/use-cases/update-membership-auto-renew.use-case';
 import { ListAdminChannelsUseCase } from './application/use-cases/list-admin-channels.use-case';
 import { ListMembershipReviewsUseCase } from './application/use-cases/list-membership-reviews.use-case';
 import { ReviewChannelMembershipUseCase } from './application/use-cases/review-channel-membership.use-case';
@@ -34,7 +38,10 @@ import { MembershipTierOrmEntity } from './infrastructure/persistence/membership
 import { MembershipTierRepositoryImpl } from './infrastructure/persistence/membership-tier.repository.impl';
 import { ChannelMembershipMapper } from './infrastructure/mappers/channel-membership.mapper';
 import { MembershipPaymentConsumer } from './infrastructure/consumers/membership-payment.consumer';
+import { MembershipAutoRenewFailedConsumer } from './infrastructure/consumers/membership-auto-renew-failed.consumer';
+import { MembershipAutoRenewPublisher } from './infrastructure/messaging/membership-auto-renew.publisher';
 import { MembershipCoinCompensationPublisher } from './infrastructure/messaging/membership-coin-compensation.publisher';
+import { MembershipAutoRenewScheduler } from './infrastructure/services/membership-auto-renew.scheduler';
 import { ChannelCreationTransactionService } from './infrastructure/persistence/channel-creation-transaction.service';
 import { ChannelSearchQueryService } from './infrastructure/query/channel-search-query.service';
 import { UserMembershipQueryService } from './infrastructure/query/user-membership-query.service';
@@ -49,6 +56,7 @@ import { CHANNEL_REPOSITORY } from './domain/repositories/channel.repository';
 import { CHANNEL_MEMBERSHIP_REPOSITORY } from './domain/repositories/channel-membership.repository';
 import { MEMBERSHIP_TIER_REPOSITORY } from './domain/repositories/membership-tier.repository';
 import { MEMBERSHIP_COIN_COMPENSATION_PUBLISHER } from './application/interfaces/membership-coin-compensation.publisher.interface';
+import { MEMBERSHIP_AUTO_RENEW_PUBLISHER } from './application/interfaces/membership-auto-renew.publisher.interface';
 import { USER_MEMBERSHIP_QUERY_SERVICE } from './application/interfaces/user-membership-query.service.interface';
 import { CHANNEL_CREATION_TRANSACTION } from './application/interfaces/channel-creation-transaction.interface';
 
@@ -92,13 +100,20 @@ import { CHANNEL_CREATION_TRANSACTION } from './application/interfaces/channel-c
     UpdateMembershipTierUseCase,
     DisableMembershipTierUseCase,
     HandleMembershipPaymentSuccessUseCase,
+    HandleMembershipAutoRenewFailedUseCase,
     ModerateChannelMembershipUseCase,
+    RequestDueMembershipRenewalsUseCase,
+    SendDueMembershipRenewalRemindersUseCase,
+    UpdateMembershipAutoRenewUseCase,
     ListAdminChannelsUseCase,
     ListMembershipReviewsUseCase,
     ReviewChannelMembershipUseCase,
     GetAdminChannelSummaryUseCase,
     MembershipPaymentConsumer,
+    MembershipAutoRenewFailedConsumer,
+    MembershipAutoRenewPublisher,
     MembershipCoinCompensationPublisher,
+    MembershipAutoRenewScheduler,
     {
       provide: CHANNEL_REPOSITORY,
       useExisting: ChannelRepositoryImpl,
@@ -142,6 +157,10 @@ import { CHANNEL_CREATION_TRANSACTION } from './application/interfaces/channel-c
     {
       provide: MEMBERSHIP_COIN_COMPENSATION_PUBLISHER,
       useExisting: MembershipCoinCompensationPublisher,
+    },
+    {
+      provide: MEMBERSHIP_AUTO_RENEW_PUBLISHER,
+      useExisting: MembershipAutoRenewPublisher,
     },
   ],
   exports: [

@@ -273,6 +273,43 @@
     - `membershipRejectionReason` (string | null)
     - `membershipRequestedAt` (string ISO | null)
     - `membershipReviewedAt` (string ISO | null)
+
+### 2.7 PATCH `/api/media/memberships/:membershipId/auto-renew`
+
+- Muc dich: user bat/tat tu dong gia han membership cua minh.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-internal-secret`: He thong tu set
+- Path param:
+  - `membershipId` (string): id cua membership record, khong phai tier id.
+- Body:
+
+```json
+{
+  "enabled": true
+}
+```
+
+- Ghi chu:
+  - Chi owner cua membership moi duoc cap nhat.
+  - Khi user tat auto-renew, membership hien tai van giu quyen truy cap den `expiryDate`.
+  - Membership moi/gia han thanh cong se bat auto-renew mac dinh.
+- Response HTTP 200:
+  - Envelope `data`:
+    - `id` (string)
+    - `userId` (string)
+    - `channelId` (string)
+    - `membershipId` (string): tier id dang gan voi membership
+    - `expiryDate` (string ISO | null)
+    - `retryCount` (number)
+    - `status` (`active` | `cancelled`)
+    - `autoRenewEnabled` (boolean)
+    - `renewalStatus` (`idle` | `pending` | `retrying` | `disabled`)
+    - `renewalReminderSentAt` (string ISO | null)
+    - `lastRenewalAttemptAt` (string ISO | null)
+    - `nextRenewalAttemptAt` (string ISO | null)
+    - `createdAt` (string ISO)
+    - `updatedAt` (string ISO)
     - `avatarUrl` (string)
     - `bannerUrl` (string)
     - `status` (string)

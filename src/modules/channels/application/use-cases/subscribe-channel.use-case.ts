@@ -52,6 +52,11 @@ export class SubscribeChannelUseCase extends BaseUseCase<
         expiryDate: existingSubscription.expiryDate,
         retryCount: existingSubscription.retryCount,
         status: existingSubscription.status,
+        autoRenewEnabled: existingSubscription.autoRenewEnabled,
+        renewalStatus: existingSubscription.renewalStatus,
+        renewalReminderSentAt: existingSubscription.renewalReminderSentAt,
+        lastRenewalAttemptAt: existingSubscription.lastRenewalAttemptAt,
+        nextRenewalAttemptAt: existingSubscription.nextRenewalAttemptAt,
         createdAt: existingSubscription.createdAt,
         updatedAt: existingSubscription.updatedAt,
       };
@@ -76,6 +81,11 @@ export class SubscribeChannelUseCase extends BaseUseCase<
       expiryDate: membership.expiryDate,
       retryCount: membership.retryCount,
       status: membership.status,
+      autoRenewEnabled: membership.autoRenewEnabled,
+      renewalStatus: membership.renewalStatus,
+      renewalReminderSentAt: membership.renewalReminderSentAt,
+      lastRenewalAttemptAt: membership.lastRenewalAttemptAt,
+      nextRenewalAttemptAt: membership.nextRenewalAttemptAt,
       createdAt: membership.createdAt,
       updatedAt: membership.updatedAt,
     };

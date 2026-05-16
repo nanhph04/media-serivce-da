@@ -1,39 +1,44 @@
-import type { IChannelMembershipRepository } from '../../domain/repositories/channel-membership.repository';
-import { UnsubscribeChannelCommand } from '../dtos/subscribe-channel.command';
-import type { ChannelMembershipResponse } from '../dtos/channel-membership.response';
+import { Inject, Injectable } from '@nestjs/common';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import {
-  BadRequestException,
+  ForbiddenException,
   NotFoundException,
 } from '@shared/domain/exceptions/domain.exception';
+import {
+  CHANNEL_MEMBERSHIP_REPOSITORY,
+  type IChannelMembershipRepository,
+} from '../../domain/repositories/channel-membership.repository';
+import type { ChannelMembershipResponse } from '../dtos/channel-membership.response';
+import type { UpdateMembershipAutoRenewCommand } from '../dtos/update-membership-auto-renew.command';
 
-export class UnsubscribeChannelUseCase extends BaseUseCase<
-  UnsubscribeChannelCommand,
+@Injectable()
+export class UpdateMembershipAutoRenewUseCase extends BaseUseCase<
+  UpdateMembershipAutoRenewCommand,
   ChannelMembershipResponse
 > {
   constructor(
+    @Inject(CHANNEL_MEMBERSHIP_REPOSITORY)
     private readonly membershipRepository: IChannelMembershipRepository,
   ) {
     super();
   }
 
   async execute(
-    command: UnsubscribeChannelCommand,
+    command: UpdateMembershipAutoRenewCommand,
   ): Promise<ChannelMembershipResponse> {
-    const membership = await this.membershipRepository.findByUserIdAndChannelId(
-      command.userId,
-      command.channelId,
+    const membership = await this.membershipRepository.findById(
+      command.membershipId,
     );
 
     if (!membership) {
       throw new NotFoundException('Membership not found');
     }
 
-    if (!membership.isActive()) {
-      throw new BadRequestException('Already unsubscribed from this channel');
+    if (membership.userId !== command.userId) {
+      throw new ForbiddenException('You do not own this membership');
     }
 
-    membership.cancel();
+    membership.setAutoRenewEnabled(command.enabled);
     await this.membershipRepository.update(membership);
 
     return {

@@ -134,6 +134,7 @@ POST   /api/media/channels/:channelId/membership-tiers
 PATCH  /api/media/channels/:channelId/membership-tiers/:tierId
 DELETE /api/media/channels/:channelId/membership-tiers/:tierId
 GET    /api/media/memberships/me
+PATCH  /api/media/memberships/:membershipId/auto-renew
 GET    /api/media/videos/me
 POST   /api/media/videos/init-upload
 POST   /api/media/videos/:id/confirm-upload

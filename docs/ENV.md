@@ -1,0 +1,25 @@
+MEDIA SERVICE ENV
+=================
+
+Membership auto-renew:
+
+```text
+MEMBERSHIP_AUTO_RENEW_ENABLED=true
+MEMBERSHIP_RENEW_REMINDER_HOURS=24
+MEMBERSHIP_RENEW_BATCH_SIZE=100
+MEMBERSHIP_RENEW_MAX_RETRY=3
+MEMBERSHIP_RENEW_RETRY_DELAY_HOURS=12
+MEMBERSHIP_RENEW_INTERVAL_MS=300000
+```
+
+Kafka topics used by membership auto-renew:
+
+```text
+KAFKA_MEMBERSHIP_PAYMENT_SUCCESS_TOPIC=membership.payment.success
+KAFKA_MEMBERSHIP_AUTO_RENEW_REMINDER_REQUESTED_TOPIC=membership.auto_renew.reminder_requested
+KAFKA_MEMBERSHIP_AUTO_RENEW_REQUESTED_TOPIC=membership.auto_renew.requested
+KAFKA_MEMBERSHIP_AUTO_RENEW_FAILED_TOPIC=membership.auto_renew.failed
+```
+
+When `KAFKA_AUTO_CREATE_TOPICS=true`, include these topics in
+`KAFKA_TOPICS_TO_CREATE`.

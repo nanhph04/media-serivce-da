@@ -142,7 +142,7 @@ export class HandleMembershipPaymentSuccessUseCase extends BaseUseCase<
       userId: command.data.userId,
       channelId: command.data.channelId,
       membershipTierId: command.data.membershipTierId,
-      paymentType: command.data.paymentType,
+      paymentType: command.data.paymentType ?? 'new',
       chargedCoinAmount: command.data.chargedCoinAmount ?? null,
       ledgerReferenceId: command.data.ledgerReferenceId ?? null,
       reasonCode,

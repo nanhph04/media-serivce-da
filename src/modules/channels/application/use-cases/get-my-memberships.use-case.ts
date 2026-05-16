@@ -8,7 +8,10 @@ import {
   type IUserMembershipQueryService,
 } from '../interfaces/user-membership-query.service.interface';
 import { resolveMembershipState } from '../services/membership-state.service';
-import { ChannelMembershipEntity } from '../../domain/entities/channel-membership.entity';
+import {
+  ChannelMembershipEntity,
+  ChannelMembershipRenewalStatus,
+} from '../../domain/entities/channel-membership.entity';
 
 @Injectable()
 export class GetMyMembershipsUseCase extends BaseUseCase<
@@ -67,6 +70,11 @@ export class GetMyMembershipsUseCase extends BaseUseCase<
       expiryDate: item.expiryDate,
       retryCount: 0,
       status: item.status,
+      autoRenewEnabled: true,
+      renewalStatus: ChannelMembershipRenewalStatus.IDLE,
+      renewalReminderSentAt: null,
+      lastRenewalAttemptAt: null,
+      nextRenewalAttemptAt: null,
       createdAt: item.startedAt,
       updatedAt: item.startedAt,
     });

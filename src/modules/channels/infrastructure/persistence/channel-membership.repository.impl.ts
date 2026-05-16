@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Equal, Repository } from 'typeorm';
+import { Brackets, Equal, IsNull, LessThanOrEqual, Repository } from 'typeorm';
 import type { IChannelMembershipRepository } from '../../domain/repositories/channel-membership.repository';
 import {
   ChannelMembershipEntity,
+  ChannelMembershipRenewalStatus,
   ChannelMembershipStatus,
 } from '../../domain/entities/channel-membership.entity';
 import { ChannelMembershipOrmEntity } from './channel-membership.orm-entity';
@@ -106,5 +107,70 @@ export class ChannelMembershipRepositoryImpl implements IChannelMembershipReposi
     }
     const domain = this.mapper.toDomain(ormEntity);
     return domain.isCurrentlyActive() ? domain : null;
+  }
+
+  async findDueRenewalReminders(input: {
+    now: Date;
+    reminderBefore: Date;
+    limit: number;
+  }): Promise<ChannelMembershipEntity[]> {
+    const ormEntities = await this.ormRepository.find({
+      where: {
+        status: ChannelMembershipStatus.ACTIVE,
+        autoRenewEnabled: true,
+        renewalStatus: ChannelMembershipRenewalStatus.IDLE,
+        renewalReminderSentAt: IsNull(),
+        expiryDate: LessThanOrEqual(input.reminderBefore),
+      },
+      order: { expiryDate: 'ASC' },
+      take: input.limit,
+    });
+
+    return ormEntities
+      .filter(
+        (ormEntity) =>
+          ormEntity.expiryDate !== null &&
+          ormEntity.expiryDate.getTime() > input.now.getTime(),
+      )
+      .map((ormEntity) => this.mapper.toDomain(ormEntity));
+  }
+
+  async findDueRenewals(input: {
+    now: Date;
+    limit: number;
+  }): Promise<ChannelMembershipEntity[]> {
+    const ormEntities = await this.ormRepository
+      .createQueryBuilder('membership')
+      .where('membership.status = :status', {
+        status: ChannelMembershipStatus.ACTIVE,
+      })
+      .andWhere('membership.autoRenewEnabled = :autoRenewEnabled', {
+        autoRenewEnabled: true,
+      })
+      .andWhere('membership.expiryDate IS NOT NULL')
+      .andWhere(
+        new Brackets((query) => {
+          query
+            .where(
+              'membership.renewalStatus = :idleStatus AND membership.expiryDate <= :now',
+              {
+                idleStatus: ChannelMembershipRenewalStatus.IDLE,
+                now: input.now,
+              },
+            )
+            .orWhere(
+              'membership.renewalStatus = :retryingStatus AND membership.nextRenewalAttemptAt <= :now',
+              {
+                retryingStatus: ChannelMembershipRenewalStatus.RETRYING,
+                now: input.now,
+              },
+            );
+        }),
+      )
+      .orderBy('membership.expiryDate', 'ASC')
+      .take(input.limit)
+      .getMany();
+
+    return ormEntities.map((ormEntity) => this.mapper.toDomain(ormEntity));
   }
 }
