@@ -1,7 +1,6 @@
 import type { StudioVideoListItemResponse } from './studio-video-list-item.response';
 
-export interface AdminVideoListItemResponse
-  extends StudioVideoListItemResponse {
+export interface AdminVideoListItemResponse extends StudioVideoListItemResponse {
   ownerId: string;
 }
 
@@ -14,3 +13,5 @@ export interface AdminVideosPageResponse {
     totalPages: number;
   };
 }
+
+export type AdminVideoDetailResponse = AdminVideoListItemResponse;

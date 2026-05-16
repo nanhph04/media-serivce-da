@@ -15,7 +15,7 @@ class VideoModerationDetailsDto {
   evidenceTimestampSeconds!: number | null;
 }
 
-class AdminVideoListItemResponseDto {
+export class AdminVideoListItemResponseDto {
   @ApiProperty()
   id!: string;
 

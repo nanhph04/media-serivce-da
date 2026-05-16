@@ -10,12 +10,14 @@ import { GetChannelDetailUseCase } from './application/use-cases/get-channel-det
 import { GetMembershipStatusUseCase } from './application/use-cases/get-membership-status.use-case';
 import { GetMyMembershipsUseCase } from './application/use-cases/get-my-memberships.use-case';
 import { CreateMembershipTierUseCase } from './application/use-cases/create-membership-tier.use-case';
+import { AdminLockChannelUseCase } from './application/use-cases/admin-lock-channel.use-case';
 import { GetMembershipTiersUseCase } from './application/use-cases/get-membership-tiers.use-case';
 import { GetMembershipTierUseCase } from './application/use-cases/get-membership-tier.use-case';
 import { UpdateMembershipTierUseCase } from './application/use-cases/update-membership-tier.use-case';
 import { DisableMembershipTierUseCase } from './application/use-cases/disable-membership-tier.use-case';
 import { HandleMembershipPaymentSuccessUseCase } from './application/use-cases/handle-membership-payment-success.use-case';
 import { ModerateChannelMembershipUseCase } from './application/use-cases/moderate-channel-membership.use-case';
+import { ListAdminChannelsUseCase } from './application/use-cases/list-admin-channels.use-case';
 import { ListMembershipReviewsUseCase } from './application/use-cases/list-membership-reviews.use-case';
 import { ReviewChannelMembershipUseCase } from './application/use-cases/review-channel-membership.use-case';
 import { GetAdminChannelSummaryUseCase } from './application/use-cases/get-admin-channel-summary.use-case';
@@ -84,12 +86,14 @@ import { CHANNEL_CREATION_TRANSACTION } from './application/interfaces/channel-c
     GetMembershipStatusUseCase,
     GetMyMembershipsUseCase,
     CreateMembershipTierUseCase,
+    AdminLockChannelUseCase,
     GetMembershipTiersUseCase,
     GetMembershipTierUseCase,
     UpdateMembershipTierUseCase,
     DisableMembershipTierUseCase,
     HandleMembershipPaymentSuccessUseCase,
     ModerateChannelMembershipUseCase,
+    ListAdminChannelsUseCase,
     ListMembershipReviewsUseCase,
     ReviewChannelMembershipUseCase,
     GetAdminChannelSummaryUseCase,

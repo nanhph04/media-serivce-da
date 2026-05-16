@@ -1,8 +1,5 @@
 import type { VideoEntity } from '../entities/video.entity';
-import type {
-  VideoStatus,
-  VideoVisibility,
-} from '../entities/video.entity';
+import type { VideoStatus, VideoVisibility } from '../entities/video.entity';
 
 export const VIDEO_REPOSITORY = Symbol('VIDEO_REPOSITORY');
 
@@ -108,5 +105,6 @@ export interface IVideoRepository {
   getAdminChannelVideoMetrics(now: Date): Promise<AdminChannelVideoMetrics>;
   getAdminReportsSummary(now: Date): Promise<AdminReportsSummary>;
   findAdminReports(filters: AdminReportsFilters): Promise<AdminReportsPage>;
+  findAdminVideoById(id: string): Promise<VideoEntity | null>;
   findAdminVideos(filters: AdminVideoFilters): Promise<AdminVideosPage>;
 }

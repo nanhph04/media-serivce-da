@@ -1,5 +1,6 @@
 import {
   ChannelEntity,
+  ChannelStatus,
   MembershipReviewStatus,
 } from '../entities/channel.entity';
 
@@ -14,6 +15,19 @@ export interface AdminChannelCounts {
   membershipRejected: number;
 }
 
+export interface AdminChannelFilters {
+  page: number;
+  limit: number;
+  status?: ChannelStatus;
+  ownerId?: string;
+  q?: string;
+}
+
+export interface AdminChannelsPage {
+  items: ChannelEntity[];
+  total: number;
+}
+
 export interface IChannelRepository {
   create(channel: ChannelEntity): Promise<void>;
   update(channel: ChannelEntity): Promise<void>;
@@ -23,5 +37,6 @@ export interface IChannelRepository {
   findByMembershipReviewStatus(
     status: MembershipReviewStatus,
   ): Promise<ChannelEntity[]>;
+  findAdminChannels(filters: AdminChannelFilters): Promise<AdminChannelsPage>;
   getAdminChannelCounts(): Promise<AdminChannelCounts>;
 }

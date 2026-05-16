@@ -309,6 +309,35 @@ export class VideoEntity {
     this.props.moderationDetails = moderationDetails;
   }
 
+  approveManualReview(): void {
+    if (this.props.status !== VideoStatus.PENDING_MANUAL_REVIEW) {
+      throw new ConflictException('Video is not pending manual review');
+    }
+
+    this.changeStatus(VideoStatus.READY);
+    this.props.errorMessage = null;
+    this.props.moderationDetails = null;
+    this.props.publishedAt = new Date();
+  }
+
+  rejectManualReview(reason: string): void {
+    const normalizedReason = reason.trim();
+
+    if (!normalizedReason) {
+      throw new BadRequestException('Rejection reason is required');
+    }
+
+    if (this.props.status !== VideoStatus.PENDING_MANUAL_REVIEW) {
+      throw new ConflictException('Video is not pending manual review');
+    }
+
+    this.markRejected(normalizedReason, {
+      reason: normalizedReason,
+      confidence: 1,
+      evidenceTimestampSeconds: null,
+    });
+  }
+
   markReady(input: {
     masterPlaylistKey: string;
     thumbnailUrl?: string | null;

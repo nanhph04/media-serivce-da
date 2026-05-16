@@ -1,4 +1,3 @@
-import { ForbiddenException } from '@shared/domain/exceptions/domain.exception';
 import { CategoryStatus } from '../../domain/entities/category.entity';
 import { CategoryController } from './category.controller';
 
@@ -24,13 +23,6 @@ describe('CategoryController', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-  });
-
-  it('rejects create category when role is not admin', async () => {
-    await expect(
-      controller.createCategory('user-1', 'creator', { name: 'Music' }),
-    ).rejects.toThrow(ForbiddenException);
-    expect(createCategoryUseCase.execute).not.toHaveBeenCalled();
   });
 
   it('returns public categories using active-only use case', async () => {
@@ -70,28 +62,11 @@ describe('CategoryController', () => {
     ]);
   });
 
-  it('rejects admin all categories when role is not admin', async () => {
-    await expect(
-      controller.getAllCategoriesForAdmin('user-1', 'creator'),
-    ).rejects.toThrow(ForbiddenException);
-    expect(getAllCategoriesUseCase.execute).not.toHaveBeenCalled();
-  });
-
-  it('rejects admin all categories when role is missing', async () => {
-    await expect(
-      controller.getAllCategoriesForAdmin('user-1', undefined),
-    ).rejects.toThrow(ForbiddenException);
-    expect(getAllCategoriesUseCase.execute).not.toHaveBeenCalled();
-  });
-
   it('returns all categories for admin', async () => {
     const category = buildCategoryResponse(CategoryStatus.DELETED);
     getAllCategoriesUseCase.execute.mockResolvedValue([category]);
 
-    const result = await controller.getAllCategoriesForAdmin(
-      'user-1',
-      'admin',
-    );
+    const result = await controller.getAllCategoriesForAdmin('user-1', 'admin');
 
     expect(getAllCategoriesUseCase.execute).toHaveBeenCalledWith({
       q: undefined,
@@ -146,15 +121,6 @@ describe('CategoryController', () => {
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
     });
-  });
-
-  it('rejects update category when role is not admin', async () => {
-    await expect(
-      controller.updateCategory('user-1', undefined, 'category-1', {
-        name: 'Music',
-      }),
-    ).rejects.toThrow(ForbiddenException);
-    expect(updateCategoryUseCase.execute).not.toHaveBeenCalled();
   });
 
   it('updates category when role is admin', async () => {

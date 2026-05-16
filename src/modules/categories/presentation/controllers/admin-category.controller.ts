@@ -10,7 +10,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiHeader, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { ForbiddenException } from '@shared/domain/exceptions/domain.exception';
 import {
   ApiCreatedSuccessResponse,
   ApiSuccessResponse,
@@ -21,6 +20,7 @@ import {
   ApiResponse,
   apiResponseContract,
 } from '@shared/presentation/dto/api-response.dto';
+import { AdminRoleGuard } from '@shared/presentation/guards/admin-role.guard';
 import { InternalGatewayGuard } from '@shared/presentation/guards/internal-gateway.guard';
 import { CreateCategoryUseCase } from '../../application/use-cases/create-category.use-case';
 import { GetAllCategoriesUseCase } from '../../application/use-cases/get-all-categories.use-case';
@@ -31,7 +31,7 @@ import { UpdateCategoryRequestDto } from '../dtos/update-category.request';
 import { toCategoryResponseDto } from '../mappers/category-response.mapper';
 
 @ApiTags('admin-categories')
-@UseGuards(InternalGatewayGuard)
+@UseGuards(InternalGatewayGuard, AdminRoleGuard)
 @Controller('admin/categories')
 export class AdminCategoryController {
   constructor(
@@ -48,11 +48,9 @@ export class AdminCategoryController {
   @ApiSuccessResponse(CategoryResponseDto, { isArray: true })
   async getAllCategories(
     @CurrentUserId() _userId: string,
-    @CurrentUserRole() role: string | undefined,
+    @CurrentUserRole() _role: string | undefined,
     @Query('q') q?: string,
   ): Promise<ApiResponse<CategoryResponseDto[]>> {
-    this.assertAdmin(role);
-
     const categories = await this.getAllCategoriesUseCase.execute({ q });
     return apiResponseContract(categories.map(toCategoryResponseDto));
   }
@@ -64,11 +62,9 @@ export class AdminCategoryController {
   @ApiCreatedSuccessResponse(CategoryResponseDto)
   async createCategory(
     @CurrentUserId() _userId: string,
-    @CurrentUserRole() role: string | undefined,
+    @CurrentUserRole() _role: string | undefined,
     @Body() dto: CreateCategoryRequestDto,
   ): Promise<ApiResponse<CategoryResponseDto>> {
-    this.assertAdmin(role);
-
     const category = await this.createCategoryUseCase.execute({
       name: dto.name,
       description: dto.description,
@@ -86,12 +82,10 @@ export class AdminCategoryController {
   @ApiSuccessResponse(CategoryResponseDto)
   async updateCategory(
     @CurrentUserId() _userId: string,
-    @CurrentUserRole() role: string | undefined,
+    @CurrentUserRole() _role: string | undefined,
     @Param('id') categoryId: string,
     @Body() dto: UpdateCategoryRequestDto,
   ): Promise<ApiResponse<CategoryResponseDto>> {
-    this.assertAdmin(role);
-
     const category = await this.updateCategoryUseCase.execute({
       categoryId,
       name: dto.name,
@@ -111,22 +105,14 @@ export class AdminCategoryController {
   @ApiSuccessResponse(CategoryResponseDto)
   async deleteCategory(
     @CurrentUserId() _userId: string,
-    @CurrentUserRole() role: string | undefined,
+    @CurrentUserRole() _role: string | undefined,
     @Param('id') categoryId: string,
   ): Promise<ApiResponse<CategoryResponseDto>> {
-    this.assertAdmin(role);
-
     const category = await this.updateCategoryUseCase.execute({
       categoryId,
       status: 'inactive',
     });
 
     return apiResponseContract(toCategoryResponseDto(category));
-  }
-
-  private assertAdmin(role: string | undefined): void {
-    if (role !== 'admin') {
-      throw new ForbiddenException('Admin role is required');
-    }
   }
 }

@@ -10,7 +10,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiHeader, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { ForbiddenException } from '@shared/domain/exceptions/domain.exception';
 import { ApiCreatedSuccessResponse } from '@shared/presentation/decorators/api-success-response.decorator';
 import { ApiSuccessResponse } from '@shared/presentation/decorators/api-success-response.decorator';
 import { CurrentUserId } from '@shared/presentation/decorators/user-id.decorator';
@@ -20,6 +19,7 @@ import {
   ApiResponse,
   apiResponseContract,
 } from '@shared/presentation/dto/api-response.dto';
+import { AdminRoleGuard } from '@shared/presentation/guards/admin-role.guard';
 import { InternalGatewayGuard } from '@shared/presentation/guards/internal-gateway.guard';
 import { CreateCategoryUseCase } from '../../application/use-cases/create-category.use-case';
 import { GetAllCategoriesUseCase } from '../../application/use-cases/get-all-categories.use-case';
@@ -53,6 +53,7 @@ export class CategoryController {
   }
 
   @Get('admin/all')
+  @UseGuards(AdminRoleGuard)
   @ApiHeader({ name: 'x-user-id', required: true })
   @ApiHeader({ name: 'x-user-role', required: true })
   @ApiHeader({ name: 'x-internal-secret', required: true })
@@ -60,27 +61,24 @@ export class CategoryController {
   @ApiSuccessResponse(CategoryResponseDto, { isArray: true })
   async getAllCategoriesForAdmin(
     @CurrentUserId() _userId: string,
-    @CurrentUserRole() role: string | undefined,
+    @CurrentUserRole() _role: string | undefined,
     @Query('q') q?: string,
   ): Promise<ApiResponse<CategoryResponseDto[]>> {
-    this.assertAdmin(role);
-
     const categories = await this.getAllCategoriesUseCase.execute({ q });
     return apiResponseContract(categories.map(toCategoryResponseDto));
   }
 
   @Post()
+  @UseGuards(AdminRoleGuard)
   @ApiHeader({ name: 'x-user-id', required: true })
   @ApiHeader({ name: 'x-user-role', required: true })
   @ApiHeader({ name: 'x-internal-secret', required: true })
   @ApiCreatedSuccessResponse(CategoryResponseDto)
   async createCategory(
     @CurrentUserId() _userId: string,
-    @CurrentUserRole() role: string | undefined,
+    @CurrentUserRole() _role: string | undefined,
     @Body() dto: CreateCategoryRequestDto,
   ): Promise<ApiResponse<CategoryResponseDto>> {
-    this.assertAdmin(role);
-
     const category = await this.createCategoryUseCase.execute({
       name: dto.name,
       description: dto.description,
@@ -92,18 +90,17 @@ export class CategoryController {
   }
 
   @Patch(':id')
+  @UseGuards(AdminRoleGuard)
   @ApiHeader({ name: 'x-user-id', required: true })
   @ApiHeader({ name: 'x-user-role', required: true })
   @ApiHeader({ name: 'x-internal-secret', required: true })
   @ApiSuccessResponse(CategoryResponseDto)
   async updateCategory(
     @CurrentUserId() _userId: string,
-    @CurrentUserRole() role: string | undefined,
+    @CurrentUserRole() _role: string | undefined,
     @Param('id') categoryId: string,
     @Body() dto: UpdateCategoryRequestDto,
   ): Promise<ApiResponse<CategoryResponseDto>> {
-    this.assertAdmin(role);
-
     const category = await this.updateCategoryUseCase.execute({
       categoryId,
       name: dto.name,
@@ -117,28 +114,21 @@ export class CategoryController {
   }
 
   @Delete(':id')
+  @UseGuards(AdminRoleGuard)
   @ApiHeader({ name: 'x-user-id', required: true })
   @ApiHeader({ name: 'x-user-role', required: true })
   @ApiHeader({ name: 'x-internal-secret', required: true })
   @ApiSuccessResponse(CategoryResponseDto)
   async deleteCategory(
     @CurrentUserId() _userId: string,
-    @CurrentUserRole() role: string | undefined,
+    @CurrentUserRole() _role: string | undefined,
     @Param('id') categoryId: string,
   ): Promise<ApiResponse<CategoryResponseDto>> {
-    this.assertAdmin(role);
-
     const category = await this.updateCategoryUseCase.execute({
       categoryId,
       status: 'inactive',
     });
 
     return apiResponseContract(toCategoryResponseDto(category));
-  }
-
-  private assertAdmin(role: string | undefined): void {
-    if (role !== 'admin') {
-      throw new ForbiddenException('Admin role is required');
-    }
   }
 }

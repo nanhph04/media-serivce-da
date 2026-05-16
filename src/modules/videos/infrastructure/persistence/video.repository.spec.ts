@@ -465,7 +465,10 @@ describe('VideoRepository', () => {
       expect.stringContaining('LOWER(video.title)'),
       { partial: '%video%' },
     );
-    expect(queryBuilder.orderBy).toHaveBeenCalledWith('video.updatedAt', 'DESC');
+    expect(queryBuilder.orderBy).toHaveBeenCalledWith(
+      'video.updatedAt',
+      'DESC',
+    );
     expect(queryBuilder.addOrderBy).toHaveBeenCalledWith(
       'video.createdAt',
       'DESC',
@@ -475,7 +478,97 @@ describe('VideoRepository', () => {
     expect(result.total).toBe(1);
     expect(result.items[0]?.id).toBe('video-1');
   });
+
+  it('finds admin video detail by id', async () => {
+    const leftJoinAndSelect = jest.fn();
+    const queryWhere = jest.fn();
+    const getOne = jest.fn().mockResolvedValue(buildVideoRow());
+    const queryBuilder = {
+      getOne,
+      leftJoinAndSelect,
+      where: queryWhere,
+    };
+    leftJoinAndSelect.mockReturnValue(queryBuilder);
+    queryWhere.mockReturnValue(queryBuilder);
+    createQueryBuilder.mockReturnValue(queryBuilder);
+
+    const result = await repository.findAdminVideoById('video-1');
+
+    expect(createQueryBuilder).toHaveBeenCalledWith('video');
+    expect(queryWhere).toHaveBeenCalledWith('video.id = :id', {
+      id: 'video-1',
+    });
+    expect(result?.id).toBe('video-1');
+  });
 });
+
+function buildVideoRow(): {
+  id: string;
+  channelId: string;
+  ownerId: string;
+  title: string;
+  description: string;
+  visibility: string;
+  status: string;
+  price: number;
+  requiredTierLevel: null;
+  rawFileKey: string;
+  masterPlaylistKey: null;
+  thumbnailUrl: null;
+  durationSeconds: null;
+  resolutions: string[];
+  errorMessage: null;
+  moderationDetails: null;
+  viewCount: number;
+  publishedAt: null;
+  isDeleted: boolean;
+  deletedAt: null;
+  deletedBy: null;
+  deleteReason: null;
+  deletionStatus: string;
+  deleteRequestedAt: null;
+  refundCompletedAt: null;
+  refundSummary: null;
+  createdAt: Date;
+  updatedAt: Date;
+  statusChangedAt: Date;
+  category: ReturnType<typeof buildCategoryRow>;
+  videoTags: [];
+} {
+  return {
+    id: 'video-1',
+    channelId: 'channel-1',
+    ownerId: 'owner-1',
+    title: 'Video',
+    description: 'Description',
+    visibility: 'private',
+    status: 'draft',
+    price: 0,
+    requiredTierLevel: null,
+    rawFileKey: 'raw/video.mp4',
+    masterPlaylistKey: null,
+    thumbnailUrl: null,
+    durationSeconds: null,
+    resolutions: [],
+    errorMessage: null,
+    moderationDetails: null,
+    viewCount: 0,
+    publishedAt: null,
+    isDeleted: true,
+    deletedAt: null,
+    deletedBy: null,
+    deleteReason: null,
+    deletionStatus: 'active',
+    deleteRequestedAt: null,
+    refundCompletedAt: null,
+    refundSummary: null,
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+    statusChangedAt: new Date('2026-01-02T00:00:00.000Z'),
+    category: buildCategoryRow(),
+    videoTags: [],
+  };
+}
 
 function buildCategoryRow(): {
   id: string;

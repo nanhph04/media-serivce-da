@@ -1,14 +1,22 @@
-import { IChannelRepository } from '../../domain/repositories/channel.repository';
-import { LockChannelCommand } from '../dtos/lock-channel.command';
-import { ChannelResponse } from '../dtos/channel.response';
+import { Inject, Injectable } from '@nestjs/common';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import { NotFoundException } from '@shared/domain/exceptions/domain.exception';
+import {
+  CHANNEL_REPOSITORY,
+  type IChannelRepository,
+} from '../../domain/repositories/channel.repository';
+import type { ChannelResponse } from '../dtos/channel.response';
+import type { LockChannelCommand } from '../dtos/lock-channel.command';
 
+@Injectable()
 export class AdminLockChannelUseCase extends BaseUseCase<
   LockChannelCommand,
   ChannelResponse
 > {
-  constructor(private readonly channelRepository: IChannelRepository) {
+  constructor(
+    @Inject(CHANNEL_REPOSITORY)
+    private readonly channelRepository: IChannelRepository,
+  ) {
     super();
   }
 

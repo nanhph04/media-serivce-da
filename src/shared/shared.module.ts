@@ -12,6 +12,7 @@ import { LoggerService } from './infrastructure/logger/logger.service';
 import { LoggerInterceptor } from './presentation/interceptors/logger.interceptor';
 import { SuccessResponseInterceptor } from './presentation/interceptors/success-response.interceptor';
 import { InternalGatewayGuard } from './presentation/guards/internal-gateway.guard';
+import { AdminRoleGuard } from './presentation/guards/admin-role.guard';
 
 @Global()
 @Module({
@@ -29,6 +30,7 @@ import { InternalGatewayGuard } from './presentation/guards/internal-gateway.gua
     LoggerInterceptor,
     SuccessResponseInterceptor,
     InternalGatewayGuard,
+    AdminRoleGuard,
     {
       provide: HttpExceptionFilter,
       useFactory: (logger: LoggerService) => new HttpExceptionFilter(logger),
@@ -42,6 +44,7 @@ import { InternalGatewayGuard } from './presentation/guards/internal-gateway.gua
     ConfigModule,
     HttpExceptionFilter,
     InternalGatewayGuard,
+    AdminRoleGuard,
     LoggerInterceptor,
     SuccessResponseInterceptor,
     QueueModule,

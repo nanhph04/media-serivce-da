@@ -2,7 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
+  type AdminChannelFilters,
   type AdminChannelCounts,
+  type AdminChannelsPage,
   IChannelRepository,
 } from '../../domain/repositories/channel.repository';
 import {
@@ -86,6 +88,47 @@ export class ChannelRepositoryImpl implements IChannelRepository {
     });
 
     return ormEntities.map((ormEntity) => this.toDomain(ormEntity));
+  }
+
+  async findAdminChannels(
+    filters: AdminChannelFilters,
+  ): Promise<AdminChannelsPage> {
+    const queryBuilder = this.ormRepository.createQueryBuilder('channel');
+
+    if (filters.status) {
+      queryBuilder.andWhere('channel.status = :status', {
+        status: filters.status,
+      });
+    }
+
+    if (filters.ownerId) {
+      queryBuilder.andWhere('channel.userId = :ownerId', {
+        ownerId: filters.ownerId,
+      });
+    }
+
+    if (filters.q) {
+      const partial = `%${escapeLikePattern(filters.q.toLowerCase())}%`;
+      queryBuilder.andWhere(
+        `(
+          LOWER(channel.name) LIKE :partial ESCAPE '\\'
+          OR LOWER(channel.bio) LIKE :partial ESCAPE '\\'
+        )`,
+        { partial },
+      );
+    }
+
+    const [ormEntities, total] = await queryBuilder
+      .orderBy('channel.updatedAt', 'DESC')
+      .addOrderBy('channel.createdAt', 'DESC')
+      .skip((filters.page - 1) * filters.limit)
+      .take(filters.limit)
+      .getManyAndCount();
+
+    return {
+      items: ormEntities.map((ormEntity) => this.toDomain(ormEntity)),
+      total,
+    };
   }
 
   async getAdminChannelCounts(): Promise<AdminChannelCounts> {
@@ -174,4 +217,8 @@ export class ChannelRepositoryImpl implements IChannelRepository {
     }
     return this.toDomain(ormEntity);
   }
+}
+
+function escapeLikePattern(value: string): string {
+  return value.replace(/[\\%_]/g, '\\$&');
 }

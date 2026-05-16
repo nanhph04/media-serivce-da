@@ -558,6 +558,10 @@ export class VideoRepository implements IVideoRepository {
     };
   }
 
+  async findAdminVideoById(id: string): Promise<VideoEntity | null> {
+    return this.findById(id);
+  }
+
   async findAdminVideos(filters: AdminVideoFilters): Promise<AdminVideosPage> {
     const queryBuilder = this.ormRepository
       .createQueryBuilder('video')

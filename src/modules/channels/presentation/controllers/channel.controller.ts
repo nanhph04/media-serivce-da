@@ -8,7 +8,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiHeader, ApiTags } from '@nestjs/swagger';
-import { ForbiddenException } from '@shared/domain/exceptions/domain.exception';
 import { ApiCreatedSuccessResponse } from '@shared/presentation/decorators/api-success-response.decorator';
 import { ApiSuccessResponse } from '@shared/presentation/decorators/api-success-response.decorator';
 import { CurrentRequestId } from '@shared/presentation/decorators/request-id.decorator';
@@ -19,6 +18,7 @@ import {
   ApiResponse,
   apiResponseContract,
 } from '@shared/presentation/dto/api-response.dto';
+import { AdminRoleGuard } from '@shared/presentation/guards/admin-role.guard';
 import { InternalGatewayGuard } from '@shared/presentation/guards/internal-gateway.guard';
 import { CreateChannelUseCase } from '../../application/use-cases/create-channel.use-case';
 import { GetCurrentChannelUseCase } from '../../application/use-cases/get-current-channel.use-case';
@@ -123,16 +123,15 @@ export class ChannelController {
   }
 
   @Patch(':id/admin/membership')
+  @UseGuards(AdminRoleGuard)
   @ApiHeader({ name: 'x-user-role', required: true })
   @ApiSuccessResponse(ChannelResponseDto)
   async moderateMembership(
     @CurrentUserId() userId: string,
-    @CurrentUserRole() role: string | undefined,
+    @CurrentUserRole() _role: string | undefined,
     @Param('id') channelId: string,
     @Body() dto: ModerateChannelMembershipRequestDto,
   ): Promise<ApiResponse<ChannelResponseDto>> {
-    this.assertAdmin(role);
-
     const channel = await this.moderateChannelMembershipUseCase.execute({
       channelId,
       adminId: userId,
@@ -140,11 +139,5 @@ export class ChannelController {
     });
 
     return apiResponseContract(toChannelResponseDto(channel));
-  }
-
-  private assertAdmin(role: string | undefined): void {
-    if (role !== 'admin') {
-      throw new ForbiddenException('Admin role is required');
-    }
   }
 }

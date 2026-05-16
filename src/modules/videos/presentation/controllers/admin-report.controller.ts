@@ -7,6 +7,7 @@ import {
   ApiResponse,
   apiResponseContract,
 } from '@shared/presentation/dto/api-response.dto';
+import { AdminRoleGuard } from '@shared/presentation/guards/admin-role.guard';
 import { InternalGatewayGuard } from '@shared/presentation/guards/internal-gateway.guard';
 import { GetAdminReportsSummaryUseCase } from '../../application/use-cases/get-admin-reports-summary.use-case';
 import { ListAdminReportsUseCase } from '../../application/use-cases/list-admin-reports.use-case';
@@ -15,7 +16,7 @@ import { AdminReportsResponseDto } from '../dtos/admin-reports.response';
 import { AdminReportsSummaryResponseDto } from '../dtos/admin-reports-summary.response';
 
 @ApiTags('admin-reports')
-@UseGuards(InternalGatewayGuard)
+@UseGuards(InternalGatewayGuard, AdminRoleGuard)
 @Controller('admin/reports')
 export class AdminReportController {
   constructor(

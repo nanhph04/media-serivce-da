@@ -14,6 +14,7 @@ import { CleanupHardDeletedVideosUseCase } from './application/use-cases/cleanup
 import { DeleteFailedVideoUseCase } from './application/use-cases/delete-failed-video.use-case';
 import { GetContinueWatchingUseCase } from './application/use-cases/get-continue-watching.use-case';
 import { GetAdminReportsSummaryUseCase } from './application/use-cases/get-admin-reports-summary.use-case';
+import { GetAdminVideoDetailUseCase } from './application/use-cases/get-admin-video-detail.use-case';
 import { GetLatestVideosUseCase } from './application/use-cases/get-latest-videos.use-case';
 import { GetPurchasedVideosUseCase } from './application/use-cases/get-purchased-videos.use-case';
 import { GetStudioVideosUseCase } from './application/use-cases/get-studio-videos.use-case';
@@ -29,6 +30,7 @@ import { HandleVideoViewedUseCase } from './application/use-cases/handle-video-v
 import { InitVideoUploadUseCase } from './application/use-cases/init-video-upload.use-case';
 import { ListAdminReportsUseCase } from './application/use-cases/list-admin-reports.use-case';
 import { ListAdminVideosUseCase } from './application/use-cases/list-admin-videos.use-case';
+import { ModerateAdminVideoUseCase } from './application/use-cases/moderate-admin-video.use-case';
 import { PlayVideoUseCase } from './application/use-cases/play-video.use-case';
 import { RefreshPlaybackTokenUseCase } from './application/use-cases/refresh-playback-token.use-case';
 import { ReplaceVideoUploadUseCase } from './application/use-cases/replace-video-upload.use-case';
@@ -126,8 +128,10 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
     UnpublishVideoUseCase,
     UnlockVideoUseCase,
     GetAdminReportsSummaryUseCase,
+    GetAdminVideoDetailUseCase,
     ListAdminReportsUseCase,
     ListAdminVideosUseCase,
+    ModerateAdminVideoUseCase,
     GetContinueWatchingUseCase,
     GetVideoMetadataUseCase,
     UpdateVideoMetadataUseCase,

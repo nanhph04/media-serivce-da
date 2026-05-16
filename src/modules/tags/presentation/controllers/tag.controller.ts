@@ -10,7 +10,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiHeader, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { ForbiddenException } from '@shared/domain/exceptions/domain.exception';
 import {
   ApiCreatedSuccessResponse,
   ApiSuccessResponse,
@@ -22,6 +21,7 @@ import {
   ApiResponse,
   apiResponseContract,
 } from '@shared/presentation/dto/api-response.dto';
+import { AdminRoleGuard } from '@shared/presentation/guards/admin-role.guard';
 import { InternalGatewayGuard } from '@shared/presentation/guards/internal-gateway.guard';
 import { CreateTagUseCase } from '../../application/use-cases/create-tag.use-case';
 import { GetAllTagsUseCase } from '../../application/use-cases/get-all-tags.use-case';
@@ -55,6 +55,7 @@ export class TagController {
   }
 
   @Get('admin/tags')
+  @UseGuards(AdminRoleGuard)
   @ApiHeader({ name: 'x-user-id', required: true })
   @ApiHeader({ name: 'x-user-role', required: true })
   @ApiHeader({ name: 'x-internal-secret', required: true })
@@ -62,44 +63,40 @@ export class TagController {
   @ApiSuccessResponse(TagResponseDto, { isArray: true })
   async getAllTagsForAdmin(
     @CurrentUserId() _userId: string,
-    @CurrentUserRole() role: string | undefined,
+    @CurrentUserRole() _role: string | undefined,
     @Query('q') q?: string,
   ): Promise<ApiResponse<TagResponseDto[]>> {
-    this.assertAdmin(role);
-
     const tags = await this.getAllTagsUseCase.execute({ q });
     return apiResponseContract(tags.map(toTagResponseDto));
   }
 
   @Post('admin/tags')
+  @UseGuards(AdminRoleGuard)
   @ApiHeader({ name: 'x-user-id', required: true })
   @ApiHeader({ name: 'x-user-role', required: true })
   @ApiHeader({ name: 'x-internal-secret', required: true })
   @ApiCreatedSuccessResponse(TagResponseDto)
   async createTag(
     @CurrentUserId() _userId: string,
-    @CurrentUserRole() role: string | undefined,
+    @CurrentUserRole() _role: string | undefined,
     @Body() dto: CreateTagRequestDto,
   ): Promise<ApiResponse<TagResponseDto>> {
-    this.assertAdmin(role);
-
     const tag = await this.createTagUseCase.execute({ name: dto.name });
     return apiResponseContract(toTagResponseDto(tag));
   }
 
   @Patch('admin/tags/:id')
+  @UseGuards(AdminRoleGuard)
   @ApiHeader({ name: 'x-user-id', required: true })
   @ApiHeader({ name: 'x-user-role', required: true })
   @ApiHeader({ name: 'x-internal-secret', required: true })
   @ApiSuccessResponse(TagResponseDto)
   async updateTag(
     @CurrentUserId() _userId: string,
-    @CurrentUserRole() role: string | undefined,
+    @CurrentUserRole() _role: string | undefined,
     @Param('id') tagId: string,
     @Body() dto: UpdateTagRequestDto,
   ): Promise<ApiResponse<TagResponseDto>> {
-    this.assertAdmin(role);
-
     const tag = await this.updateTagUseCase.execute({
       tagId,
       name: dto.name,
@@ -110,28 +107,21 @@ export class TagController {
   }
 
   @Delete('admin/tags/:id')
+  @UseGuards(AdminRoleGuard)
   @ApiHeader({ name: 'x-user-id', required: true })
   @ApiHeader({ name: 'x-user-role', required: true })
   @ApiHeader({ name: 'x-internal-secret', required: true })
   @ApiSuccessResponse(TagResponseDto)
   async deleteTag(
     @CurrentUserId() _userId: string,
-    @CurrentUserRole() role: string | undefined,
+    @CurrentUserRole() _role: string | undefined,
     @Param('id') tagId: string,
   ): Promise<ApiResponse<TagResponseDto>> {
-    this.assertAdmin(role);
-
     const tag = await this.updateTagUseCase.execute({
       tagId,
       status: 'inactive',
     });
 
     return apiResponseContract(toTagResponseDto(tag));
-  }
-
-  private assertAdmin(role: string | undefined): void {
-    if (role !== 'admin') {
-      throw new ForbiddenException('Admin role is required');
-    }
   }
 }
