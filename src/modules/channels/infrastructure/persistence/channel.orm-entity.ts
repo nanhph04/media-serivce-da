@@ -6,7 +6,10 @@ import {
   UpdateDateColumn,
   Index,
 } from 'typeorm';
-import { ChannelStatus } from '../../domain/entities/channel.entity';
+import {
+  ChannelStatus,
+  MembershipReviewStatus,
+} from '../../domain/entities/channel.entity';
 
 @Entity('channels')
 @Index(['userId'], { unique: true })
@@ -37,6 +40,31 @@ export class ChannelOrmEntity {
 
   @Column({ name: 'is_membership_closed_by_admin', default: false })
   isMembershipClosedByAdmin!: boolean;
+
+  @Column({
+    type: 'enum',
+    enum: MembershipReviewStatus,
+    name: 'membership_review_status',
+    default: MembershipReviewStatus.NOT_REQUESTED,
+  })
+  membershipReviewStatus!: MembershipReviewStatus;
+
+  @Column({ type: 'text', name: 'membership_rejection_reason', nullable: true })
+  membershipRejectionReason!: string | null;
+
+  @Column({
+    type: 'varchar',
+    length: 36,
+    name: 'membership_reviewed_by',
+    nullable: true,
+  })
+  membershipReviewedBy!: string | null;
+
+  @Column({ type: 'timestamp', name: 'membership_reviewed_at', nullable: true })
+  membershipReviewedAt!: Date | null;
+
+  @Column({ type: 'timestamp', name: 'membership_requested_at', nullable: true })
+  membershipRequestedAt!: Date | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

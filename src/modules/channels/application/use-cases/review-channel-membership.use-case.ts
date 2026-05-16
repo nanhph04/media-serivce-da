@@ -1,20 +1,20 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import {
+  BadRequestException,
   ForbiddenException,
   NotFoundException,
 } from '@shared/domain/exceptions/domain.exception';
-import { ChannelStatus } from '../../domain/entities/channel.entity';
+import type { ChannelResponse } from '../dtos/channel.response';
+import type { ReviewChannelMembershipCommand } from '../dtos/review-channel-membership.command';
 import {
   CHANNEL_REPOSITORY,
   type IChannelRepository,
 } from '../../domain/repositories/channel.repository';
-import type { ChannelResponse } from '../dtos/channel.response';
-import type { UpdateChannelCommand } from '../dtos/update-channel.command';
 
 @Injectable()
-export class UpdateChannelUseCase extends BaseUseCase<
-  UpdateChannelCommand,
+export class ReviewChannelMembershipUseCase extends BaseUseCase<
+  ReviewChannelMembershipCommand,
   ChannelResponse
 > {
   constructor(
@@ -24,27 +24,23 @@ export class UpdateChannelUseCase extends BaseUseCase<
     super();
   }
 
-  async execute(command: UpdateChannelCommand): Promise<ChannelResponse> {
+  async execute(
+    command: ReviewChannelMembershipCommand,
+  ): Promise<ChannelResponse> {
+    this.ensureNonEmpty(command.adminId, 'Admin id is required');
+    this.ensureAdminRole(command.role);
+
     const channel = await this.channelRepository.findById(command.channelId);
 
     if (!channel) {
       throw new NotFoundException('Channel not found');
     }
 
-    if (channel.userId !== command.userId) {
-      throw new ForbiddenException('You do not own this channel');
+    if (command.action === 'approve') {
+      channel.approveMembership(command.adminId);
+    } else {
+      channel.rejectMembership(command.adminId, command.reason ?? '');
     }
-
-    if (channel.status !== ChannelStatus.ACTIVE) {
-      throw new ForbiddenException('Channel is not active');
-    }
-
-    channel.update({
-      name: command.name,
-      bio: command.bio,
-      avatarUrl: command.avatarUrl,
-      bannerUrl: command.bannerUrl,
-    });
 
     await this.channelRepository.update(channel);
 
@@ -65,5 +61,17 @@ export class UpdateChannelUseCase extends BaseUseCase<
       createdAt: channel.createdAt,
       updatedAt: channel.updatedAt,
     };
+  }
+
+  private ensureNonEmpty(value: string, message: string): void {
+    if (!value.trim()) {
+      throw new BadRequestException(message);
+    }
+  }
+
+  private ensureAdminRole(role: string | undefined): void {
+    if (role !== 'admin') {
+      throw new ForbiddenException('Admin role is required');
+    }
   }
 }

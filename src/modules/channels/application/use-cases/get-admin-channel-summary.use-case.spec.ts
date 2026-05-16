@@ -21,6 +21,9 @@ describe('GetAdminChannelSummaryUseCase', () => {
         totalChannels: 10,
         eligibleForMembership: 4,
         membershipClosedByAdmin: 2,
+        membershipPendingReview: 3,
+        membershipApproved: 1,
+        membershipRejected: 1,
       }),
       createVideoRepository({
         activeCreators30d: 3,
@@ -35,6 +38,9 @@ describe('GetAdminChannelSummaryUseCase', () => {
       activeCreators30d: 3,
       eligibleForMembership: 4,
       membershipClosedByAdmin: 2,
+      membershipPendingReview: 3,
+      membershipApproved: 1,
+      membershipRejected: 1,
       uploadingNow: 5,
     });
   });
@@ -45,6 +51,9 @@ function createChannelRepository(
     totalChannels: 0,
     eligibleForMembership: 0,
     membershipClosedByAdmin: 0,
+    membershipPendingReview: 0,
+    membershipApproved: 0,
+    membershipRejected: 0,
   },
 ): IChannelRepository {
   return {
@@ -52,6 +61,7 @@ function createChannelRepository(
     delete: jest.fn(),
     findById: jest.fn(),
     findByUserId: jest.fn(),
+    findByMembershipReviewStatus: jest.fn(),
     getAdminChannelCounts: jest.fn().mockResolvedValue(counts),
     update: jest.fn(),
   };

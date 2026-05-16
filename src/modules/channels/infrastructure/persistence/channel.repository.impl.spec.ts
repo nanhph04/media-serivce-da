@@ -8,11 +8,16 @@ describe('ChannelRepositoryImpl', () => {
         totalChannels: '10',
         eligibleForMembership: '4',
         membershipClosedByAdmin: '2',
+        membershipPendingReview: '3',
+        membershipApproved: '1',
+        membershipRejected: '1',
       }),
       select: jest.fn(),
+      setParameters: jest.fn(),
     };
     queryBuilder.select.mockReturnValue(queryBuilder);
     queryBuilder.addSelect.mockReturnValue(queryBuilder);
+    queryBuilder.setParameters.mockReturnValue(queryBuilder);
     const ormRepository = {
       createQueryBuilder: jest.fn().mockReturnValue(queryBuilder),
     };
@@ -22,6 +27,9 @@ describe('ChannelRepositoryImpl', () => {
       totalChannels: 10,
       eligibleForMembership: 4,
       membershipClosedByAdmin: 2,
+      membershipPendingReview: 3,
+      membershipApproved: 1,
+      membershipRejected: 1,
     });
     expect(ormRepository.createQueryBuilder).toHaveBeenCalledWith('channel');
     expect(queryBuilder.addSelect).toHaveBeenCalledWith(
@@ -31,6 +39,10 @@ describe('ChannelRepositoryImpl', () => {
     expect(queryBuilder.addSelect).toHaveBeenCalledWith(
       expect.stringContaining('channel.is_membership_closed_by_admin'),
       'membershipClosedByAdmin',
+    );
+    expect(queryBuilder.addSelect).toHaveBeenCalledWith(
+      expect.stringContaining('channel.membership_review_status'),
+      'membershipPendingReview',
     );
   });
 });

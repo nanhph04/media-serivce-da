@@ -16,6 +16,10 @@ interface ChannelResponseSource {
   bio: string;
   isEligibleForMembership: boolean;
   isMembershipClosedByAdmin: boolean;
+  membershipReviewStatus: string;
+  membershipRejectionReason: string | null;
+  membershipRequestedAt: Date | null;
+  membershipReviewedAt: Date | null;
   avatarUrl: string;
   bannerUrl: string;
   status: string;
@@ -67,6 +71,10 @@ interface CurrentChannelResponseSource {
   status: string;
   isEligibleForMembership: boolean;
   isMembershipClosedByAdmin: boolean;
+  membershipReviewStatus: string;
+  membershipRejectionReason: string | null;
+  membershipRequestedAt: Date | null;
+  membershipReviewedAt: Date | null;
 }
 
 interface MyMembershipItemResponseSource {
@@ -97,6 +105,10 @@ export function toChannelResponseDto(
     bio: source.bio,
     isEligibleForMembership: source.isEligibleForMembership,
     isMembershipClosedByAdmin: source.isMembershipClosedByAdmin,
+    membershipReviewStatus: source.membershipReviewStatus,
+    membershipRejectionReason: source.membershipRejectionReason,
+    membershipRequestedAt: source.membershipRequestedAt?.toISOString() ?? null,
+    membershipReviewedAt: source.membershipReviewedAt?.toISOString() ?? null,
     avatarUrl: source.avatarUrl,
     bannerUrl: source.bannerUrl,
     status: source.status,
@@ -144,6 +156,12 @@ export function toChannelDetailResponseDto(
     bio: source.channel.bio,
     isEligibleForMembership: source.channel.isEligibleForMembership,
     isMembershipClosedByAdmin: source.channel.isMembershipClosedByAdmin,
+    membershipReviewStatus: source.channel.membershipReviewStatus,
+    membershipRejectionReason: source.channel.membershipRejectionReason,
+    membershipRequestedAt:
+      source.channel.membershipRequestedAt?.toISOString() ?? null,
+    membershipReviewedAt:
+      source.channel.membershipReviewedAt?.toISOString() ?? null,
     avatarUrl: source.channel.avatarUrl,
     bannerUrl: source.channel.bannerUrl,
     status: source.channel.status,
@@ -176,6 +194,10 @@ export function toCurrentChannelResponseDto(
     status: source.status,
     isEligibleForMembership: source.isEligibleForMembership,
     isMembershipClosedByAdmin: source.isMembershipClosedByAdmin,
+    membershipReviewStatus: source.membershipReviewStatus,
+    membershipRejectionReason: source.membershipRejectionReason,
+    membershipRequestedAt: source.membershipRequestedAt?.toISOString() ?? null,
+    membershipReviewedAt: source.membershipReviewedAt?.toISOString() ?? null,
   };
 }
 

@@ -15,4 +15,16 @@ export class CurrentChannelResponseDto {
 
   @ApiProperty()
   isMembershipClosedByAdmin!: boolean;
+
+  @ApiProperty()
+  membershipReviewStatus!: string;
+
+  @ApiProperty({ nullable: true })
+  membershipRejectionReason!: string | null;
+
+  @ApiProperty({ nullable: true })
+  membershipRequestedAt!: string | null;
+
+  @ApiProperty({ nullable: true })
+  membershipReviewedAt!: string | null;
 }

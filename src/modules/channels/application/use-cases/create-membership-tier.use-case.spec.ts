@@ -5,6 +5,7 @@ import {
 import {
   ChannelEntity,
   ChannelStatus,
+  MembershipReviewStatus,
 } from '../../domain/entities/channel.entity';
 import { MembershipTierEntity } from '../../domain/entities/membership-tier.entity';
 import { CreateMembershipTierUseCase } from './create-membership-tier.use-case';
@@ -70,7 +71,7 @@ describe('CreateMembershipTierUseCase', () => {
     expect(membershipTierRepository.create).not.toHaveBeenCalled();
   });
 
-  it('creates tier when channel eligibility is satisfied', async () => {
+  it('rejects create when channel eligibility is satisfied but review is pending', async () => {
     eligibilityService.syncChannelEligibility.mockResolvedValue({
       isEligible: true,
       readyVideoCount: 5,
@@ -79,6 +80,48 @@ describe('CreateMembershipTierUseCase', () => {
       minTotalVideoViews: 1000,
       missingRequirements: [],
     });
+
+    await expect(
+      useCase.execute({
+        channelId: 'channel-1',
+        userId: 'owner-1',
+        name: 'Gold',
+        level: 2,
+        priceCoin: 100,
+      }),
+    ).rejects.toThrow(
+      'Channel membership registration is pending admin approval',
+    );
+    expect(membershipTierRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects create when channel membership review was rejected', async () => {
+    channelRepository.findById.mockResolvedValue(
+      buildChannel({
+        isEligibleForMembership: true,
+        membershipReviewStatus: MembershipReviewStatus.REJECTED,
+      }),
+    );
+
+    await expect(
+      useCase.execute({
+        channelId: 'channel-1',
+        userId: 'owner-1',
+        name: 'Gold',
+        level: 2,
+        priceCoin: 100,
+      }),
+    ).rejects.toThrow('Channel membership registration was rejected by admin');
+    expect(membershipTierRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('creates tier when channel eligibility is approved', async () => {
+    channelRepository.findById.mockResolvedValue(
+      buildChannel({
+        isEligibleForMembership: true,
+        membershipReviewStatus: MembershipReviewStatus.APPROVED,
+      }),
+    );
 
     const result = await useCase.execute({
       channelId: 'channel-1',
@@ -96,14 +139,12 @@ describe('CreateMembershipTierUseCase', () => {
   });
 
   it('keeps min price validation after eligibility passes', async () => {
-    eligibilityService.syncChannelEligibility.mockResolvedValue({
-      isEligible: true,
-      readyVideoCount: 5,
-      minReadyVideoCount: 5,
-      totalVideoViews: 1000,
-      minTotalVideoViews: 1000,
-      missingRequirements: [],
-    });
+    channelRepository.findById.mockResolvedValue(
+      buildChannel({
+        isEligibleForMembership: true,
+        membershipReviewStatus: MembershipReviewStatus.APPROVED,
+      }),
+    );
 
     await expect(
       useCase.execute({
@@ -120,7 +161,10 @@ describe('CreateMembershipTierUseCase', () => {
 
   it('allows creating a tier without rechecking thresholds once channel earned eligibility', async () => {
     channelRepository.findById.mockResolvedValue(
-      buildChannel({ isEligibleForMembership: true }),
+      buildChannel({
+        isEligibleForMembership: true,
+        membershipReviewStatus: MembershipReviewStatus.APPROVED,
+      }),
     );
 
     await useCase.execute({

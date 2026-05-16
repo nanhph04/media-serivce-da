@@ -13,6 +13,10 @@ describe('toChannelDetailResponseDto', () => {
         bio: 'Bio',
         isEligibleForMembership: false,
         isMembershipClosedByAdmin: true,
+        membershipReviewStatus: 'pending',
+        membershipRejectionReason: null,
+        membershipRequestedAt: new Date('2026-01-01T01:00:00.000Z'),
+        membershipReviewedAt: null,
         avatarUrl: '',
         bannerUrl: '',
         status: 'active',
@@ -33,6 +37,8 @@ describe('toChannelDetailResponseDto', () => {
 
     expect(result.isEligibleForMembership).toBe(false);
     expect(result.isMembershipClosedByAdmin).toBe(true);
+    expect(result.membershipReviewStatus).toBe('pending');
+    expect(result.membershipRequestedAt).toBe('2026-01-01T01:00:00.000Z');
     expect(result.membershipEligibility).toEqual({
       isEligible: false,
       readyVideoCount: 4,
@@ -53,6 +59,10 @@ describe('toCurrentChannelResponseDto', () => {
         status: 'inactive',
         isEligibleForMembership: true,
         isMembershipClosedByAdmin: true,
+        membershipReviewStatus: 'approved',
+        membershipRejectionReason: null,
+        membershipRequestedAt: new Date('2026-01-01T01:00:00.000Z'),
+        membershipReviewedAt: new Date('2026-01-02T01:00:00.000Z'),
       }),
     ).toEqual({
       channelId: 'channel-1',
@@ -60,6 +70,10 @@ describe('toCurrentChannelResponseDto', () => {
       status: 'inactive',
       isEligibleForMembership: true,
       isMembershipClosedByAdmin: true,
+      membershipReviewStatus: 'approved',
+      membershipRejectionReason: null,
+      membershipRequestedAt: '2026-01-01T01:00:00.000Z',
+      membershipReviewedAt: '2026-01-02T01:00:00.000Z',
     });
   });
 });

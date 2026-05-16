@@ -156,6 +156,9 @@ GET    /api/media/admin/tags
 POST   /api/media/admin/tags
 PATCH  /api/media/admin/tags/:id
 DELETE /api/media/admin/tags/:id
+GET    /api/media/admin/channels/summary
+GET    /api/media/admin/channels/membership-reviews
+PATCH  /api/media/admin/channels/:id/membership-review
 ```
 
 For protected routes, clients must send:

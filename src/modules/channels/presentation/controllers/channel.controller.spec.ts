@@ -41,6 +41,10 @@ describe('ChannelController', () => {
       status: ChannelStatus.INACTIVE,
       isEligibleForMembership: false,
       isMembershipClosedByAdmin: true,
+      membershipReviewStatus: 'pending',
+      membershipRejectionReason: null,
+      membershipRequestedAt: new Date('2026-01-01T00:00:00.000Z'),
+      membershipReviewedAt: null,
     });
 
     const result = await controller.getCurrentChannel('owner-1');
@@ -54,6 +58,10 @@ describe('ChannelController', () => {
       status: ChannelStatus.INACTIVE,
       isEligibleForMembership: false,
       isMembershipClosedByAdmin: true,
+      membershipReviewStatus: 'pending',
+      membershipRejectionReason: null,
+      membershipRequestedAt: '2026-01-01T00:00:00.000Z',
+      membershipReviewedAt: null,
     });
   });
 });

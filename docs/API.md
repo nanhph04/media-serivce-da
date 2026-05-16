@@ -1,6 +1,6 @@
 # Media Service API
 
-**Last updated:** 15/05/2026
+**Last updated:** 16/05/2026
 
 **Base URL:** `/api/media`
 
@@ -62,6 +62,10 @@
     - `status` (string)
     - `isEligibleForMembership` (boolean)
     - `isMembershipClosedByAdmin` (boolean)
+    - `membershipReviewStatus` (`not_requested` | `pending` | `approved` | `rejected`)
+    - `membershipRejectionReason` (string | null)
+    - `membershipRequestedAt` (string ISO | null)
+    - `membershipReviewedAt` (string ISO | null)
 
 ### 2.1 POST `/api/media/channels`
 - Muc dich: tao channel moi.
@@ -81,6 +85,10 @@
     - `bio` (string)
     - `isEligibleForMembership` (boolean)
     - `isMembershipClosedByAdmin` (boolean)
+    - `membershipReviewStatus` (`not_requested` | `pending` | `approved` | `rejected`)
+    - `membershipRejectionReason` (string | null)
+    - `membershipRequestedAt` (string ISO | null)
+    - `membershipReviewedAt` (string ISO | null)
     - `avatarUrl` (string)
     - `bannerUrl` (string)
     - `status` (string)
@@ -109,6 +117,10 @@
     - `bio` (string)
     - `isEligibleForMembership` (boolean)
     - `isMembershipClosedByAdmin` (boolean)
+    - `membershipReviewStatus` (`not_requested` | `pending` | `approved` | `rejected`)
+    - `membershipRejectionReason` (string | null)
+    - `membershipRequestedAt` (string ISO | null)
+    - `membershipReviewedAt` (string ISO | null)
     - `avatarUrl` (string)
     - `bannerUrl` (string)
     - `status` (string)
@@ -132,6 +144,10 @@
     - `bio` (string)
     - `isEligibleForMembership` (boolean)
     - `isMembershipClosedByAdmin` (boolean)
+    - `membershipReviewStatus` (`not_requested` | `pending` | `approved` | `rejected`)
+    - `membershipRejectionReason` (string | null)
+    - `membershipRequestedAt` (string ISO | null)
+    - `membershipReviewedAt` (string ISO | null)
     - `avatarUrl` (string)
     - `bannerUrl` (string)
     - `status` (string)
@@ -234,6 +250,7 @@
   - `action` (`close` | `open`, bat buoc)
 - Ghi chu:
   - Neu thieu role hoac role khac `admin` thi tra `FORBIDDEN` / HTTP 403 voi message `Admin role is required`.
+  - API nay chi dong/mo van hanh membership sau khi da duyet; khong phai API approve/reject eligibility.
 - Response HTTP 200:
   - Envelope `data`:
     - `id` (string)
@@ -242,6 +259,10 @@
     - `bio` (string)
     - `isEligibleForMembership` (boolean)
     - `isMembershipClosedByAdmin` (boolean)
+    - `membershipReviewStatus` (`not_requested` | `pending` | `approved` | `rejected`)
+    - `membershipRejectionReason` (string | null)
+    - `membershipRequestedAt` (string ISO | null)
+    - `membershipReviewedAt` (string ISO | null)
     - `avatarUrl` (string)
     - `bannerUrl` (string)
     - `status` (string)
@@ -298,6 +319,9 @@
   - `priceCoin` (number, bat buoc, min 0)
 - He thong tu set them khi xu ly:
   - `userId`: lay tu header `x-user-id`
+- Ghi chu:
+  - Channel phai du nguong eligibility va duoc admin approve membership (`membershipReviewStatus = approved`) moi duoc tao tier.
+  - Neu channel moi du eligibility, he thong tu chuyen `membershipReviewStatus` sang `pending` va creator phai doi admin duyet.
 - Response HTTP 201:
   - Envelope `data`:
     - `id` (string)
@@ -1178,9 +1202,84 @@
     - `activeCreators30d` (number): so channel co video tao trong 30 ngay gan nhat
     - `eligibleForMembership` (number): so channel du dieu kien membership
     - `membershipClosedByAdmin` (number): so channel bi admin dong membership
+    - `membershipPendingReview` (number): so channel dang cho admin duyet membership
+    - `membershipApproved` (number): so channel da duoc admin duyet membership
+    - `membershipRejected` (number): so channel bi admin tu choi membership
     - `uploadingNow` (number): so video dang draft/pending_moderation/processing
 
-### 9.2 GET `/api/media/admin/reports/summary`
+### 9.2 GET `/api/media/admin/channels/membership-reviews?status=pending`
+- Muc dich: admin lay danh sach channel theo trang thai duyet membership.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-user-role`: Bat buoc la `admin`
+  - `x-internal-secret`: He thong tu set
+- Query:
+  - `status` (`pending` | `approved` | `rejected`, optional, default `pending`)
+- Ghi chu:
+  - Khi channel dat nguong eligibility lan dau, backend tu set `membershipReviewStatus = pending`.
+  - Neu thieu role hoac role khac `admin` thi tra `FORBIDDEN` / HTTP 403 voi message `Admin role is required`.
+- Response HTTP 200:
+  - Envelope `data`: array, moi object gom:
+    - `channelId` (string)
+    - `userId` (string)
+    - `name` (string)
+    - `status` (string)
+    - `isEligibleForMembership` (boolean)
+    - `isMembershipClosedByAdmin` (boolean)
+    - `membershipReviewStatus` (`pending` | `approved` | `rejected`)
+    - `membershipRejectionReason` (string | null)
+    - `membershipRequestedAt` (string ISO | null)
+    - `membershipReviewedAt` (string ISO | null)
+    - `readyVideoCount` (number)
+    - `minReadyVideoCount` (number)
+    - `totalVideoViews` (number)
+    - `minTotalVideoViews` (number)
+
+### 9.3 PATCH `/api/media/admin/channels/:id/membership-review`
+- Muc dich: admin approve/reject quyen mo membership cua channel.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-user-role`: Bat buoc la `admin`
+  - `x-internal-secret`: He thong tu set
+- Path param:
+  - `id` (string): channelId
+- Body approve:
+```json
+{
+  "action": "approve"
+}
+```
+- Body reject:
+```json
+{
+  "action": "reject",
+  "reason": "Policy issue"
+}
+```
+- Ghi chu:
+  - `reason` bat buoc khi `action = reject`.
+  - Chi approve duoc channel da eligible va dang `pending` hoac `rejected`.
+  - Chi reject duoc channel da eligible va dang `pending`.
+  - Sau khi approve, creator moi duoc tao membership tier.
+- Response HTTP 200:
+  - Envelope `data`:
+    - `id` (string)
+    - `userId` (string)
+    - `name` (string)
+    - `bio` (string)
+    - `isEligibleForMembership` (boolean)
+    - `isMembershipClosedByAdmin` (boolean)
+    - `membershipReviewStatus` (`not_requested` | `pending` | `approved` | `rejected`)
+    - `membershipRejectionReason` (string | null)
+    - `membershipRequestedAt` (string ISO | null)
+    - `membershipReviewedAt` (string ISO | null)
+    - `avatarUrl` (string)
+    - `bannerUrl` (string)
+    - `status` (string)
+    - `createdAt` (string ISO)
+    - `updatedAt` (string ISO)
+
+### 9.4 GET `/api/media/admin/reports/summary`
 - Muc dich: lay summary moderation queue cho admin dashboard.
 - Ghi chu:
   - V1 chua co bang user-submitted reports rieng.
@@ -1197,7 +1296,7 @@
     - `rejectedLast30d` (number): video rejected trong 30 ngay gan nhat
     - `averageResolutionHours` (number | null): hien tai `null`
 
-### 9.3 GET `/api/media/admin/reports?status=pending&page=1&limit=5`
+### 9.5 GET `/api/media/admin/reports?status=pending&page=1&limit=5`
 - Muc dich: lay danh sach moderation report/queue item cho dashboard.
 - Header:
   - `x-user-id`: He thong tu set
@@ -1224,7 +1323,7 @@
       - `total` (number)
       - `totalPages` (number)
 
-### 9.4 GET `/api/media/admin/videos?page=1&limit=20&status=ready&visibility=public&channelId=...&ownerId=...&q=...`
+### 9.6 GET `/api/media/admin/videos?page=1&limit=20&status=ready&visibility=public&channelId=...&ownerId=...&q=...`
 - Muc dich: admin lay danh sach tat ca video trong he thong, gom public/private/draft/processing/rejected/failed/ready va video da soft delete.
 - Header:
   - `x-user-id`: He thong tu set

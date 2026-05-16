@@ -2,6 +2,7 @@ import { NotFoundException } from '@shared/domain/exceptions/domain.exception';
 import {
   ChannelEntity,
   ChannelStatus,
+  MembershipReviewStatus,
 } from '../../domain/entities/channel.entity';
 import { ChannelMembershipEligibilityService } from './channel-membership-eligibility.service';
 
@@ -79,7 +80,28 @@ describe('ChannelMembershipEligibilityService', () => {
     await service.syncChannelEligibility('channel-1');
 
     expect(channel.isEligibleForMembership).toBe(true);
+    expect(channel.membershipReviewStatus).toBe(MembershipReviewStatus.PENDING);
+    expect(channel.membershipRequestedAt).toBeInstanceOf(Date);
     expect(channelRepository.update).toHaveBeenCalledWith(channel);
+  });
+
+  it('does not move an approved channel back to pending', async () => {
+    const channel = buildChannel({
+      isEligibleForMembership: true,
+      membershipReviewStatus: MembershipReviewStatus.APPROVED,
+    });
+    channelRepository.findById.mockResolvedValue(channel);
+    videoQueryService.getChannelMembershipEligibilityMetrics.mockResolvedValue({
+      readyVideoCount: 6,
+      totalVideoViews: 1500,
+    });
+
+    await service.syncChannelEligibility('channel-1');
+
+    expect(channel.membershipReviewStatus).toBe(
+      MembershipReviewStatus.APPROVED,
+    );
+    expect(channelRepository.update).not.toHaveBeenCalled();
   });
 
   it('does not revoke persisted eligibility after thresholds fall again', async () => {

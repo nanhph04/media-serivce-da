@@ -15,6 +15,15 @@ export class AdminChannelSummaryResponseDto {
   membershipClosedByAdmin!: number;
 
   @ApiProperty()
+  membershipPendingReview!: number;
+
+  @ApiProperty()
+  membershipApproved!: number;
+
+  @ApiProperty()
+  membershipRejected!: number;
+
+  @ApiProperty()
   uploadingNow!: number;
 
   static fromApplicationDto(
@@ -25,6 +34,9 @@ export class AdminChannelSummaryResponseDto {
     response.activeCreators30d = dto.activeCreators30d;
     response.eligibleForMembership = dto.eligibleForMembership;
     response.membershipClosedByAdmin = dto.membershipClosedByAdmin;
+    response.membershipPendingReview = dto.membershipPendingReview;
+    response.membershipApproved = dto.membershipApproved;
+    response.membershipRejected = dto.membershipRejected;
     response.uploadingNow = dto.uploadingNow;
 
     return response;

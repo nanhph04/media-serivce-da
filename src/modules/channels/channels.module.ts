@@ -16,6 +16,8 @@ import { UpdateMembershipTierUseCase } from './application/use-cases/update-memb
 import { DisableMembershipTierUseCase } from './application/use-cases/disable-membership-tier.use-case';
 import { HandleMembershipPaymentSuccessUseCase } from './application/use-cases/handle-membership-payment-success.use-case';
 import { ModerateChannelMembershipUseCase } from './application/use-cases/moderate-channel-membership.use-case';
+import { ListMembershipReviewsUseCase } from './application/use-cases/list-membership-reviews.use-case';
+import { ReviewChannelMembershipUseCase } from './application/use-cases/review-channel-membership.use-case';
 import { GetAdminChannelSummaryUseCase } from './application/use-cases/get-admin-channel-summary.use-case';
 import { ChannelController } from './presentation/controllers/channel.controller';
 import { AdminChannelController } from './presentation/controllers/admin-channel.controller';
@@ -88,6 +90,8 @@ import { CHANNEL_CREATION_TRANSACTION } from './application/interfaces/channel-c
     DisableMembershipTierUseCase,
     HandleMembershipPaymentSuccessUseCase,
     ModerateChannelMembershipUseCase,
+    ListMembershipReviewsUseCase,
+    ReviewChannelMembershipUseCase,
     GetAdminChannelSummaryUseCase,
     MembershipPaymentConsumer,
     MembershipCoinCompensationPublisher,

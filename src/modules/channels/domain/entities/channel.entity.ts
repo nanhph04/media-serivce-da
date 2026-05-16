@@ -6,6 +6,13 @@ export enum ChannelStatus {
   SUSPENDED = 'suspended',
 }
 
+export enum MembershipReviewStatus {
+  NOT_REQUESTED = 'not_requested',
+  PENDING = 'pending',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
+}
+
 export interface ChannelProps {
   id: string;
   userId: string;
@@ -16,15 +23,28 @@ export interface ChannelProps {
   status: ChannelStatus;
   isEligibleForMembership: boolean;
   isMembershipClosedByAdmin: boolean;
+  membershipReviewStatus?: MembershipReviewStatus;
+  membershipRejectionReason?: string | null;
+  membershipReviewedBy?: string | null;
+  membershipReviewedAt?: Date | null;
+  membershipRequestedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
 
 export class ChannelEntity {
-  private props: ChannelProps;
+  private props: Required<ChannelProps>;
 
   constructor(props: ChannelProps) {
-    this.props = props;
+    this.props = {
+      ...props,
+      membershipReviewStatus:
+        props.membershipReviewStatus ?? MembershipReviewStatus.NOT_REQUESTED,
+      membershipRejectionReason: props.membershipRejectionReason ?? null,
+      membershipReviewedBy: props.membershipReviewedBy ?? null,
+      membershipReviewedAt: props.membershipReviewedAt ?? null,
+      membershipRequestedAt: props.membershipRequestedAt ?? null,
+    };
   }
 
   get id(): string {
@@ -63,6 +83,26 @@ export class ChannelEntity {
     return this.props.isMembershipClosedByAdmin;
   }
 
+  get membershipReviewStatus(): MembershipReviewStatus {
+    return this.props.membershipReviewStatus;
+  }
+
+  get membershipRejectionReason(): string | null {
+    return this.props.membershipRejectionReason;
+  }
+
+  get membershipReviewedBy(): string | null {
+    return this.props.membershipReviewedBy;
+  }
+
+  get membershipReviewedAt(): Date | null {
+    return this.props.membershipReviewedAt;
+  }
+
+  get membershipRequestedAt(): Date | null {
+    return this.props.membershipRequestedAt;
+  }
+
   get createdAt(): Date {
     return this.props.createdAt;
   }
@@ -97,6 +137,11 @@ export class ChannelEntity {
       status: ChannelStatus.ACTIVE,
       isEligibleForMembership: false,
       isMembershipClosedByAdmin: false,
+      membershipReviewStatus: MembershipReviewStatus.NOT_REQUESTED,
+      membershipRejectionReason: null,
+      membershipReviewedBy: null,
+      membershipReviewedAt: null,
+      membershipRequestedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -174,6 +219,52 @@ export class ChannelEntity {
     }
 
     this.props.isEligibleForMembership = true;
+    this.props.membershipReviewStatus = MembershipReviewStatus.PENDING;
+    this.props.membershipRejectionReason = null;
+    this.props.membershipReviewedBy = null;
+    this.props.membershipReviewedAt = null;
+    this.props.membershipRequestedAt = new Date();
+    this.props.updatedAt = new Date();
+  }
+
+  public approveMembership(adminId: string): void {
+    if (!this.props.isEligibleForMembership) {
+      throw new BadRequestException('Channel is not eligible for membership');
+    }
+
+    if (
+      this.props.membershipReviewStatus !== MembershipReviewStatus.PENDING &&
+      this.props.membershipReviewStatus !== MembershipReviewStatus.REJECTED
+    ) {
+      throw new BadRequestException('Membership review is not pending');
+    }
+
+    this.props.membershipReviewStatus = MembershipReviewStatus.APPROVED;
+    this.props.membershipRejectionReason = null;
+    this.props.membershipReviewedBy = adminId;
+    this.props.membershipReviewedAt = new Date();
+    this.props.updatedAt = new Date();
+  }
+
+  public rejectMembership(adminId: string, reason: string): void {
+    const normalizedReason = reason.trim();
+
+    if (!normalizedReason) {
+      throw new BadRequestException('Rejection reason is required');
+    }
+
+    if (!this.props.isEligibleForMembership) {
+      throw new BadRequestException('Channel is not eligible for membership');
+    }
+
+    if (this.props.membershipReviewStatus !== MembershipReviewStatus.PENDING) {
+      throw new BadRequestException('Membership review is not pending');
+    }
+
+    this.props.membershipReviewStatus = MembershipReviewStatus.REJECTED;
+    this.props.membershipRejectionReason = normalizedReason;
+    this.props.membershipReviewedBy = adminId;
+    this.props.membershipReviewedAt = new Date();
     this.props.updatedAt = new Date();
   }
 }

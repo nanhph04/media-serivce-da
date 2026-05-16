@@ -1,6 +1,7 @@
-export interface CurrentChannelResponse {
+export interface MembershipReviewResponse {
   channelId: string;
   userId: string;
+  name: string;
   status: string;
   isEligibleForMembership: boolean;
   isMembershipClosedByAdmin: boolean;
@@ -8,4 +9,8 @@ export interface CurrentChannelResponse {
   membershipRejectionReason: string | null;
   membershipRequestedAt: Date | null;
   membershipReviewedAt: Date | null;
+  readyVideoCount: number;
+  minReadyVideoCount: number;
+  totalVideoViews: number;
+  minTotalVideoViews: number;
 }

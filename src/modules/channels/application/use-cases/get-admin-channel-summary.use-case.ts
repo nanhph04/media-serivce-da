@@ -45,6 +45,9 @@ export class GetAdminChannelSummaryUseCase extends BaseUseCase<
       activeCreators30d: videoMetrics.activeCreators30d,
       eligibleForMembership: channelCounts.eligibleForMembership,
       membershipClosedByAdmin: channelCounts.membershipClosedByAdmin,
+      membershipPendingReview: channelCounts.membershipPendingReview,
+      membershipApproved: channelCounts.membershipApproved,
+      membershipRejected: channelCounts.membershipRejected,
       uploadingNow: videoMetrics.uploadingNow,
     };
   }

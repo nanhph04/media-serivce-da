@@ -11,7 +11,10 @@ import {
   MEMBERSHIP_CONFIG,
   type IMembershipConfig,
 } from '@shared/application/interfaces/membership-config.interface';
-import { ChannelStatus } from '../../domain/entities/channel.entity';
+import {
+  ChannelStatus,
+  MembershipReviewStatus,
+} from '../../domain/entities/channel.entity';
 import {
   CHANNEL_REPOSITORY,
   type IChannelRepository,
@@ -93,6 +96,16 @@ export class CreateMembershipTierUseCase extends BaseUseCase<
       throw new ForbiddenException(
         'Channel is not eligible to open membership registration yet',
         eligibility?.missingRequirements,
+      );
+    }
+
+    if (channel.membershipReviewStatus !== MembershipReviewStatus.APPROVED) {
+      const message =
+        channel.membershipReviewStatus === MembershipReviewStatus.REJECTED
+          ? 'Channel membership registration was rejected by admin'
+          : 'Channel membership registration is pending admin approval';
+      throw new ForbiddenException(
+        message,
       );
     }
 
