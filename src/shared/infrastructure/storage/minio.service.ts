@@ -74,6 +74,25 @@ export class MinioService implements OnModuleInit, IObjectStorageService {
     return this.rewritePublicUrlIfNeeded(presignedUrl);
   }
 
+  createObjectUrl(bucket: StorageBucket, objectKey: string): string {
+    const useSSL =
+      this.publicUseSSL ?? this.configService.getBooleanOrThrow('MINIO_USE_SSL');
+    const protocol = useSSL ? 'https:' : 'http:';
+    const hostname =
+      this.publicEndpoint ??
+      this.configService.getOrThrow<string>('MINIO_ENDPOINT');
+    const port =
+      this.publicPort ?? this.configService.getNumberOrThrow('MINIO_PORT');
+    const url = new URL(`${protocol}//${hostname}`);
+    url.port = String(port);
+    url.pathname = `${this.getBucketName(bucket)}/${objectKey}`
+      .split('/')
+      .map((part) => encodeURIComponent(part))
+      .join('/');
+
+    return url.toString();
+  }
+
   async createRawUploadUrl(
     objectKey: string,
     expirySeconds = 900,

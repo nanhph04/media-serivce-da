@@ -13,6 +13,8 @@ import {
   IsOptional,
 } from 'class-validator';
 
+const THUMBNAIL_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp'] as const;
+
 export class InitVideoUploadRequestDto {
   @ApiPropertyOptional({
     deprecated: true,
@@ -68,4 +70,16 @@ export class InitVideoUploadRequestDto {
   @Min(1)
   @IsOptional()
   requiredTierLevel?: number | null;
+
+  @ApiPropertyOptional({
+    enum: THUMBNAIL_EXTENSIONS,
+    description:
+      'Optional custom thumbnail extension. When provided, init-upload returns a thumbnail presigned upload URL.',
+  })
+  @Transform(({ value }: TransformFnParams): unknown =>
+    typeof value === 'string' ? value.trim().toLowerCase() : value,
+  )
+  @IsIn(THUMBNAIL_EXTENSIONS)
+  @IsOptional()
+  thumbnailExtension?: string;
 }

@@ -130,3 +130,56 @@ Expected data fields:
   "expiryDate": null
 }
 ```
+
+5) video.thumbnail.generated
+----------------------------
+
+Purpose:
+
+- Consumed by media-service after media-processing-service generates an auto thumbnail.
+- media-service updates video thumbnail metadata only when the video still uses `thumbnailSource = auto`.
+- If the video already uses `thumbnailSource = custom`, the event is ignored so user-uploaded thumbnail is not overwritten.
+
+Topic:
+
+```text
+video.thumbnail.generated
+```
+
+Data:
+
+```json
+{
+  "videoId": "video-id",
+  "thumbnailObjectKey": "videos/video-id/thumbnails/default.jpg",
+  "thumbnailUrl": "http://localhost:9000/media-processed/videos/video-id/thumbnails/default.jpg",
+  "width": 1280,
+  "height": 720,
+  "capturedAtSecond": 12
+}
+```
+
+6) video.thumbnail.failed
+-------------------------
+
+Purpose:
+
+- Consumed by media-service when media-processing-service cannot generate an auto thumbnail after retries.
+- media-service sets `thumbnailStatus = failed` only for videos using `thumbnailSource = auto`.
+
+Topic:
+
+```text
+video.thumbnail.failed
+```
+
+Data:
+
+```json
+{
+  "videoId": "video-id",
+  "reasonCode": "FFMPEG_FAILED",
+  "message": "ffmpeg exited with code 1",
+  "retryable": false
+}
+```

@@ -7,6 +7,7 @@ export interface VideoProcessingJobPayload {
   rawFileKey: string;
   resolution: string[];
   userId: string;
+  thumbnailTargetObjectKey?: string;
 }
 
 export interface IVideoProcessingJobDispatcher {

@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class InitVideoUploadResponseDto {
   @ApiProperty()
@@ -15,4 +15,13 @@ export class InitVideoUploadResponseDto {
 
   @ApiProperty()
   uploadUrl!: string;
+
+  @ApiPropertyOptional({ nullable: true })
+  thumbnailObjectKey!: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  thumbnailBucket!: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  thumbnailUploadUrl!: string | null;
 }

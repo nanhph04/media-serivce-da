@@ -75,6 +75,12 @@ export class VideoMetadataResponseDto {
   thumbnailUrl!: string | null;
 
   @ApiProperty()
+  thumbnailSource!: string;
+
+  @ApiProperty()
+  thumbnailStatus!: string;
+
+  @ApiProperty()
   viewCount!: number;
 
   @ApiProperty()

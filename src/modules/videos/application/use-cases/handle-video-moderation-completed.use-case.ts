@@ -13,7 +13,10 @@ import {
   type IVideoRepository,
   VIDEO_REPOSITORY,
 } from '../../domain/repositories/video.repository';
-import { VideoStatus } from '../../domain/entities/video.entity';
+import {
+  VideoStatus,
+  VideoThumbnailSource,
+} from '../../domain/entities/video.entity';
 import type { HandleVideoModerationCompletedCommand } from '../dtos/handle-video-moderation-completed.command';
 import type { VideoModerationOutcomeEventData } from '../dtos/video-moderation-outcome.event-data';
 import {
@@ -102,6 +105,10 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
         rawFileKey: command.data.rawFileKey,
         resolution: command.data.resolutions,
         userId: command.data.userId,
+        thumbnailTargetObjectKey:
+          video.thumbnailSource === VideoThumbnailSource.AUTO
+            ? this.createAutoThumbnailObjectKey(video.id)
+            : undefined,
       });
       await this.publishOutcome({
         videoId: command.data.videoId,
@@ -180,6 +187,10 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
       confidence: data.confidence,
       evidenceTimestampSeconds: data.evidenceTimestampSeconds,
     };
+  }
+
+  private createAutoThumbnailObjectKey(videoId: string): string {
+    return `videos/${videoId}/thumbnails/default.jpg`;
   }
 
   private async markEventProcessed(processedKey: string): Promise<void> {

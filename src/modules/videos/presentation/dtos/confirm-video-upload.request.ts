@@ -5,6 +5,8 @@ import {
   ArrayUnique,
   IsArray,
   IsIn,
+  IsOptional,
+  IsString,
 } from 'class-validator';
 
 export const VIDEO_UPLOAD_RESOLUTIONS = ['480p', '720p', '1080p'] as const;
@@ -22,4 +24,13 @@ export class ConfirmVideoUploadRequestDto {
   @ArrayUnique()
   @IsIn(VIDEO_UPLOAD_RESOLUTIONS, { each: true })
   resolutions!: VideoUploadResolution[];
+
+  @ApiProperty({
+    required: false,
+    description:
+      'Optional custom thumbnail object key returned by init-upload.',
+  })
+  @IsString()
+  @IsOptional()
+  thumbnailObjectKey?: string;
 }

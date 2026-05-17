@@ -27,6 +27,18 @@ export enum VideoDeletionStatus {
   READY_FOR_HARD_DELETE = 'ready_for_hard_delete',
 }
 
+export enum VideoThumbnailSource {
+  AUTO = 'auto',
+  CUSTOM = 'custom',
+}
+
+export enum VideoThumbnailStatus {
+  PENDING = 'pending',
+  PROCESSING = 'processing',
+  READY = 'ready',
+  FAILED = 'failed',
+}
+
 export interface VideoModerationDetails {
   reason: string;
   confidence: number;
@@ -47,7 +59,12 @@ export interface VideoProps {
   requiredTierLevel: number | null;
   rawFileKey: string;
   masterPlaylistKey: string | null;
+  thumbnailObjectKey: string | null;
   thumbnailUrl: string | null;
+  thumbnailSource: VideoThumbnailSource;
+  thumbnailStatus: VideoThumbnailStatus;
+  thumbnailGeneratedAt: Date | null;
+  thumbnailError: string | null;
   durationSeconds: number | null;
   resolutions: string[];
   errorMessage: string | null;
@@ -125,6 +142,26 @@ export class VideoEntity {
 
   get thumbnailUrl(): string | null {
     return this.props.thumbnailUrl;
+  }
+
+  get thumbnailObjectKey(): string | null {
+    return this.props.thumbnailObjectKey;
+  }
+
+  get thumbnailSource(): VideoThumbnailSource {
+    return this.props.thumbnailSource;
+  }
+
+  get thumbnailStatus(): VideoThumbnailStatus {
+    return this.props.thumbnailStatus;
+  }
+
+  get thumbnailGeneratedAt(): Date | null {
+    return this.props.thumbnailGeneratedAt;
+  }
+
+  get thumbnailError(): string | null {
+    return this.props.thumbnailError;
   }
 
   get durationSeconds(): number | null {
@@ -237,7 +274,12 @@ export class VideoEntity {
       requiredTierLevel: input.requiredTierLevel,
       rawFileKey: input.rawFileKey,
       masterPlaylistKey: null,
+      thumbnailObjectKey: null,
       thumbnailUrl: null,
+      thumbnailSource: VideoThumbnailSource.AUTO,
+      thumbnailStatus: VideoThumbnailStatus.PENDING,
+      thumbnailGeneratedAt: null,
+      thumbnailError: null,
       durationSeconds: null,
       resolutions: [],
       errorMessage: null,
@@ -278,6 +320,61 @@ export class VideoEntity {
     this.assertDraftUploadMutable();
     this.props.rawFileKey = rawFileKey;
     this.props.errorMessage = null;
+    this.touch();
+  }
+
+  markCustomThumbnailReady(input: {
+    objectKey: string;
+    url: string;
+    generatedAt?: Date;
+  }): void {
+    this.assertDraftUploadMutable();
+    this.props.thumbnailSource = VideoThumbnailSource.CUSTOM;
+    this.props.thumbnailStatus = VideoThumbnailStatus.READY;
+    this.props.thumbnailObjectKey = input.objectKey;
+    this.props.thumbnailUrl = input.url;
+    this.props.thumbnailGeneratedAt = input.generatedAt ?? new Date();
+    this.props.thumbnailError = null;
+    this.touch();
+  }
+
+  markAutoThumbnailProcessing(): void {
+    if (this.props.thumbnailSource === VideoThumbnailSource.CUSTOM) {
+      return;
+    }
+
+    this.props.thumbnailSource = VideoThumbnailSource.AUTO;
+    this.props.thumbnailStatus = VideoThumbnailStatus.PROCESSING;
+    this.props.thumbnailError = null;
+    this.touch();
+  }
+
+  markAutoThumbnailReady(input: {
+    objectKey: string;
+    url: string;
+    generatedAt?: Date;
+  }): void {
+    if (this.props.thumbnailSource === VideoThumbnailSource.CUSTOM) {
+      return;
+    }
+
+    this.props.thumbnailSource = VideoThumbnailSource.AUTO;
+    this.props.thumbnailStatus = VideoThumbnailStatus.READY;
+    this.props.thumbnailObjectKey = input.objectKey;
+    this.props.thumbnailUrl = input.url;
+    this.props.thumbnailGeneratedAt = input.generatedAt ?? new Date();
+    this.props.thumbnailError = null;
+    this.touch();
+  }
+
+  markAutoThumbnailFailed(errorMessage: string): void {
+    if (this.props.thumbnailSource === VideoThumbnailSource.CUSTOM) {
+      return;
+    }
+
+    this.props.thumbnailSource = VideoThumbnailSource.AUTO;
+    this.props.thumbnailStatus = VideoThumbnailStatus.FAILED;
+    this.props.thumbnailError = errorMessage;
     this.touch();
   }
 
@@ -346,7 +443,9 @@ export class VideoEntity {
   }): void {
     this.changeStatus(VideoStatus.READY);
     this.props.masterPlaylistKey = input.masterPlaylistKey;
-    this.props.thumbnailUrl = input.thumbnailUrl ?? this.props.thumbnailUrl;
+    if (input.thumbnailUrl !== undefined && !this.props.thumbnailUrl) {
+      this.props.thumbnailUrl = input.thumbnailUrl;
+    }
     this.props.durationSeconds =
       input.durationSeconds ?? this.props.durationSeconds;
     this.props.resolutions = input.resolutions ?? this.props.resolutions;

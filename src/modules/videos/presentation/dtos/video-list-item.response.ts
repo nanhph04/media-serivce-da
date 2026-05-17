@@ -31,6 +31,12 @@ export class VideoListItemResponseDto {
   @ApiProperty({ nullable: true })
   thumbnailUrl!: string | null;
 
+  @ApiProperty()
+  thumbnailSource!: string;
+
+  @ApiProperty()
+  thumbnailStatus!: string;
+
   @ApiProperty({ nullable: true })
   durationSeconds!: number | null;
 

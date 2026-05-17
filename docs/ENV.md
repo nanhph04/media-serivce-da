@@ -19,7 +19,21 @@ KAFKA_MEMBERSHIP_PAYMENT_SUCCESS_TOPIC=membership.payment.success
 KAFKA_MEMBERSHIP_AUTO_RENEW_REMINDER_REQUESTED_TOPIC=membership.auto_renew.reminder_requested
 KAFKA_MEMBERSHIP_AUTO_RENEW_REQUESTED_TOPIC=membership.auto_renew.requested
 KAFKA_MEMBERSHIP_AUTO_RENEW_FAILED_TOPIC=membership.auto_renew.failed
+KAFKA_VIDEO_THUMBNAIL_GENERATED_TOPIC=video.thumbnail.generated
+KAFKA_VIDEO_THUMBNAIL_FAILED_TOPIC=video.thumbnail.failed
 ```
 
 When `KAFKA_AUTO_CREATE_TOPICS=true`, include these topics in
 `KAFKA_TOPICS_TO_CREATE`.
+
+Object storage for thumbnails:
+
+```text
+MINIO_PROCESSED_BUCKET=media-processed
+MINIO_PUBLIC_ENDPOINT=
+MINIO_PUBLIC_PORT=
+MINIO_PUBLIC_USE_SSL=
+```
+
+Custom thumbnail uploads use presigned PUT URLs in `MINIO_PROCESSED_BUCKET`.
+Auto thumbnails are written by media-processing-service to the same bucket.

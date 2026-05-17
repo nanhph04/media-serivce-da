@@ -12,6 +12,8 @@ import {
 import {
   VideoDeletionStatus,
   VideoStatus,
+  VideoThumbnailSource,
+  VideoThumbnailStatus,
   VideoVisibility,
 } from '../../domain/entities/video.entity';
 import { CategoryOrmEntity } from '../../../categories/infrastructure/persistence/category.orm-entity';
@@ -68,10 +70,40 @@ export class VideoOrmEntity {
   @Column({
     type: 'varchar',
     length: 500,
+    name: 'thumbnail_object_key',
+    nullable: true,
+  })
+  thumbnailObjectKey!: string | null;
+
+  @Column({
+    type: 'varchar',
+    length: 500,
     name: 'thumbnail_url',
     nullable: true,
   })
   thumbnailUrl!: string | null;
+
+  @Column({
+    type: 'varchar',
+    length: 16,
+    name: 'thumbnail_source',
+    default: VideoThumbnailSource.AUTO,
+  })
+  thumbnailSource!: VideoThumbnailSource;
+
+  @Column({
+    type: 'varchar',
+    length: 16,
+    name: 'thumbnail_status',
+    default: VideoThumbnailStatus.PENDING,
+  })
+  thumbnailStatus!: VideoThumbnailStatus;
+
+  @Column({ type: 'timestamp', name: 'thumbnail_generated_at', nullable: true })
+  thumbnailGeneratedAt!: Date | null;
+
+  @Column({ type: 'text', name: 'thumbnail_error', nullable: true })
+  thumbnailError!: string | null;
 
   @Column({ type: 'int', name: 'duration_seconds', nullable: true })
   durationSeconds!: number | null;

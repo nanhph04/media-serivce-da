@@ -66,6 +66,8 @@ export class SearchController {
       price: video.price,
       requiredTierLevel: video.requiredTierLevel,
       thumbnailUrl: video.thumbnailUrl,
+      thumbnailSource: video.thumbnailSource,
+      thumbnailStatus: video.thumbnailStatus,
       durationSeconds: video.durationSeconds,
       resolutions: video.resolutions,
       errorMessage: video.errorMessage,

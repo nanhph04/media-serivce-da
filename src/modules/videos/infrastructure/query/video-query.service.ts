@@ -140,6 +140,8 @@ export class VideoQueryService implements IVideoQueryService {
       tagIds: video.tags.map((tag) => tag.id),
       tags: video.tags.map((tag) => tag.slug),
       thumbnailUrl: video.thumbnailUrl,
+      thumbnailSource: video.thumbnailSource,
+      thumbnailStatus: video.thumbnailStatus,
       viewCount: video.viewCount,
       status: video.status,
       visibility: video.visibility,

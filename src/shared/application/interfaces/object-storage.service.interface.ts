@@ -15,6 +15,7 @@ export interface IObjectStorageService {
     objectKey: string,
     expirySeconds?: number,
   ): Promise<string>;
+  createObjectUrl(bucket: StorageBucket, objectKey: string): string;
   objectExists(bucket: StorageBucket, objectKey: string): Promise<boolean>;
   copyObject(
     bucket: StorageBucket,

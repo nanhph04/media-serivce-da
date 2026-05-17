@@ -18,6 +18,7 @@ import {
   type IVideoRepository,
   VIDEO_REPOSITORY,
 } from '../../domain/repositories/video.repository';
+import type { VideoEntity } from '../../domain/entities/video.entity';
 import {
   VIDEO_MODERATION_REQUEST_PUBLISHER,
   type IVideoModerationRequestPublisher,
@@ -29,6 +30,7 @@ import type { ConfirmVideoUploadResponse } from '../dtos/confirm-video-upload.re
 const VIDEO_UPLOAD_RESOLUTION_ORDER = new Map<string, number>(
   VIDEO_UPLOAD_RESOLUTIONS.map((resolution, index) => [resolution, index]),
 );
+const MAX_THUMBNAIL_SIZE_BYTES = 5 * 1024 * 1024;
 
 @Injectable()
 export class ConfirmVideoUploadUseCase extends BaseUseCase<
@@ -95,6 +97,11 @@ export class ConfirmVideoUploadUseCase extends BaseUseCase<
     );
 
     video.replaceDraftRawFile(confirmedRawFileKey);
+    if (command.thumbnailObjectKey) {
+      await this.applyCustomThumbnail(video, command.thumbnailObjectKey);
+    } else {
+      video.markAutoThumbnailProcessing();
+    }
     const normalizedResolutions = [...command.resolutions].sort(
       (left, right) => {
         return (
@@ -128,6 +135,48 @@ export class ConfirmVideoUploadUseCase extends BaseUseCase<
 
   private createConfirmedRawFileKey(videoId: string): string {
     return `uploads/confirmed/${videoId}/${crypto.randomUUID()}.mp4`;
+  }
+
+  private async applyCustomThumbnail(
+    video: VideoEntity,
+    thumbnailObjectKey: string,
+  ): Promise<void> {
+    const expectedPrefix = `videos/${video.id}/thumbnails/custom.`;
+    if (!thumbnailObjectKey.startsWith(expectedPrefix)) {
+      throw new BadRequestException('Thumbnail object key is invalid');
+    }
+
+    const extension = thumbnailObjectKey.slice(expectedPrefix.length);
+    if (!['jpg', 'jpeg', 'png', 'webp'].includes(extension)) {
+      throw new BadRequestException('Thumbnail file type is invalid');
+    }
+
+    const exists = await this.objectStorageService.objectExists(
+      'processed',
+      thumbnailObjectKey,
+    );
+    if (!exists) {
+      throw new NotFoundException('Thumbnail upload file not found');
+    }
+
+    const thumbnailMetadata = await this.objectStorageService.getObjectMetadata(
+      'processed',
+      thumbnailObjectKey,
+    );
+    if (
+      thumbnailMetadata.sizeBytes <= 0 ||
+      thumbnailMetadata.sizeBytes > MAX_THUMBNAIL_SIZE_BYTES
+    ) {
+      throw new BadRequestException('Thumbnail file is empty or exceeds 5MB');
+    }
+
+    video.markCustomThumbnailReady({
+      objectKey: thumbnailObjectKey,
+      url: this.objectStorageService.createObjectUrl(
+        'processed',
+        thumbnailObjectKey,
+      ),
+    });
   }
 
   private async deleteDraftRawFileIfPresent(rawFileKey: string): Promise<void> {

@@ -16,6 +16,8 @@ export interface StudioVideoListItemResponse extends VideoJobStatusFields {
   price: number;
   requiredTierLevel: number | null;
   thumbnailUrl: string | null;
+  thumbnailSource: string;
+  thumbnailStatus: string;
   durationSeconds: number | null;
   resolutions: string[];
   errorMessage: string | null;
@@ -44,6 +46,8 @@ export function mapVideoEntityToStudioListItem(
     price: video.price,
     requiredTierLevel: video.requiredTierLevel,
     thumbnailUrl: video.thumbnailUrl,
+    thumbnailSource: video.thumbnailSource,
+    thumbnailStatus: video.thumbnailStatus,
     durationSeconds: video.durationSeconds,
     resolutions: video.resolutions,
     errorMessage: video.errorMessage,

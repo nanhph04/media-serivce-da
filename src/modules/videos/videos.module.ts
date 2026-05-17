@@ -23,6 +23,8 @@ import { GetVideoMetadataUseCase } from './application/use-cases/get-video-metad
 import { GetVideosByCategoryUseCase } from './application/use-cases/get-videos-by-category.use-case';
 import { HandleVideoProcessedFailedUseCase } from './application/use-cases/handle-video-processed-failed.use-case';
 import { HandleVideoProcessedSuccessUseCase } from './application/use-cases/handle-video-processed-success.use-case';
+import { HandleVideoThumbnailFailedUseCase } from './application/use-cases/handle-video-thumbnail-failed.use-case';
+import { HandleVideoThumbnailGeneratedUseCase } from './application/use-cases/handle-video-thumbnail-generated.use-case';
 import { HandleVideoModerationCompletedUseCase } from './application/use-cases/handle-video-moderation-completed.use-case';
 import { HandleVideoPaymentSuccessUseCase } from './application/use-cases/handle-video-payment-success.use-case';
 import { HandleVideoDeleteRefundCompletedUseCase } from './application/use-cases/handle-video-delete-refund-completed.use-case';
@@ -42,6 +44,7 @@ import { UnpublishVideoUseCase } from './application/use-cases/unpublish-video.u
 import { UnlockVideoUseCase } from './application/use-cases/unlock-video.use-case';
 import { VideoWatchAccessService } from './application/services/video-watch-access.service';
 import { VideoProcessingConsumer } from './infrastructure/consumers/video-processing.consumer';
+import { VideoThumbnailConsumer } from './infrastructure/consumers/video-thumbnail.consumer';
 import { VideoModerationConsumer } from './infrastructure/consumers/video-moderation.consumer';
 import { VideoPaymentConsumer } from './infrastructure/consumers/video-payment.consumer';
 import { VideoDeleteRefundCompletedConsumer } from './infrastructure/consumers/video-delete-refund-completed.consumer';
@@ -142,12 +145,15 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
     GetSubscribedVideosUseCase,
     HandleVideoProcessedSuccessUseCase,
     HandleVideoProcessedFailedUseCase,
+    HandleVideoThumbnailGeneratedUseCase,
+    HandleVideoThumbnailFailedUseCase,
     HandleVideoModerationCompletedUseCase,
     HandleVideoPaymentSuccessUseCase,
     HandleVideoDeleteRefundCompletedUseCase,
     HandleVideoViewedUseCase,
     FlushPendingVideoViewsUseCase,
     VideoProcessingConsumer,
+    VideoThumbnailConsumer,
     VideoModerationConsumer,
     VideoPaymentConsumer,
     VideoDeleteRefundCompletedConsumer,

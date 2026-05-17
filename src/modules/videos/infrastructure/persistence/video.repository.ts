@@ -12,6 +12,8 @@ import {
   VideoEntity,
   type VideoModerationDetails,
   VideoStatus,
+  VideoThumbnailSource,
+  VideoThumbnailStatus,
   VideoVisibility,
 } from '../../domain/entities/video.entity';
 import { Category } from '../../../categories/domain/entities/category.entity';
@@ -58,7 +60,12 @@ export class VideoRepository implements IVideoRepository {
         requiredTierLevel: video.requiredTierLevel,
         rawFileKey: video.rawFileKey,
         masterPlaylistKey: video.masterPlaylistKey,
+        thumbnailObjectKey: video.thumbnailObjectKey,
         thumbnailUrl: video.thumbnailUrl,
+        thumbnailSource: video.thumbnailSource,
+        thumbnailStatus: video.thumbnailStatus,
+        thumbnailGeneratedAt: video.thumbnailGeneratedAt,
+        thumbnailError: video.thumbnailError,
         durationSeconds: video.durationSeconds,
         resolutions: video.resolutions,
         errorMessage: video.errorMessage,
@@ -664,7 +671,16 @@ export class VideoRepository implements IVideoRepository {
       requiredTierLevel: row.requiredTierLevel,
       rawFileKey: row.rawFileKey,
       masterPlaylistKey: row.masterPlaylistKey,
+      thumbnailObjectKey: row.thumbnailObjectKey ?? null,
       thumbnailUrl: row.thumbnailUrl,
+      thumbnailSource: row.thumbnailSource ?? VideoThumbnailSource.AUTO,
+      thumbnailStatus:
+        row.thumbnailStatus ??
+        (row.thumbnailUrl
+          ? VideoThumbnailStatus.READY
+          : VideoThumbnailStatus.PENDING),
+      thumbnailGeneratedAt: row.thumbnailGeneratedAt ?? null,
+      thumbnailError: row.thumbnailError ?? null,
       durationSeconds: row.durationSeconds,
       resolutions: row.resolutions.filter((value) => value.length > 0),
       errorMessage: row.errorMessage,

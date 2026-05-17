@@ -72,6 +72,10 @@ export class InitVideoUploadUseCase extends BaseUseCase<
       requiredTierLevel: command.requiredTierLevel,
       rawFileKey,
     });
+    const thumbnailObjectKey = this.createThumbnailObjectKey(
+      video.id,
+      command.thumbnailExtension,
+    );
 
     await this.videoRepository.save(video);
 
@@ -84,7 +88,28 @@ export class InitVideoUploadUseCase extends BaseUseCase<
         'raw',
         rawFileKey,
       ),
+      thumbnailObjectKey,
+      thumbnailBucket: thumbnailObjectKey
+        ? this.objectStorageService.getBucketName('processed')
+        : null,
+      thumbnailUploadUrl: thumbnailObjectKey
+        ? await this.objectStorageService.createUploadUrl(
+            'processed',
+            thumbnailObjectKey,
+          )
+        : null,
     };
+  }
+
+  private createThumbnailObjectKey(
+    videoId: string,
+    extension?: string,
+  ): string | null {
+    if (!extension) {
+      return null;
+    }
+
+    return `videos/${videoId}/thumbnails/custom.${extension}`;
   }
 
   private async resolveCategory(categoryId: string): Promise<Category> {

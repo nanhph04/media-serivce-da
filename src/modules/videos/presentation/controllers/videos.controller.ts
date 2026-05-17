@@ -134,6 +134,7 @@ export class VideosController {
         visibility: dto.visibility as VideoVisibility,
         price: dto.price,
         requiredTierLevel: dto.requiredTierLevel ?? null,
+        thumbnailExtension: dto.thumbnailExtension,
       }),
     );
   }
@@ -173,6 +174,7 @@ export class VideosController {
         userId,
         videoId,
         resolutions: dto.resolutions,
+        thumbnailObjectKey: dto.thumbnailObjectKey,
       }),
     );
   }
@@ -418,6 +420,8 @@ export class VideosController {
       price: video.price,
       requiredTierLevel: video.requiredTierLevel,
       thumbnailUrl: video.thumbnailUrl,
+      thumbnailSource: video.thumbnailSource,
+      thumbnailStatus: video.thumbnailStatus,
       durationSeconds: video.durationSeconds,
       resolutions: video.resolutions,
       errorMessage: video.errorMessage,
@@ -443,6 +447,8 @@ export class VideosController {
       price: video.price,
       requiredTierLevel: video.requiredTierLevel,
       thumbnailUrl: video.thumbnailUrl,
+      thumbnailSource: video.thumbnailSource,
+      thumbnailStatus: video.thumbnailStatus,
       durationSeconds: video.durationSeconds,
       resolutions: video.resolutions,
       errorMessage: video.errorMessage,
@@ -507,6 +513,8 @@ export class VideosController {
       tagIds: metadata.tagIds,
       tags: metadata.tags,
       thumbnailUrl: metadata.thumbnailUrl,
+      thumbnailSource: metadata.thumbnailSource,
+      thumbnailStatus: metadata.thumbnailStatus,
       viewCount: metadata.viewCount,
       status: metadata.status,
       visibility: metadata.visibility,

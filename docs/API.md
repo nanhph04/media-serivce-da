@@ -1,6 +1,6 @@
 # Media Service API
 
-**Last updated:** 16/05/2026
+**Last updated:** 17/05/2026
 
 **Base URL:** `/api/media`
 
@@ -433,6 +433,16 @@
 
 ## 4. VIDEO APIs
 
+### Thumbnail fields
+
+Nhung response video list/detail chinh co cac field thumbnail:
+
+- `thumbnailUrl` (string | null): URL anh thumbnail neu da san sang.
+- `thumbnailSource` (`auto` | `custom`): nguon thumbnail dang active.
+- `thumbnailStatus` (`pending` | `processing` | `ready` | `failed`): trang thai thumbnail.
+
+Frontend nen render `thumbnailUrl` khi `thumbnailStatus = ready`; cac trang thai khac dung placeholder.
+
 ### 4.0 GET `/api/media/videos/me?limit=20&status=draft,processing&visibility=private`
 
 - Muc dich: lay danh sach video Studio cua chinh creator hien tai, gom ca draft/private/trang thai xu ly.
@@ -525,6 +535,7 @@
   - `visibility` (`public` | `private`, optional, default `public`)
   - `price` (number, optional, default 0, min 0)
   - `requiredTierLevel` (number | null, optional, min 1)
+  - `thumbnailExtension` (`jpg` | `jpeg` | `png` | `webp`, optional): neu creator muon upload custom thumbnail, backend se tra them presigned URL rieng cho thumbnail.
 - He thong tu set them khi xu ly:
   - `userId`: lay tu header `x-user-id`
 - Ghi chu:
@@ -532,6 +543,8 @@
   - Backend KHONG nhan `categories` nua; uploader chi duoc gui `categoryId`.
   - Neu thieu `categoryId`, `categoryId` rong sau khi trim, hoac category khong ton tai / khong active thi tra `BAD_REQUEST` / HTTP 400.
   - Neu `tagIds` bi duplicate, co tag khong ton tai, hoac tag khong active thi tra `BAD_REQUEST` / HTTP 400.
+  - Neu co `thumbnailExtension`, client upload anh custom thumbnail vao `thumbnailUploadUrl` truoc khi goi confirm.
+  - Neu khong co `thumbnailExtension`, he thong se auto-generate thumbnail bang Media Processing Service sau moderation/transcode.
 - Response HTTP 201:
   - Envelope `data`:
     - `videoId` (string)
@@ -539,6 +552,9 @@
     - `rawFileKey` (string)
     - `bucket` (string)
     - `uploadUrl` (string)
+    - `thumbnailObjectKey` (string | null): key MinIO cho custom thumbnail neu request co `thumbnailExtension`
+    - `thumbnailBucket` (string | null)
+    - `thumbnailUploadUrl` (string | null): presigned URL de upload custom thumbnail
 
 ### 4.2 POST `/api/media/videos/:id/confirm-upload`
 
@@ -551,12 +567,15 @@
 - Body:
   - `resolutions` (string[], bat buoc, unique, 1-3 phan tu)
   - Gia tri hop le hien tai: `480p`, `720p`, `1080p`
+  - `thumbnailObjectKey` (string, optional): object key custom thumbnail da upload bang URL tra ve tu `init-upload`
 - He thong tu set them khi xu ly:
   - `userId`: lay tu header `x-user-id`
 - Ghi chu:
   - Chi owner duoc confirm.
   - Chi confirm duoc khi video con `status = draft`; cac status khac tra `CONFLICT` / HTTP 409.
   - Backend kiem tra raw object ton tai, size > 0, va khong vuot gioi han upload.
+  - Neu co `thumbnailObjectKey`, backend kiem tra object ton tai trong bucket processed, dung prefix `videos/{videoId}/thumbnails/custom.`, dinh dang `jpg/jpeg/png/webp`, size > 0 va <= 5MB. Hop le thi set `thumbnailSource = custom`, `thumbnailStatus = ready`.
+  - Neu khong co `thumbnailObjectKey`, backend set `thumbnailSource = auto`, `thumbnailStatus = processing`; Media Processing Service tao file `videos/{videoId}/thumbnails/default.jpg`.
   - Khi confirm thanh cong, backend copy raw object sang immutable key `uploads/confirmed/{videoId}/{uuid}.mp4` truoc khi publish moderation event. Presigned URL cu neu con han se khong ghi de file dang moderation/transcode.
 - Response HTTP 201:
   - Envelope `data`:

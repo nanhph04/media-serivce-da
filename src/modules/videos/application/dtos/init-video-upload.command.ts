@@ -9,4 +9,5 @@ export interface InitVideoUploadCommand {
   visibility: VideoVisibility;
   price: number;
   requiredTierLevel: number | null;
+  thumbnailExtension?: string;
 }
