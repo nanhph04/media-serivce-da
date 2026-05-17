@@ -153,6 +153,7 @@ export class AdminChannelController {
       channelId,
       adminId,
       action: dto.action,
+      reason: dto.reason,
     });
 
     return apiResponseContract(toChannelResponseDto(channel));

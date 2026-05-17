@@ -1428,7 +1428,8 @@ Frontend nen render `thumbnailUrl` khi `thumbnailStatus = ready`; cac trang thai
 
 ```json
 {
-  "action": "lock"
+  "action": "lock",
+  "reason": "DMCA violation"
 }
 ```
 
@@ -1442,6 +1443,12 @@ Frontend nen render `thumbnailUrl` khi `thumbnailStatus = ready`; cac trang thai
 
 - Response HTTP 200:
   - Envelope `data`: channel sau khi cap nhat status.
+- Side effects khi `action = lock`:
+  - Channel chuyen sang `suspended`.
+  - Creator mutations bi chan vi cac API creator yeu cau channel `active`.
+  - Auto-renew cua membership hien tai tren channel bi disable.
+  - Public discovery/search/latest/detail khong tra video cua channel suspended.
+  - Publish event `channel.status.changed` cho finance-service dat payout hold.
 
 ### 9.6 GET `/api/media/admin/reports/summary`
 

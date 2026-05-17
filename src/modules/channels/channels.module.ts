@@ -21,6 +21,7 @@ import { ModerateChannelMembershipUseCase } from './application/use-cases/modera
 import { RequestDueMembershipRenewalsUseCase } from './application/use-cases/request-due-membership-renewals.use-case';
 import { SendDueMembershipRenewalRemindersUseCase } from './application/use-cases/send-due-membership-renewal-reminders.use-case';
 import { UpdateMembershipAutoRenewUseCase } from './application/use-cases/update-membership-auto-renew.use-case';
+import { HandleUserStatusChangedUseCase } from './application/use-cases/handle-user-status-changed.use-case';
 import { ListAdminChannelsUseCase } from './application/use-cases/list-admin-channels.use-case';
 import { ListMembershipReviewsUseCase } from './application/use-cases/list-membership-reviews.use-case';
 import { ReviewChannelMembershipUseCase } from './application/use-cases/review-channel-membership.use-case';
@@ -39,7 +40,9 @@ import { MembershipTierRepositoryImpl } from './infrastructure/persistence/membe
 import { ChannelMembershipMapper } from './infrastructure/mappers/channel-membership.mapper';
 import { MembershipPaymentConsumer } from './infrastructure/consumers/membership-payment.consumer';
 import { MembershipAutoRenewFailedConsumer } from './infrastructure/consumers/membership-auto-renew-failed.consumer';
+import { UserStatusChangedConsumer } from './infrastructure/consumers/user-status-changed.consumer';
 import { MembershipAutoRenewPublisher } from './infrastructure/messaging/membership-auto-renew.publisher';
+import { ChannelStatusEventPublisher } from './infrastructure/messaging/channel-status-event.publisher';
 import { MembershipCoinCompensationPublisher } from './infrastructure/messaging/membership-coin-compensation.publisher';
 import { MembershipAutoRenewScheduler } from './infrastructure/services/membership-auto-renew.scheduler';
 import { ChannelCreationTransactionService } from './infrastructure/persistence/channel-creation-transaction.service';
@@ -59,6 +62,7 @@ import { MEMBERSHIP_COIN_COMPENSATION_PUBLISHER } from './application/interfaces
 import { MEMBERSHIP_AUTO_RENEW_PUBLISHER } from './application/interfaces/membership-auto-renew.publisher.interface';
 import { USER_MEMBERSHIP_QUERY_SERVICE } from './application/interfaces/user-membership-query.service.interface';
 import { CHANNEL_CREATION_TRANSACTION } from './application/interfaces/channel-creation-transaction.interface';
+import { CHANNEL_STATUS_EVENT_PUBLISHER } from './application/interfaces/channel-status-event.publisher.interface';
 
 @Module({
   imports: [
@@ -105,13 +109,16 @@ import { CHANNEL_CREATION_TRANSACTION } from './application/interfaces/channel-c
     RequestDueMembershipRenewalsUseCase,
     SendDueMembershipRenewalRemindersUseCase,
     UpdateMembershipAutoRenewUseCase,
+    HandleUserStatusChangedUseCase,
     ListAdminChannelsUseCase,
     ListMembershipReviewsUseCase,
     ReviewChannelMembershipUseCase,
     GetAdminChannelSummaryUseCase,
     MembershipPaymentConsumer,
     MembershipAutoRenewFailedConsumer,
+    UserStatusChangedConsumer,
     MembershipAutoRenewPublisher,
+    ChannelStatusEventPublisher,
     MembershipCoinCompensationPublisher,
     MembershipAutoRenewScheduler,
     {
@@ -161,6 +168,10 @@ import { CHANNEL_CREATION_TRANSACTION } from './application/interfaces/channel-c
     {
       provide: MEMBERSHIP_AUTO_RENEW_PUBLISHER,
       useExisting: MembershipAutoRenewPublisher,
+    },
+    {
+      provide: CHANNEL_STATUS_EVENT_PUBLISHER,
+      useExisting: ChannelStatusEventPublisher,
     },
   ],
   exports: [

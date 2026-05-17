@@ -18,6 +18,8 @@ import {
 } from '../../domain/entities/video.entity';
 import { Category } from '../../../categories/domain/entities/category.entity';
 import { Tag } from '../../../tags/domain/entities/tag.entity';
+import { ChannelStatus } from '../../../channels/domain/entities/channel.entity';
+import { ChannelOrmEntity } from '../../../channels/infrastructure/persistence/channel.orm-entity';
 import type {
   AdminChannelVideoMetrics,
   AdminVideoFilters,
@@ -283,7 +285,11 @@ export class VideoRepository implements IVideoRepository {
       .leftJoinAndSelect('video.category', 'category')
       .leftJoinAndSelect('video.videoTags', 'videoTag')
       .leftJoinAndSelect('videoTag.tag', 'tag')
+      .innerJoin(ChannelOrmEntity, 'channel', 'channel.id = video.channelId')
       .where('video.channelId = :channelId', { channelId })
+      .andWhere('channel.status = :channelStatus', {
+        channelStatus: ChannelStatus.ACTIVE,
+      })
       .andWhere('video.status = :status', { status: VideoStatus.READY })
       .andWhere('video.isDeleted = :isDeleted', { isDeleted: false })
       .andWhere('video.visibility = :visibility', {
@@ -302,7 +308,11 @@ export class VideoRepository implements IVideoRepository {
       .leftJoinAndSelect('video.category', 'category')
       .leftJoinAndSelect('video.videoTags', 'videoTag')
       .leftJoinAndSelect('videoTag.tag', 'tag')
+      .innerJoin(ChannelOrmEntity, 'channel', 'channel.id = video.channelId')
       .where('video.status = :status', { status: VideoStatus.READY })
+      .andWhere('channel.status = :channelStatus', {
+        channelStatus: ChannelStatus.ACTIVE,
+      })
       .andWhere('video.isDeleted = :isDeleted', { isDeleted: false })
       .andWhere('video.visibility = :visibility', {
         visibility: VideoVisibility.PUBLIC,
@@ -331,7 +341,11 @@ export class VideoRepository implements IVideoRepository {
       .leftJoinAndSelect('video.category', 'category')
       .leftJoinAndSelect('video.videoTags', 'videoTag')
       .leftJoinAndSelect('videoTag.tag', 'tag')
+      .innerJoin(ChannelOrmEntity, 'channel', 'channel.id = video.channelId')
       .where('video.status = :status', { status: VideoStatus.READY })
+      .andWhere('channel.status = :channelStatus', {
+        channelStatus: ChannelStatus.ACTIVE,
+      })
       .andWhere('video.isDeleted = :isDeleted', { isDeleted: false })
       .andWhere('video.visibility = :visibility', {
         visibility: VideoVisibility.PUBLIC,
@@ -360,7 +374,11 @@ export class VideoRepository implements IVideoRepository {
       .leftJoinAndSelect('video.category', 'category')
       .leftJoinAndSelect('video.videoTags', 'videoTag')
       .leftJoinAndSelect('videoTag.tag', 'tag')
+      .innerJoin(ChannelOrmEntity, 'channel', 'channel.id = video.channelId')
       .where('video.status = :status', { status: VideoStatus.READY })
+      .andWhere('channel.status = :channelStatus', {
+        channelStatus: ChannelStatus.ACTIVE,
+      })
       .andWhere('video.isDeleted = :isDeleted', { isDeleted: false })
       .andWhere('video.visibility = :visibility', {
         visibility: VideoVisibility.PUBLIC,
@@ -438,17 +456,25 @@ export class VideoRepository implements IVideoRepository {
       return [];
     }
 
-    const rows = await this.ormRepository.find({
-      where: {
-        channelId: In(channelIds),
-        status: VideoStatus.READY,
-        isDeleted: false,
+    const rows = await this.ormRepository
+      .createQueryBuilder('video')
+      .leftJoinAndSelect('video.category', 'category')
+      .leftJoinAndSelect('video.videoTags', 'videoTag')
+      .leftJoinAndSelect('videoTag.tag', 'tag')
+      .innerJoin(ChannelOrmEntity, 'channel', 'channel.id = video.channelId')
+      .where('video.channelId IN (:...channelIds)', { channelIds })
+      .andWhere('channel.status = :channelStatus', {
+        channelStatus: ChannelStatus.ACTIVE,
+      })
+      .andWhere('video.status = :status', { status: VideoStatus.READY })
+      .andWhere('video.isDeleted = :isDeleted', { isDeleted: false })
+      .andWhere('video.visibility = :visibility', {
         visibility: VideoVisibility.PUBLIC,
-      },
-      relations: { category: true, videoTags: { tag: true } },
-      order: { publishedAt: 'DESC', createdAt: 'DESC' },
-      take: limit,
-    });
+      })
+      .orderBy('video.publishedAt', 'DESC')
+      .addOrderBy('video.createdAt', 'DESC')
+      .take(limit)
+      .getMany();
     return rows.map((row) => this.toDomain(row));
   }
 

@@ -131,7 +131,71 @@ Expected data fields:
 }
 ```
 
-5) video.thumbnail.generated
+5) channel.status.changed
+-------------------------
+
+Purpose:
+
+- Published by media-service after admin locks/unlocks a channel, or after
+  media-service locks a channel because its owner account was suspended.
+- finance-service consumes this event to place or remove payout holds.
+
+Topic:
+
+```text
+channel.status.changed
+```
+
+Data:
+
+```json
+{
+  "channelId": "channel-id",
+  "channelOwnerId": "creator-user-id",
+  "previousStatus": "active",
+  "currentStatus": "suspended",
+  "changedByAdminId": "admin-id",
+  "reason": "DMCA violation",
+  "changedAt": "2026-05-17T00:00:00.000Z"
+}
+```
+
+Producer rules:
+
+- On `currentStatus = suspended`, media-service disables auto-renew for active
+  memberships of that channel.
+- Public discovery/search/latest/detail queries only return videos whose channel
+  is `active`.
+
+6) user.status.changed
+----------------------
+
+Purpose:
+
+- Consumed by media-service from identity-service.
+- When `currentStatus = suspended`, media-service idempotently suspends the
+  owner's channel and disables auto-renew for memberships bought by that user.
+
+Topic:
+
+```text
+user.status.changed
+```
+
+Data fields used:
+
+```json
+{
+  "userId": "user-id",
+  "previousStatus": "active",
+  "currentStatus": "suspended",
+  "changedByAdminId": "admin-id",
+  "reason": "Policy violation",
+  "changedAt": "2026-05-17T00:00:00.000Z"
+}
+```
+
+7) video.thumbnail.generated
 ----------------------------
 
 Purpose:
@@ -159,7 +223,7 @@ Data:
 }
 ```
 
-6) video.thumbnail.failed
+8) video.thumbnail.failed
 -------------------------
 
 Purpose:

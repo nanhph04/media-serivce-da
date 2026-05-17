@@ -173,4 +173,40 @@ export class ChannelMembershipRepositoryImpl implements IChannelMembershipReposi
 
     return ormEntities.map((ormEntity) => this.mapper.toDomain(ormEntity));
   }
+
+  async disableAutoRenewByChannelId(channelId: string): Promise<number> {
+    const result = await this.ormRepository.update(
+      {
+        channelId,
+        status: ChannelMembershipStatus.ACTIVE,
+        autoRenewEnabled: true,
+      },
+      {
+        autoRenewEnabled: false,
+        renewalStatus: ChannelMembershipRenewalStatus.DISABLED,
+        nextRenewalAttemptAt: null,
+        updatedAt: new Date(),
+      },
+    );
+
+    return result.affected ?? 0;
+  }
+
+  async disableAutoRenewByUserId(userId: string): Promise<number> {
+    const result = await this.ormRepository.update(
+      {
+        userId,
+        status: ChannelMembershipStatus.ACTIVE,
+        autoRenewEnabled: true,
+      },
+      {
+        autoRenewEnabled: false,
+        renewalStatus: ChannelMembershipRenewalStatus.DISABLED,
+        nextRenewalAttemptAt: null,
+        updatedAt: new Date(),
+      },
+    );
+
+    return result.affected ?? 0;
+  }
 }

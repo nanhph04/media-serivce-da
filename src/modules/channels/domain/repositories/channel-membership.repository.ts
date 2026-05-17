@@ -14,6 +14,8 @@ export interface IChannelMembershipRepository {
   ): Promise<ChannelMembershipEntity | null>;
   findByChannelId(channelId: string): Promise<ChannelMembershipEntity[]>;
   findByUserId(userId: string): Promise<ChannelMembershipEntity[]>;
+  disableAutoRenewByChannelId(channelId: string): Promise<number>;
+  disableAutoRenewByUserId(userId: string): Promise<number>;
   countByChannelId(channelId: string): Promise<number>;
   findByUserIdAndChannelIdActive(
     userId: string,

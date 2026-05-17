@@ -21,6 +21,7 @@ import {
 } from '../../application/interfaces/video-query.service.interface';
 import type { SearchPublicVideosQuery } from '../../application/interfaces/video-search-query.service.interface';
 import { ChannelOrmEntity } from '../../../channels/infrastructure/persistence/channel.orm-entity';
+import { ChannelStatus } from '../../../channels/domain/entities/channel.entity';
 import { MembershipTierOrmEntity } from '../../../channels/infrastructure/persistence/membership-tier.orm-entity';
 import {
   type IVideoRepository,
@@ -116,7 +117,7 @@ export class VideoQueryService implements IVideoQueryService {
     }
 
     const channel = await this.channelOrmRepository.findOne({
-      where: { id: video.channelId },
+      where: { id: video.channelId, status: ChannelStatus.ACTIVE },
       select: { id: true, name: true, avatarUrl: true },
     });
     if (!channel) {
@@ -294,6 +295,7 @@ export class VideoQueryService implements IVideoQueryService {
     const rows = await this.watchProgressOrmRepository
       .createQueryBuilder('progress')
       .innerJoin(VideoOrmEntity, 'video', 'video.id = progress.video_id')
+      .innerJoin(ChannelOrmEntity, 'channel', 'channel.id = video.channel_id')
       .where('progress.user_id = :userId', { userId })
       .andWhere('progress.completed_at IS NULL')
       .andWhere('progress.last_position_seconds > 0')
@@ -303,6 +305,9 @@ export class VideoQueryService implements IVideoQueryService {
       })
       .andWhere('video.visibility = :visibility', {
         visibility: VideoVisibility.PUBLIC,
+      })
+      .andWhere('channel.status = :channelStatus', {
+        channelStatus: ChannelStatus.ACTIVE,
       })
       .orderBy('progress.last_watched_at', 'DESC')
       .take(limit)
