@@ -1,4 +1,5 @@
 import type { VideoEntity } from '../../domain/entities/video.entity';
+import { buildPublicThumbnailUrl } from './thumbnail-url';
 
 export interface VideoListItemResponse {
   id: string;
@@ -35,7 +36,7 @@ export function mapVideoEntityToListItem(
     status: video.status,
     price: video.price,
     requiredTierLevel: video.requiredTierLevel,
-    thumbnailUrl: video.thumbnailUrl,
+    thumbnailUrl: buildPublicThumbnailUrl(video),
     thumbnailSource: video.thumbnailSource,
     thumbnailStatus: video.thumbnailStatus,
     durationSeconds: video.durationSeconds,

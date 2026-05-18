@@ -227,6 +227,26 @@ export class ChannelEntity {
     this.props.updatedAt = new Date();
   }
 
+  public requestMembershipReview(): void {
+    if (!this.props.isEligibleForMembership) {
+      throw new BadRequestException('Channel is not eligible for membership');
+    }
+
+    if (
+      this.props.membershipReviewStatus === MembershipReviewStatus.PENDING ||
+      this.props.membershipReviewStatus === MembershipReviewStatus.APPROVED
+    ) {
+      return;
+    }
+
+    this.props.membershipReviewStatus = MembershipReviewStatus.PENDING;
+    this.props.membershipRejectionReason = null;
+    this.props.membershipReviewedBy = null;
+    this.props.membershipReviewedAt = null;
+    this.props.membershipRequestedAt = new Date();
+    this.props.updatedAt = new Date();
+  }
+
   public approveMembership(adminId: string): void {
     if (!this.props.isEligibleForMembership) {
       throw new BadRequestException('Channel is not eligible for membership');

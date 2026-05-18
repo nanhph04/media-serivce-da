@@ -87,6 +87,7 @@ GET /api/media/videos
 GET /api/media/videos/discovery/latest
 GET /api/media/videos/discovery/by-category
 GET /api/media/videos/:id/metadata
+GET /api/media/videos/:id/thumbnail
 GET /api/media/stream/:videoId/master.m3u8?token=...
 GET /api/media/stream/:videoId/segments/:segmentName?token=...
 ```
@@ -136,6 +137,8 @@ DELETE /api/media/channels/:channelId/membership-tiers/:tierId
 GET    /api/media/memberships/me
 PATCH  /api/media/memberships/:membershipId/auto-renew
 GET    /api/media/videos/me
+GET    /api/media/videos/me/:id/detail
+GET    /api/media/videos/me/:id/thumbnail
 POST   /api/media/videos/init-upload
 POST   /api/media/videos/:id/confirm-upload
 POST   /api/media/videos/:id/replace-upload

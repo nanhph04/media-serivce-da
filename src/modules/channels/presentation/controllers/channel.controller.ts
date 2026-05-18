@@ -25,6 +25,7 @@ import { GetCurrentChannelUseCase } from '../../application/use-cases/get-curren
 import { GetChannelDetailUseCase } from '../../application/use-cases/get-channel-detail.use-case';
 import { GetMembershipStatusUseCase } from '../../application/use-cases/get-membership-status.use-case';
 import { ModerateChannelMembershipUseCase } from '../../application/use-cases/moderate-channel-membership.use-case';
+import { RequestChannelMembershipReviewUseCase } from '../../application/use-cases/request-channel-membership-review.use-case';
 import { UpdateChannelUseCase } from '../../application/use-cases/update-channel.use-case';
 import { CreateChannelRequestDto } from '../dtos/create-channel.request';
 import { ModerateChannelMembershipRequestDto } from '../dtos/moderate-channel-membership.request';
@@ -54,6 +55,7 @@ export class ChannelController {
     private readonly getChannelDetailUseCase: GetChannelDetailUseCase,
     private readonly getMembershipStatusUseCase: GetMembershipStatusUseCase,
     private readonly moderateChannelMembershipUseCase: ModerateChannelMembershipUseCase,
+    private readonly requestChannelMembershipReviewUseCase: RequestChannelMembershipReviewUseCase,
   ) {}
 
   @Post()
@@ -120,6 +122,20 @@ export class ChannelController {
       userId,
     });
     return apiResponseContract(toChannelMembershipStatusResponseDto(status));
+  }
+
+  @Post(':id/membership-review/request')
+  @ApiSuccessResponse(ChannelResponseDto)
+  async requestMembershipReview(
+    @CurrentUserId() userId: string,
+    @Param('id') channelId: string,
+  ): Promise<ApiResponse<ChannelResponseDto>> {
+    const channel = await this.requestChannelMembershipReviewUseCase.execute({
+      channelId,
+      userId,
+    });
+
+    return apiResponseContract(toChannelResponseDto(channel));
   }
 
   @Patch(':id/admin/membership')

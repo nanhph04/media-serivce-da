@@ -350,7 +350,43 @@
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
 
-### 3.3 POST `/api/media/channels/:channelId/membership-tiers`
+### 3.3 POST `/api/media/channels/:channelId/membership-review/request`
+
+- Muc dich: creator gui yeu cau admin duyet quyen mo membership cho channel.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-internal-secret`: He thong tu set
+- Path param:
+  - `channelId` (string)
+- Body: khong co body.
+- Ghi chu:
+  - API nay la luong chinh de xin admin mo membership, thay vi tao tier de trigger review.
+  - Channel phai thuoc user hien tai va co `status = active`.
+  - Neu admin dang dong membership cua channel thi tra HTTP 403.
+  - Backend se sync eligibility theo nguong video/view hien tai.
+  - Neu chua du dieu kien thi tra HTTP 403 kem `missingRequirements`.
+  - Neu du dieu kien thi set `isEligibleForMembership = true`, `membershipReviewStatus = pending`, `membershipRequestedAt = now`.
+  - Neu channel dang `pending` hoac da `approved`, API tra ve trang thai hien tai va khong reset review.
+  - Neu channel bi `rejected`, creator co the goi lai API nay sau khi cai thien dieu kien/noi dung de dua ve `pending`.
+- Response HTTP 200:
+  - Envelope `data`:
+    - `id` (string)
+    - `userId` (string)
+    - `name` (string)
+    - `bio` (string)
+    - `isEligibleForMembership` (boolean)
+    - `isMembershipClosedByAdmin` (boolean)
+    - `membershipReviewStatus` (`not_requested` | `pending` | `approved` | `rejected`)
+    - `membershipRejectionReason` (string | null)
+    - `membershipRequestedAt` (string ISO | null)
+    - `membershipReviewedAt` (string ISO | null)
+    - `avatarUrl` (string)
+    - `bannerUrl` (string)
+    - `status` (string)
+    - `createdAt` (string ISO)
+    - `updatedAt` (string ISO)
+
+### 3.4 POST `/api/media/channels/:channelId/membership-tiers`
 
 - Muc dich: tao tier moi cho channel.
 - Header:
@@ -366,7 +402,8 @@
   - `userId`: lay tu header `x-user-id`
 - Ghi chu:
   - Channel phai du nguong eligibility va duoc admin approve membership (`membershipReviewStatus = approved`) moi duoc tao tier.
-  - Neu channel moi du eligibility, he thong tu chuyen `membershipReviewStatus` sang `pending` va creator phai doi admin duyet.
+  - Creator nen goi `POST /api/media/channels/:channelId/membership-review/request` de xin admin duyet truoc khi tao tier.
+  - Neu channel chua duoc approve, API nay tra HTTP 403 va khong tao tier.
 - Response HTTP 201:
   - Envelope `data`:
     - `id` (string)
@@ -378,7 +415,7 @@
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
 
-### 3.4 PATCH `/api/media/channels/:channelId/membership-tiers/:tierId`
+### 3.5 PATCH `/api/media/channels/:channelId/membership-tiers/:tierId`
 
 - Muc dich: cap nhat tier.
 - Header:
@@ -432,11 +469,12 @@
 
 Nhung response video list/detail chinh co cac field thumbnail:
 
-- `thumbnailUrl` (string | null): URL anh thumbnail neu da san sang.
+- `thumbnailUrl` (string | null): URL proxy qua media API neu anh da san sang; khong tra URL MinIO truc tiep.
 - `thumbnailSource` (`auto` | `custom`): nguon thumbnail dang active.
 - `thumbnailStatus` (`pending` | `processing` | `ready` | `failed`): trang thai thumbnail.
 
 Frontend nen render `thumbnailUrl` khi `thumbnailStatus = ready`; cac trang thai khac dung placeholder.
+Public/list/metadata response tra `/api/media/videos/:id/thumbnail`. Studio/owner response tra `/api/media/videos/me/:id/thumbnail`.
 
 ### 4.0 GET `/api/media/videos/me?limit=20&status=draft,processing&visibility=private`
 
@@ -484,6 +522,43 @@ Frontend nen render `thumbnailUrl` khi `thumbnailStatus = ready`; cac trang thai
     - `deleteReason` (string | null)
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
+
+### 4.0B GET `/api/media/videos/me/:id/detail`
+
+- Muc dich: lay chi tiet video Studio cua chinh creator hien tai theo `id`, gom ca `draft`, `private`, `pending_moderation`, `processing`, `pending_manual_review`, `rejected`, `failed`, `ready`.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-internal-secret`: He thong tu set
+- Path:
+  - `id` (string): video id
+- He thong tu set them khi xu ly:
+  - `userId`: lay tu header `x-user-id`
+- Ghi chu:
+  - Endpoint nay chi tra video owner hien tai.
+  - Neu video khong ton tai tra `NOT_FOUND` / HTTP 404.
+  - Neu video thuoc owner khac tra `FORBIDDEN` / HTTP 403.
+  - Dung endpoint nay cho man hinh Studio/detail quan ly video. Khong dung `GET /api/media/videos/:id/metadata` cho video chua public-ready, vi metadata endpoint chi expose video `ready + public + active`.
+  - Neu response co `status = draft`, FE co the cho user `confirm-upload`, `replace-upload`, hoac `cancel upload`.
+- Response HTTP 200:
+  - Envelope `data`: object cung shape voi item cua `GET /api/media/videos/me`, gom `status`, `jobStatus`, `jobStatusMessage`, `failureReason`, `moderationDetails`, thumbnail fields, delete fields va timestamps.
+
+### 4.0C GET `/api/media/videos/me/:id/thumbnail`
+
+- Muc dich: stream thumbnail private cho creator trong Studio.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-internal-secret`: He thong tu set
+- Path:
+  - `id` (string): video id
+- Ghi chu:
+  - Chi owner video duoc xem; non-owner tra `FORBIDDEN` / HTTP 403.
+  - Cho phep moi `status` video mien la video co `thumbnailObjectKey` va `thumbnailStatus = ready`.
+  - Bucket `media-processed` van private; endpoint nay proxy stream tu MinIO.
+- Response HTTP 200:
+  - Body: image stream.
+  - Header:
+    - `Content-Type`: theo extension `.jpg`, `.jpeg`, `.png`, `.webp`
+    - `Cache-Control: private, max-age=300`
 
 ### 4.0A GET `/api/media/videos?q=...&category=...&tags=tag1,tag2&limit=20`
 
@@ -760,6 +835,8 @@ Frontend nen render `thumbnailUrl` khi `thumbnailStatus = ready`; cac trang thai
     - `thumbnailSource` (string)
     - `thumbnailStatus` (string)
     - `viewCount` (number)
+    - `price` (number): gia mua le, `0` neu free
+    - `requiredTierLevel` (number | null): tier membership toi thieu neu video khoa theo membership
     - `status` (string)
     - `visibility` (string)
     - `errorMessage` (string | null)
@@ -773,6 +850,22 @@ Frontend nen render `thumbnailUrl` khi `thumbnailStatus = ready`; cac trang thai
     - `deletedBy` (string | null)
     - `deleteReason` (string | null)
     - `updatedAt` (string ISO)
+
+### 4.10A GET `/api/media/videos/:id/thumbnail`
+
+- Muc dich: stream thumbnail public cua video.
+- Public API: khong can `x-internal-secret`.
+- Path param:
+  - `id` (string): videoId
+- Ghi chu:
+  - Chi tra khi video `ready + public + active`, channel `active`, co `thumbnailObjectKey`, va `thumbnailStatus = ready`.
+  - Video private, chua ready, channel inactive, pending delete, hoac chua co thumbnail ready deu tra `NOT_FOUND` / HTTP 404.
+  - Video co phi van co the tra thumbnail public neu video da public-ready; quyen xem video day du van do `/play` kiem soat.
+- Response HTTP 200:
+  - Body: image stream.
+  - Header:
+    - `Content-Type`: theo extension `.jpg`, `.jpeg`, `.png`, `.webp`
+    - `Cache-Control: public, max-age=3600`
 
 ### 4.11 PATCH `/api/media/videos/:id/metadata`
 
@@ -788,6 +881,7 @@ Frontend nen render `thumbnailUrl` khi `thumbnailStatus = ready`; cac trang thai
   - `thumbnailUrl` (string | null, optional, max 500)
   - `categoryId` (string, optional): neu truyen thi category phai ton tai va dang `active`
   - `tagIds` (string[], optional): neu truyen thi replace toan bo tag hien tai; unique va tat ca tag phai dang `active`
+  - `visibility` (`public` | `private`, optional): cap nhat trang thai hien thi video cua owner
 - Ghi chu:
   - Chi owner duoc sua; non-owner tra `FORBIDDEN` / HTTP 403.
   - Response tra ca id va slug: FE nen dung `categoryId/tagIds` de set value edit form, va dung `category/tags` nhu slug cho display/filter.
@@ -1353,7 +1447,7 @@ Frontend nen render `thumbnailUrl` khi `thumbnailStatus = ready`; cac trang thai
 - Query:
   - `status` (`pending` | `approved` | `rejected`, optional, default `pending`)
 - Ghi chu:
-  - Khi channel dat nguong eligibility lan dau, backend tu set `membershipReviewStatus = pending`.
+  - Channel vao danh sach `pending` khi creator goi `POST /api/media/channels/:id/membership-review/request` va channel du dieu kien.
   - Neu thieu role hoac role khac `admin` thi tra `FORBIDDEN` / HTTP 403 voi message `Admin role is required`.
 - Response HTTP 200:
   - Envelope `data`: array, moi object gom:

@@ -1,4 +1,4 @@
-import { BadRequestException } from '@shared/domain/exceptions/domain.exception';
+import { ConflictException } from '@shared/domain/exceptions/domain.exception';
 import {
   ChannelEntity,
   ChannelStatus,
@@ -75,7 +75,7 @@ describe('CreateChannelUseCase', () => {
         name: 'Creator Channel',
         bio: 'Channel bio',
       }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    ).rejects.toBeInstanceOf(ConflictException);
 
     expect(
       channelCreationTransaction.createChannelWithOutbox,

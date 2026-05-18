@@ -29,6 +29,7 @@ import {
 import type { UpdateVideoMetadataCommand } from '../dtos/update-video-metadata.command';
 import type { VideoMetadataResponse } from '../dtos/video-metadata.response';
 import { mapVideoStatusToJobFields } from '../dtos/video-job-status';
+import { buildOwnerThumbnailUrl } from '../dtos/thumbnail-url';
 import {
   type IVideoCacheInvalidator,
   VIDEO_CACHE_INVALIDATOR,
@@ -37,6 +38,7 @@ import {
   type IVideoRepository,
   VIDEO_REPOSITORY,
 } from '../../domain/repositories/video.repository';
+import { VideoVisibility } from '../../domain/entities/video.entity';
 
 @Injectable()
 export class UpdateVideoMetadataUseCase extends BaseUseCase<
@@ -81,6 +83,9 @@ export class UpdateVideoMetadataUseCase extends BaseUseCase<
       thumbnailUrl: command.thumbnailUrl,
       category,
       tags,
+      visibility: this.resolveVisibility(command.visibility),
+      price: command.price,
+      requiredTierLevel: command.requiredTierLevel,
     });
 
     await this.videoRepository.save(video);
@@ -106,10 +111,12 @@ export class UpdateVideoMetadataUseCase extends BaseUseCase<
       category: video.category.slug,
       tagIds: video.tags.map((tag) => tag.id),
       tags: video.tags.map((tag) => tag.slug),
-      thumbnailUrl: video.thumbnailUrl,
+      thumbnailUrl: buildOwnerThumbnailUrl(video),
       thumbnailSource: video.thumbnailSource,
       thumbnailStatus: video.thumbnailStatus,
       viewCount: video.viewCount,
+      price: video.price,
+      requiredTierLevel: video.requiredTierLevel,
       status: video.status,
       visibility: video.visibility,
       errorMessage: video.errorMessage,
@@ -141,6 +148,22 @@ export class UpdateVideoMetadataUseCase extends BaseUseCase<
     }
 
     return category;
+  }
+
+  private resolveVisibility(
+    visibility: string | undefined,
+  ): VideoVisibility | undefined {
+    if (visibility === undefined) {
+      return undefined;
+    }
+
+    if (
+      !Object.values(VideoVisibility).includes(visibility as VideoVisibility)
+    ) {
+      throw new BadRequestException('Visibility is invalid');
+    }
+
+    return visibility as VideoVisibility;
   }
 
   private async resolveTags(

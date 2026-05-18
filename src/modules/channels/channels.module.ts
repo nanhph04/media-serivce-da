@@ -25,6 +25,7 @@ import { HandleUserStatusChangedUseCase } from './application/use-cases/handle-u
 import { ListAdminChannelsUseCase } from './application/use-cases/list-admin-channels.use-case';
 import { ListMembershipReviewsUseCase } from './application/use-cases/list-membership-reviews.use-case';
 import { ReviewChannelMembershipUseCase } from './application/use-cases/review-channel-membership.use-case';
+import { RequestChannelMembershipReviewUseCase } from './application/use-cases/request-channel-membership-review.use-case';
 import { GetAdminChannelSummaryUseCase } from './application/use-cases/get-admin-channel-summary.use-case';
 import { ChannelController } from './presentation/controllers/channel.controller';
 import { AdminChannelController } from './presentation/controllers/admin-channel.controller';
@@ -113,6 +114,7 @@ import { CHANNEL_STATUS_EVENT_PUBLISHER } from './application/interfaces/channel
     ListAdminChannelsUseCase,
     ListMembershipReviewsUseCase,
     ReviewChannelMembershipUseCase,
+    RequestChannelMembershipReviewUseCase,
     GetAdminChannelSummaryUseCase,
     MembershipPaymentConsumer,
     MembershipAutoRenewFailedConsumer,

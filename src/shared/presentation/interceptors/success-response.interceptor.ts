@@ -3,6 +3,7 @@ import {
   ExecutionContext,
   Injectable,
   NestInterceptor,
+  StreamableFile,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { Observable } from 'rxjs';
@@ -33,7 +34,7 @@ export class SuccessResponseInterceptor implements NestInterceptor {
           return body;
         }
 
-        if (body instanceof ApiResponse) {
+        if (body instanceof ApiResponse || body instanceof StreamableFile) {
           return body;
         }
 

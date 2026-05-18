@@ -3,6 +3,7 @@ import {
   VideoVisibility,
 } from '../../domain/entities/video.entity';
 import { VideosController } from './videos.controller';
+import { Readable } from 'stream';
 
 describe('VideosController', () => {
   const initVideoUploadUseCase = {
@@ -38,6 +39,9 @@ describe('VideosController', () => {
   const getPurchasedVideosUseCase = {
     execute: jest.fn(),
   };
+  const getStudioVideoDetailUseCase = {
+    execute: jest.fn(),
+  };
   const getStudioVideosUseCase = {
     execute: jest.fn(),
   };
@@ -48,6 +52,9 @@ describe('VideosController', () => {
     execute: jest.fn(),
   };
   const getVideoMetadataUseCase = {
+    execute: jest.fn(),
+  };
+  const getVideoThumbnailUseCase = {
     execute: jest.fn(),
   };
   const updateVideoMetadataUseCase = {
@@ -71,10 +78,12 @@ describe('VideosController', () => {
     getContinueWatchingUseCase as never,
     getLatestVideosUseCase as never,
     getPurchasedVideosUseCase as never,
+    getStudioVideoDetailUseCase as never,
     getStudioVideosUseCase as never,
     getVideosByCategoryUseCase as never,
     getSubscribedVideosUseCase as never,
     getVideoMetadataUseCase as never,
+    getVideoThumbnailUseCase as never,
     updateVideoMetadataUseCase as never,
     unpublishVideoUseCase as never,
     searchPublicVideosUseCase as never,
@@ -115,6 +124,8 @@ describe('VideosController', () => {
       tags: ['action'],
       thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
       viewCount: 10,
+      price: 50,
+      requiredTierLevel: 2,
       status: VideoStatus.READY,
       visibility: VideoVisibility.PUBLIC,
       errorMessage: null,
@@ -294,6 +305,7 @@ describe('VideosController', () => {
 
     const result = await controller.updateMetadata('owner-1', 'video-1', {
       title: 'Updated Video',
+      visibility: VideoVisibility.PRIVATE,
     });
 
     expect(updateVideoMetadataUseCase.execute).toHaveBeenCalledWith({
@@ -302,6 +314,9 @@ describe('VideosController', () => {
       title: 'Updated Video',
       description: undefined,
       thumbnailUrl: undefined,
+      categoryId: undefined,
+      tagIds: undefined,
+      visibility: VideoVisibility.PRIVATE,
     });
     expect(result).toMatchObject({
       id: 'video-1',
@@ -543,9 +558,15 @@ describe('VideosController', () => {
         price: 100,
         requiredTierLevel: 2,
         thumbnailUrl: null,
+        thumbnailSource: 'auto',
+        thumbnailStatus: 'pending',
         durationSeconds: null,
         resolutions: [],
         errorMessage: null,
+        jobStatus: 'waiting',
+        jobStatusMessage: 'Upload initialized',
+        failureReason: null,
+        moderationDetails: null,
         viewCount: 0,
         publishedAt: null,
         isDeleted: false,
@@ -583,9 +604,15 @@ describe('VideosController', () => {
         price: 100,
         requiredTierLevel: 2,
         thumbnailUrl: null,
+        thumbnailSource: 'auto',
+        thumbnailStatus: 'pending',
         durationSeconds: null,
         resolutions: [],
         errorMessage: null,
+        jobStatus: 'waiting',
+        jobStatusMessage: 'Upload initialized',
+        failureReason: null,
+        moderationDetails: null,
         viewCount: 0,
         publishedAt: null,
         isDeleted: false,
@@ -596,6 +623,113 @@ describe('VideosController', () => {
         updatedAt: '2026-01-02T00:00:00.000Z',
       },
     ]);
+  });
+
+  it('returns studio video detail for a draft owned by current user', async () => {
+    getStudioVideoDetailUseCase.execute.mockResolvedValue({
+      id: 'video-1',
+      channelId: 'channel-1',
+      title: 'Draft Video',
+      description: 'Description',
+      category: 'music',
+      tags: ['action'],
+      status: VideoStatus.DRAFT,
+      visibility: VideoVisibility.PRIVATE,
+      price: 100,
+      requiredTierLevel: null,
+      thumbnailUrl: null,
+      thumbnailSource: 'auto',
+      thumbnailStatus: 'pending',
+      durationSeconds: null,
+      resolutions: [],
+      errorMessage: null,
+      jobStatus: 'waiting',
+      jobStatusMessage: 'Upload initialized',
+      failureReason: null,
+      moderationDetails: null,
+      viewCount: 0,
+      publishedAt: null,
+      isDeleted: false,
+      deletedAt: null,
+      deletedBy: null,
+      deleteReason: null,
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+    });
+
+    const result = await controller.studioVideoDetail('owner-1', 'video-1');
+
+    expect(getStudioVideoDetailUseCase.execute).toHaveBeenCalledWith({
+      userId: 'owner-1',
+      videoId: 'video-1',
+    });
+    expect(result).toMatchObject({
+      id: 'video-1',
+      status: VideoStatus.DRAFT,
+      jobStatus: 'waiting',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-02T00:00:00.000Z',
+    });
+  });
+
+  it('streams owner thumbnail with private cache headers', async () => {
+    const stream = Readable.from(['thumbnail']);
+    const response = { setHeader: jest.fn() };
+    getVideoThumbnailUseCase.execute.mockResolvedValue({
+      stream,
+      contentType: 'image/jpeg',
+      cacheControl: 'private, max-age=300',
+    });
+
+    const result = await controller.ownerThumbnail(
+      'owner-1',
+      'video-1',
+      response as never,
+    );
+
+    expect(getVideoThumbnailUseCase.execute).toHaveBeenCalledWith({
+      userId: 'owner-1',
+      videoId: 'video-1',
+      mode: 'owner',
+    });
+    expect(response.setHeader).toHaveBeenCalledWith(
+      'Content-Type',
+      'image/jpeg',
+    );
+    expect(response.setHeader).toHaveBeenCalledWith(
+      'Cache-Control',
+      'private, max-age=300',
+    );
+    expect(result).toBeDefined();
+  });
+
+  it('streams public thumbnail with public cache headers', async () => {
+    const stream = Readable.from(['thumbnail']);
+    const response = { setHeader: jest.fn() };
+    getVideoThumbnailUseCase.execute.mockResolvedValue({
+      stream,
+      contentType: 'image/webp',
+      cacheControl: 'public, max-age=3600',
+    });
+
+    const result = await controller.publicThumbnail(
+      'video-1',
+      response as never,
+    );
+
+    expect(getVideoThumbnailUseCase.execute).toHaveBeenCalledWith({
+      videoId: 'video-1',
+      mode: 'public',
+    });
+    expect(response.setHeader).toHaveBeenCalledWith(
+      'Content-Type',
+      'image/webp',
+    );
+    expect(response.setHeader).toHaveBeenCalledWith(
+      'Cache-Control',
+      'public, max-age=3600',
+    );
+    expect(result).toBeDefined();
   });
 
   it('maps continue watching rows to DTO shape', async () => {
@@ -633,7 +767,6 @@ describe('VideosController', () => {
       },
     ]);
   });
-
 });
 
 function buildMetadata(): {
@@ -659,6 +792,8 @@ function buildMetadata(): {
   tags: string[];
   thumbnailUrl: string;
   viewCount: number;
+  price: number;
+  requiredTierLevel: number | null;
   status: VideoStatus;
   visibility: VideoVisibility;
   errorMessage: string | null;
@@ -698,6 +833,8 @@ function buildMetadata(): {
     tags: ['action'],
     thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
     viewCount: 10,
+    price: 50,
+    requiredTierLevel: 2,
     status: VideoStatus.READY,
     visibility: VideoVisibility.PUBLIC,
     errorMessage: null,

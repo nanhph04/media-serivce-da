@@ -3,6 +3,7 @@ import { CategoryStatus } from '../../../categories/domain/entities/category.ent
 import { Tag, TagStatus } from '../../../tags/domain/entities/tag.entity';
 import {
   VideoStatus,
+  VideoThumbnailStatus,
   VideoVisibility,
 } from '../../domain/entities/video.entity';
 import { VideoPurchaseUnlockRepository } from './video-purchase-unlock.repository';
@@ -141,10 +142,7 @@ describe('VideoPurchaseUnlockRepository', () => {
       status: VideoStatus.READY,
     });
     expect(andWhere).toHaveBeenCalledWith('video.price > 0');
-    expect(pageOrderBy).toHaveBeenCalledWith(
-      'MAX(unlock.created_at)',
-      'DESC',
-    );
+    expect(pageOrderBy).toHaveBeenCalledWith('MAX(unlock.created_at)', 'DESC');
     expect(pageAddOrderBy).toHaveBeenCalledWith('video.created_at', 'DESC');
     expect(offset).toHaveBeenCalledWith(10);
     expect(limit).toHaveBeenCalledWith(10);
@@ -159,7 +157,7 @@ describe('VideoPurchaseUnlockRepository', () => {
       channelName: 'Cinema Labs',
       title: 'Premium Video',
       description: 'Description',
-      thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
+      thumbnailUrl: '/api/media/videos/video-1/thumbnail',
       durationSeconds: 120,
       categories: ['music'],
       tags: ['action'],
@@ -209,6 +207,8 @@ function buildVideoRow(
   rawFileKey: string;
   masterPlaylistKey: string | null;
   thumbnailUrl: string | null;
+  thumbnailObjectKey: string | null;
+  thumbnailStatus: VideoThumbnailStatus;
   durationSeconds: number | null;
   resolutions: string[];
   errorMessage: string | null;
@@ -241,6 +241,8 @@ function buildVideoRow(
     rawFileKey: 'raw/video.mp4',
     masterPlaylistKey: 'processed/master.m3u8',
     thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
+    thumbnailObjectKey: 'videos/video-1/thumbnails/default.jpg',
+    thumbnailStatus: VideoThumbnailStatus.READY,
     durationSeconds: 120,
     resolutions: ['720p'],
     errorMessage: null,

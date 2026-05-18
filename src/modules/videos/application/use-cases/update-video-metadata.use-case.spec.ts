@@ -138,6 +138,51 @@ describe('UpdateVideoMetadataUseCase', () => {
     });
   });
 
+  it('updates visibility for owner', async () => {
+    const video = buildVideo();
+    videoRepository.findById.mockResolvedValue(video);
+    videoRepository.save.mockResolvedValue(undefined);
+    videoCacheInvalidator.invalidateMetadata.mockResolvedValue(undefined);
+    channelRepository.findById.mockResolvedValue(buildChannel());
+    membershipTierRepository.findByChannelId.mockResolvedValue([]);
+
+    const result = await useCase.execute({
+      userId: 'owner-1',
+      videoId: 'video-1',
+      visibility: VideoVisibility.PRIVATE,
+    });
+
+    expect(video.visibility).toBe(VideoVisibility.PRIVATE);
+    expect(result).toMatchObject({
+      visibility: VideoVisibility.PRIVATE,
+    });
+  });
+
+  it('updates price and required tier level for owner', async () => {
+    const video = buildVideo();
+    videoRepository.findById.mockResolvedValue(video);
+    videoRepository.save.mockResolvedValue(undefined);
+    videoCacheInvalidator.invalidateMetadata.mockResolvedValue(undefined);
+    channelRepository.findById.mockResolvedValue(buildChannel());
+    membershipTierRepository.findByChannelId.mockResolvedValue([
+      buildMembershipTier(),
+    ]);
+
+    const result = await useCase.execute({
+      userId: 'owner-1',
+      videoId: 'video-1',
+      price: 100,
+      requiredTierLevel: 2,
+    });
+
+    expect(video.price).toBe(100);
+    expect(video.requiredTierLevel).toBe(2);
+    expect(result).toMatchObject({
+      price: 100,
+      requiredTierLevel: 2,
+    });
+  });
+
   it('throws forbidden when user does not own video', async () => {
     videoRepository.findById.mockResolvedValue(buildVideo());
 

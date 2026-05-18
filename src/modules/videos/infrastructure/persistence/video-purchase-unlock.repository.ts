@@ -4,6 +4,7 @@ import { Repository, type SelectQueryBuilder } from 'typeorm';
 import {
   VideoDeletionStatus,
   VideoStatus,
+  VideoThumbnailStatus,
 } from '../../domain/entities/video.entity';
 import { ChannelOrmEntity } from '../../../channels/infrastructure/persistence/channel.orm-entity';
 import { VideoPurchaseUnlockEntity } from '../../domain/entities/video-purchase-unlock.entity';
@@ -112,9 +113,7 @@ export class VideoPurchaseUnlockRepository implements IVideoPurchaseUnlockReposi
             channelName: channelNameByVideoId.get(videoId) ?? null,
           });
         })
-        .filter(
-          (item): item is PurchasedVideoItemReadModel => item !== null,
-        ),
+        .filter((item): item is PurchasedVideoItemReadModel => item !== null),
       total,
     };
   }
@@ -170,7 +169,11 @@ export class VideoPurchaseUnlockRepository implements IVideoPurchaseUnlockReposi
       channelName: metadata.channelName,
       title: row.title,
       description: row.description,
-      thumbnailUrl: row.thumbnailUrl,
+      thumbnailUrl:
+        row.thumbnailStatus === VideoThumbnailStatus.READY &&
+        row.thumbnailObjectKey
+          ? `/api/media/videos/${row.id}/thumbnail`
+          : null,
       durationSeconds: row.durationSeconds,
       categories: [category.slug],
       tags: (row.videoTags ?? []).map((item) => item.tag.slug),

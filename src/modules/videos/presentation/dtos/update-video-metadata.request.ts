@@ -4,9 +4,12 @@ import type { TransformFnParams } from 'class-transformer';
 import {
   ArrayUnique,
   IsArray,
+  IsInt,
+  IsIn,
   IsOptional,
   IsString,
   MaxLength,
+  Min,
 } from 'class-validator';
 
 export class UpdateVideoMetadataRequestDto {
@@ -45,4 +48,21 @@ export class UpdateVideoMetadataRequestDto {
   @IsString({ each: true })
   @IsOptional()
   tagIds?: string[];
+
+  @ApiPropertyOptional({ enum: ['public', 'private'] })
+  @IsIn(['public', 'private'])
+  @IsOptional()
+  visibility?: 'public' | 'private';
+
+  @ApiPropertyOptional({ default: 0 })
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  price?: number;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  requiredTierLevel?: number | null;
 }

@@ -3,6 +3,7 @@ import {
   mapVideoStatusToJobFields,
   type VideoJobStatusFields,
 } from './video-job-status';
+import { buildOwnerThumbnailUrl } from './thumbnail-url';
 
 export interface StudioVideoListItemResponse extends VideoJobStatusFields {
   id: string;
@@ -45,7 +46,7 @@ export function mapVideoEntityToStudioListItem(
     visibility: video.visibility,
     price: video.price,
     requiredTierLevel: video.requiredTierLevel,
-    thumbnailUrl: video.thumbnailUrl,
+    thumbnailUrl: buildOwnerThumbnailUrl(video),
     thumbnailSource: video.thumbnailSource,
     thumbnailStatus: video.thumbnailStatus,
     durationSeconds: video.durationSeconds,

@@ -84,6 +84,12 @@ export class VideoMetadataResponseDto {
   viewCount!: number;
 
   @ApiProperty()
+  price!: number;
+
+  @ApiProperty({ nullable: true })
+  requiredTierLevel!: number | null;
+
+  @ApiProperty()
   status!: string;
 
   @ApiProperty()

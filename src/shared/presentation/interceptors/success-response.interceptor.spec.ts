@@ -1,4 +1,4 @@
-import { ExecutionContext } from '@nestjs/common';
+import { ExecutionContext, StreamableFile } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { of, lastValueFrom } from 'rxjs';
 import { ApiResponse } from '../dto/api-response.dto';
@@ -48,6 +48,19 @@ describe('SuccessResponseInterceptor', () => {
 
   it('does not double-wrap ApiResponse instances', async () => {
     const body = ApiResponse.success({ id: 'video-1' });
+    const response = createResponse(200);
+
+    const result = await lastValueFrom(
+      interceptor.intercept(createHttpContext(response), {
+        handle: () => of(body),
+      }),
+    );
+
+    expect(result).toBe(body);
+  });
+
+  it('does not wrap StreamableFile responses', async () => {
+    const body = new StreamableFile(Buffer.from('image'));
     const response = createResponse(200);
 
     const result = await lastValueFrom(

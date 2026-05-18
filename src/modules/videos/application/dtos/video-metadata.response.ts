@@ -21,6 +21,8 @@ export interface VideoMetadataResponse extends VideoJobStatusFields {
   thumbnailSource: string;
   thumbnailStatus: string;
   viewCount: number;
+  price: number;
+  requiredTierLevel: number | null;
   status: VideoStatus;
   visibility: VideoVisibility;
   errorMessage: string | null;

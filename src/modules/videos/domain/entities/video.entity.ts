@@ -460,6 +460,9 @@ export class VideoEntity {
     thumbnailUrl?: string | null;
     category?: Category;
     tags?: Tag[];
+    visibility?: VideoVisibility;
+    price?: number;
+    requiredTierLevel?: number | null;
   }): void {
     if (input.title !== undefined) {
       VideoEntity.validateTitle(input.title);
@@ -480,6 +483,22 @@ export class VideoEntity {
 
     if (input.tags !== undefined) {
       this.props.tags = input.tags;
+    }
+
+    if (input.visibility !== undefined) {
+      this.props.visibility = input.visibility;
+    }
+
+    if (input.price !== undefined || input.requiredTierLevel !== undefined) {
+      const nextPrice = input.price ?? this.props.price;
+      const nextRequiredTierLevel =
+        input.requiredTierLevel === undefined
+          ? this.props.requiredTierLevel
+          : input.requiredTierLevel;
+
+      VideoEntity.validate(this.props.title, nextPrice, nextRequiredTierLevel);
+      this.props.price = nextPrice;
+      this.props.requiredTierLevel = nextRequiredTierLevel;
     }
 
     this.touch();

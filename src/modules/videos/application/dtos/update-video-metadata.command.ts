@@ -6,4 +6,7 @@ export interface UpdateVideoMetadataCommand {
   thumbnailUrl?: string | null;
   categoryId?: string;
   tagIds?: string[];
+  visibility?: string;
+  price?: number;
+  requiredTierLevel?: number | null;
 }
