@@ -42,18 +42,18 @@ describe('UserMembershipQueryService', () => {
   it('queries memberships with joins, ordering, and pagination', async () => {
     getRawMany.mockResolvedValue([
       {
-        membershipId: 'membership-1',
-        channelId: 'channel-1',
-        channelName: 'Channel',
-        channelAvatarUrl: '',
-        tierId: 'tier-1',
-        tierName: 'Gold',
-        tierLevel: '2',
-        priceCoin: '300',
-        startedAt: '2026-01-01T00:00:00.000Z',
-        expiryDate: '2099-01-01T00:00:00.000Z',
+        membership_id: 'membership-1',
+        channel_id: 'channel-1',
+        channel_name: 'Channel',
+        channel_avatar_url: '',
+        tier_id: 'tier-1',
+        tier_name: 'Gold',
+        tier_level: '2',
+        price_coin: '300',
+        started_at: '2026-01-01T00:00:00.000Z',
+        expiry_date: '2099-01-01T00:00:00.000Z',
         status: ChannelMembershipStatus.ACTIVE,
-        isMembershipClosedByAdmin: true,
+        is_membership_closed_by_admin: true,
       },
     ]);
     getCount.mockResolvedValue(1);

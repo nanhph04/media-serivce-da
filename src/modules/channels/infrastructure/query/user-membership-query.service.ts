@@ -12,18 +12,18 @@ import type {
 import type { ChannelMembershipStatus } from '../../domain/entities/channel-membership.entity';
 
 interface UserMembershipRawRow {
-  membershipId: string;
-  channelId: string;
-  channelName: string;
-  channelAvatarUrl: string | null;
-  tierId: string;
-  tierName: string;
-  tierLevel: number | string;
-  priceCoin: number | string;
-  startedAt: Date | string;
-  expiryDate: Date | string | null;
+  membership_id: string;
+  channel_id: string;
+  channel_name: string;
+  channel_avatar_url: string | null;
+  tier_id: string;
+  tier_name: string;
+  tier_level: number | string;
+  price_coin: number | string;
+  started_at: Date | string;
+  expiry_date: Date | string | null;
   status: ChannelMembershipStatus;
-  isMembershipClosedByAdmin: boolean | string;
+  is_membership_closed_by_admin: boolean | number | string;
 }
 
 @Injectable()
@@ -51,18 +51,18 @@ export class UserMembershipQueryService implements IUserMembershipQueryService {
       )
       .where('membership.userId = :userId', { userId: query.userId })
       .select([
-        'membership.id AS membershipId',
-        'membership.channelId AS channelId',
-        'channel.name AS channelName',
-        'channel.avatarUrl AS channelAvatarUrl',
-        'membership.membershipId AS tierId',
-        'tier.name AS tierName',
-        'tier.level AS tierLevel',
-        'tier.priceCoin AS priceCoin',
-        'membership.createdAt AS startedAt',
-        'membership.expiryDate AS expiryDate',
+        'membership.id AS membership_id',
+        'membership.channelId AS channel_id',
+        'channel.name AS channel_name',
+        'channel.avatarUrl AS channel_avatar_url',
+        'membership.membershipId AS tier_id',
+        'tier.name AS tier_name',
+        'tier.level AS tier_level',
+        'tier.priceCoin AS price_coin',
+        'membership.createdAt AS started_at',
+        'membership.expiryDate AS expiry_date',
         'membership.status AS status',
-        'channel.isMembershipClosedByAdmin AS isMembershipClosedByAdmin',
+        'channel.isMembershipClosedByAdmin AS is_membership_closed_by_admin',
       ])
       .orderBy('membership.updatedAt', 'DESC')
       .addOrderBy('membership.createdAt', 'DESC');
@@ -77,24 +77,26 @@ export class UserMembershipQueryService implements IUserMembershipQueryService {
 
     return {
       items: rows.map((row) => ({
-        membershipId: row.membershipId,
-        channelId: row.channelId,
-        channelName: row.channelName,
+        membershipId: row.membership_id,
+        channelId: row.channel_id,
+        channelName: row.channel_name,
         channelAvatarUrl:
-          typeof row.channelAvatarUrl === 'string' &&
-          row.channelAvatarUrl.length > 0
-            ? row.channelAvatarUrl
+          typeof row.channel_avatar_url === 'string' &&
+          row.channel_avatar_url.length > 0
+            ? row.channel_avatar_url
             : null,
-        tierId: row.tierId,
-        tierName: row.tierName,
-        tierLevel: Number(row.tierLevel),
-        priceCoin: Number(row.priceCoin),
-        startedAt: new Date(row.startedAt),
-        expiryDate: row.expiryDate ? new Date(row.expiryDate) : null,
+        tierId: row.tier_id,
+        tierName: row.tier_name,
+        tierLevel: Number(row.tier_level),
+        priceCoin: Number(row.price_coin),
+        startedAt: new Date(row.started_at),
+        expiryDate: row.expiry_date ? new Date(row.expiry_date) : null,
         status: row.status,
         isMembershipClosedByAdmin:
-          row.isMembershipClosedByAdmin === true ||
-          row.isMembershipClosedByAdmin === 'true',
+          row.is_membership_closed_by_admin === true ||
+          row.is_membership_closed_by_admin === 1 ||
+          row.is_membership_closed_by_admin === 'true' ||
+          row.is_membership_closed_by_admin === '1',
       })),
       total,
     };
