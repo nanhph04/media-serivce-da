@@ -23,9 +23,14 @@ import {
   VIDEO_MODERATION_REQUEST_PUBLISHER,
   type IVideoModerationRequestPublisher,
 } from '../interfaces/video-moderation-request-publisher.interface';
+import {
+  VIDEO_STATUS_EVENT_PUBLISHER,
+  type IVideoStatusEventPublisher,
+} from '../interfaces/video-status-event-publisher.interface';
 import { VIDEO_UPLOAD_RESOLUTIONS } from '../../presentation/dtos/confirm-video-upload.request';
 import type { ConfirmVideoUploadCommand } from '../dtos/confirm-video-upload.command';
 import type { ConfirmVideoUploadResponse } from '../dtos/confirm-video-upload.response';
+import { mapVideoStatusToJobFields } from '../dtos/video-job-status';
 
 const VIDEO_UPLOAD_RESOLUTION_ORDER = new Map<string, number>(
   VIDEO_UPLOAD_RESOLUTIONS.map((resolution, index) => [resolution, index]),
@@ -46,6 +51,8 @@ export class ConfirmVideoUploadUseCase extends BaseUseCase<
     private readonly videoModerationRequestPublisher: IVideoModerationRequestPublisher,
     @Inject(VIDEO_UPLOAD_CONFIG)
     private readonly videoUploadConfig: IVideoUploadConfig,
+    @Inject(VIDEO_STATUS_EVENT_PUBLISHER)
+    private readonly videoStatusEventPublisher: IVideoStatusEventPublisher,
     private readonly loggerService: LoggerService,
   ) {
     super();
@@ -113,6 +120,7 @@ export class ConfirmVideoUploadUseCase extends BaseUseCase<
 
     video.markPendingModeration();
     await this.videoRepository.save(video);
+    this.publishVideoStatusChanged(video);
     await this.videoModerationRequestPublisher.publishModerationRequested({
       videoId: video.id,
       rawFileKey: video.rawFileKey,
@@ -193,5 +201,23 @@ export class ConfirmVideoUploadUseCase extends BaseUseCase<
         },
       );
     }
+  }
+
+  private publishVideoStatusChanged(video: VideoEntity): void {
+    const jobFields = mapVideoStatusToJobFields({
+      status: video.status,
+      errorMessage: video.errorMessage,
+      moderationDetails: video.moderationDetails,
+    });
+
+    this.videoStatusEventPublisher.publishVideoStatusChanged({
+      videoId: video.id,
+      userId: video.ownerId,
+      status: video.status,
+      thumbnailStatus: video.thumbnailStatus,
+      thumbnailUrl: video.thumbnailUrl,
+      updatedAt: video.updatedAt.toISOString(),
+      ...jobFields,
+    });
   }
 }

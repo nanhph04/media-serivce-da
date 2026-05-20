@@ -31,6 +31,9 @@ describe('ConfirmVideoUploadUseCase', () => {
   const videoUploadConfig = {
     getMaxVideoUploadSizeBytes: jest.fn(),
   };
+  const videoStatusEventPublisher = {
+    publishVideoStatusChanged: jest.fn(),
+  };
   const loggerService = {
     setContext: jest.fn(),
     logWarn: jest.fn(),
@@ -41,6 +44,7 @@ describe('ConfirmVideoUploadUseCase', () => {
     objectStorageService as never,
     videoModerationRequestPublisher as never,
     videoUploadConfig as never,
+    videoStatusEventPublisher as never,
     loggerService as never,
   );
 
@@ -132,6 +136,14 @@ describe('ConfirmVideoUploadUseCase', () => {
     ).not.toHaveBeenCalled();
     expect(result.status).toBe(VideoStatus.PENDING_MODERATION);
     expect(result.message).toBe('Video is waiting for moderation');
+    expect(videoStatusEventPublisher.publishVideoStatusChanged).toHaveBeenCalledWith(
+      expect.objectContaining({
+        videoId: 'video-1',
+        userId: 'owner-1',
+        status: VideoStatus.PENDING_MODERATION,
+        jobStatus: 'waiting',
+      }),
+    );
   });
 
   it('does not mark pending moderation when immutable copy fails', async () => {
@@ -201,6 +213,11 @@ function buildDraftVideo(
     rawFileKey: 'uploads/raw/channel-1/video.mp4',
     masterPlaylistKey: null,
     thumbnailUrl: null,
+    thumbnailObjectKey: null,
+    thumbnailSource: 'auto' as never,
+    thumbnailStatus: 'pending' as never,
+    thumbnailGeneratedAt: null,
+    thumbnailError: null,
     durationSeconds: null,
     resolutions: [],
     errorMessage: null,

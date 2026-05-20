@@ -62,6 +62,7 @@ import { VideoWorkerHealthCheckerService } from './infrastructure/health/video-w
 import { VideoWatchdogHealthFailureStore } from './infrastructure/health/video-watchdog-health-failure-store.service';
 import { VideoCacheInvalidator } from './infrastructure/cache/video-cache-invalidator.service';
 import { VideoViewAggregationService } from './infrastructure/cache/video-view-aggregation.service';
+import { VideoStatusSseService } from './infrastructure/events/video-status-sse.service';
 import { VideoPurchaseUnlockOrmEntity } from './infrastructure/persistence/video-purchase-unlock.orm-entity';
 import { VideoCategoryOrmEntity } from './infrastructure/persistence/video-category.orm-entity';
 import { VideoPurchaseUnlockRepository } from './infrastructure/persistence/video-purchase-unlock.repository';
@@ -73,6 +74,7 @@ import { VideoWatchProgressRepository } from './infrastructure/persistence/video
 import { VideoQueryService } from './infrastructure/query/video-query.service';
 import { AdminReportController } from './presentation/controllers/admin-report.controller';
 import { AdminVideoController } from './presentation/controllers/admin-video.controller';
+import { VideoEventsController } from './presentation/controllers/video-events.controller';
 import { VideosController } from './presentation/controllers/videos.controller';
 import { CategoryVideosController } from './presentation/controllers/category-videos.controller';
 import { VIDEO_CACHE_INVALIDATOR } from './application/interfaces/video-cache-invalidator.interface';
@@ -84,6 +86,7 @@ import { VIDEO_SEARCH_QUERY_SERVICE } from './application/interfaces/video-searc
 import { VIDEO_VIEW_AGGREGATION } from './application/interfaces/video-view-aggregation.interface';
 import { VIDEO_WATCHDOG_HEALTH_FAILURE_STORE } from './application/interfaces/video-watchdog-health-failure-store.interface';
 import { VIDEO_WORKER_HEALTH_CHECKER } from './application/interfaces/video-worker-health-checker.interface';
+import { VIDEO_STATUS_EVENT_PUBLISHER } from './application/interfaces/video-status-event-publisher.interface';
 import { VIDEO_PURCHASE_UNLOCK_REPOSITORY } from './domain/repositories/video-purchase-unlock.repository';
 import { VIDEO_REPOSITORY } from './domain/repositories/video.repository';
 import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-watch-progress.repository';
@@ -107,6 +110,7 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
   controllers: [
     AdminVideoController,
     AdminReportController,
+    VideoEventsController,
     VideosController,
     CategoryVideosController,
   ],
@@ -117,6 +121,7 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
     VideoQueryService,
     VideoCacheInvalidator,
     VideoViewAggregationService,
+    VideoStatusSseService,
     VideoWatchAccessService,
     InitVideoUploadUseCase,
     ConfirmVideoUploadUseCase,
@@ -218,6 +223,10 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
     {
       provide: VIDEO_WATCHDOG_HEALTH_FAILURE_STORE,
       useExisting: VideoWatchdogHealthFailureStore,
+    },
+    {
+      provide: VIDEO_STATUS_EVENT_PUBLISHER,
+      useExisting: VideoStatusSseService,
     },
   ],
   exports: [

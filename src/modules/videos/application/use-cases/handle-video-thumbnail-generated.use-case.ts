@@ -14,6 +14,12 @@ import {
   VIDEO_REPOSITORY,
 } from '../../domain/repositories/video.repository';
 import type { HandleVideoThumbnailGeneratedCommand } from '../dtos/handle-video-thumbnail-generated.command';
+import {
+  VIDEO_STATUS_EVENT_PUBLISHER,
+  type IVideoStatusEventPublisher,
+} from '../interfaces/video-status-event-publisher.interface';
+import { mapVideoStatusToJobFields } from '../dtos/video-job-status';
+import type { VideoEntity } from '../../domain/entities/video.entity';
 
 @Injectable()
 export class HandleVideoThumbnailGeneratedUseCase extends BaseUseCase<
@@ -27,6 +33,8 @@ export class HandleVideoThumbnailGeneratedUseCase extends BaseUseCase<
     private readonly idempotencyStore: IIdempotencyStore,
     @Inject(VIDEO_CACHE_INVALIDATOR)
     private readonly videoCacheInvalidator: IVideoCacheInvalidator,
+    @Inject(VIDEO_STATUS_EVENT_PUBLISHER)
+    private readonly videoStatusEventPublisher: IVideoStatusEventPublisher,
     private readonly loggerService: LoggerService,
   ) {
     super();
@@ -58,6 +66,7 @@ export class HandleVideoThumbnailGeneratedUseCase extends BaseUseCase<
     }
 
     await this.videoRepository.save(video);
+    this.publishVideoStatusChanged(video);
     await this.videoCacheInvalidator.invalidateMetadata(video.id);
     await this.videoCacheInvalidator.invalidateDiscoveryLists();
   }
@@ -68,5 +77,23 @@ export class HandleVideoThumbnailGeneratedUseCase extends BaseUseCase<
       '1',
       60 * 60 * 24,
     );
+  }
+
+  private publishVideoStatusChanged(video: VideoEntity): void {
+    const jobFields = mapVideoStatusToJobFields({
+      status: video.status,
+      errorMessage: video.errorMessage,
+      moderationDetails: video.moderationDetails,
+    });
+
+    this.videoStatusEventPublisher.publishVideoStatusChanged({
+      videoId: video.id,
+      userId: video.ownerId,
+      status: video.status,
+      thumbnailStatus: video.thumbnailStatus,
+      thumbnailUrl: video.thumbnailUrl,
+      updatedAt: video.updatedAt.toISOString(),
+      ...jobFields,
+    });
   }
 }

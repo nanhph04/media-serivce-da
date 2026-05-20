@@ -14,6 +14,7 @@ import {
   VIDEO_REPOSITORY,
 } from '../../domain/repositories/video.repository';
 import {
+  type VideoEntity,
   VideoStatus,
   VideoThumbnailSource,
 } from '../../domain/entities/video.entity';
@@ -23,6 +24,11 @@ import {
   VIDEO_MODERATION_OUTCOME_PUBLISHER,
   type IVideoModerationOutcomePublisher,
 } from '../interfaces/video-moderation-outcome-publisher.interface';
+import {
+  VIDEO_STATUS_EVENT_PUBLISHER,
+  type IVideoStatusEventPublisher,
+} from '../interfaces/video-status-event-publisher.interface';
+import { mapVideoStatusToJobFields } from '../dtos/video-job-status';
 
 const EVENT_PROCESSED_TTL_SECONDS = 60 * 60 * 24;
 const EVENT_PROCESSING_LOCK_TTL_SECONDS = 300;
@@ -41,6 +47,8 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
     private readonly moderationOutcomePublisher: IVideoModerationOutcomePublisher,
     @Inject(IDEMPOTENCY_STORE)
     private readonly idempotencyStore: IIdempotencyStore,
+    @Inject(VIDEO_STATUS_EVENT_PUBLISHER)
+    private readonly videoStatusEventPublisher: IVideoStatusEventPublisher,
     private readonly loggerService: LoggerService,
   ) {
     super();
@@ -100,6 +108,7 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
     if (command.data.status === 'SAFE') {
       video.markProcessing();
       await this.videoRepository.save(video);
+      this.publishVideoStatusChanged(video);
       await this.videoProcessingJobDispatcher.enqueueTranscodeJob({
         videoId: command.data.videoId,
         rawFileKey: command.data.rawFileKey,
@@ -129,6 +138,7 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
         this.toModerationDetails(command.data),
       );
       await this.videoRepository.save(video);
+      this.publishVideoStatusChanged(video);
       await this.publishOutcome({
         videoId: command.data.videoId,
         moderationStatus: command.data.status,
@@ -148,6 +158,7 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
         this.toModerationDetails(command.data),
       );
       await this.videoRepository.save(video);
+      this.publishVideoStatusChanged(video);
       await this.publishOutcome({
         videoId: command.data.videoId,
         moderationStatus: command.data.status,
@@ -163,6 +174,7 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
 
     video.markFailed(command.data.reason);
     await this.videoRepository.save(video);
+    this.publishVideoStatusChanged(video);
     await this.publishOutcome({
       videoId: command.data.videoId,
       moderationStatus: command.data.status,
@@ -227,5 +239,23 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
       ...outcome,
     });
     await this.moderationOutcomePublisher.publishModerationOutcome(outcome);
+  }
+
+  private publishVideoStatusChanged(video: VideoEntity): void {
+    const jobFields = mapVideoStatusToJobFields({
+      status: video.status,
+      errorMessage: video.errorMessage,
+      moderationDetails: video.moderationDetails,
+    });
+
+    this.videoStatusEventPublisher.publishVideoStatusChanged({
+      videoId: video.id,
+      userId: video.ownerId,
+      status: video.status,
+      thumbnailStatus: video.thumbnailStatus,
+      thumbnailUrl: video.thumbnailUrl,
+      updatedAt: video.updatedAt.toISOString(),
+      ...jobFields,
+    });
   }
 }

@@ -17,6 +17,9 @@ describe('HandleVideoProcessedFailedUseCase', () => {
     setContext: jest.fn(),
     logWarn: jest.fn(),
   };
+  const videoStatusEventPublisher = {
+    publishVideoStatusChanged: jest.fn(),
+  };
 
   let useCase: HandleVideoProcessedFailedUseCase;
 
@@ -27,6 +30,7 @@ describe('HandleVideoProcessedFailedUseCase', () => {
     useCase = new HandleVideoProcessedFailedUseCase(
       videoRepository as never,
       idempotencyStore as never,
+      videoStatusEventPublisher as never,
       logger as never,
     );
   });
@@ -46,6 +50,14 @@ describe('HandleVideoProcessedFailedUseCase', () => {
     expect(video.status).toBe(VideoStatus.FAILED);
     expect(video.errorMessage).toBe('FFmpeg failed');
     expect(videoRepository.save).toHaveBeenCalledWith(video);
+    expect(videoStatusEventPublisher.publishVideoStatusChanged).toHaveBeenCalledWith(
+      expect.objectContaining({
+        videoId: 'video-1',
+        userId: 'owner-1',
+        status: VideoStatus.FAILED,
+        jobStatus: 'failed',
+      }),
+    );
   });
 
   it.each([
@@ -93,6 +105,11 @@ function buildVideo(input: { status: VideoStatus }): VideoEntity {
     rawFileKey: 'raw/video.mp4',
     masterPlaylistKey: null,
     thumbnailUrl: null,
+    thumbnailObjectKey: null,
+    thumbnailSource: 'auto' as never,
+    thumbnailStatus: 'pending' as never,
+    thumbnailGeneratedAt: null,
+    thumbnailError: null,
     durationSeconds: null,
     resolutions: [],
     errorMessage: null,

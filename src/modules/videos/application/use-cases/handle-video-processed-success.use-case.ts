@@ -23,6 +23,12 @@ import {
   type IVideoCacheInvalidator,
   VIDEO_CACHE_INVALIDATOR,
 } from '../interfaces/video-cache-invalidator.interface';
+import {
+  VIDEO_STATUS_EVENT_PUBLISHER,
+  type IVideoStatusEventPublisher,
+} from '../interfaces/video-status-event-publisher.interface';
+import { mapVideoStatusToJobFields } from '../dtos/video-job-status';
+import type { VideoEntity } from '../../domain/entities/video.entity';
 
 @Injectable()
 export class HandleVideoProcessedSuccessUseCase extends BaseUseCase<
@@ -41,6 +47,8 @@ export class HandleVideoProcessedSuccessUseCase extends BaseUseCase<
     private readonly loggerService: LoggerService,
     @Inject(VIDEO_CACHE_INVALIDATOR)
     private readonly videoCacheInvalidator: IVideoCacheInvalidator,
+    @Inject(VIDEO_STATUS_EVENT_PUBLISHER)
+    private readonly videoStatusEventPublisher: IVideoStatusEventPublisher,
   ) {
     super();
     this.loggerService.setContext(HandleVideoProcessedSuccessUseCase.name);
@@ -76,6 +84,7 @@ export class HandleVideoProcessedSuccessUseCase extends BaseUseCase<
     });
 
     await this.videoRepository.save(video);
+    this.publishVideoStatusChanged(video);
     await this.videoCacheInvalidator.invalidateMetadata(video.id);
     await this.videoCacheInvalidator.invalidateDiscoveryLists();
     await this.channelMembershipEligibilityService.syncChannelEligibility(
@@ -110,5 +119,23 @@ export class HandleVideoProcessedSuccessUseCase extends BaseUseCase<
         },
       );
     }
+  }
+
+  private publishVideoStatusChanged(video: VideoEntity): void {
+    const jobFields = mapVideoStatusToJobFields({
+      status: video.status,
+      errorMessage: video.errorMessage,
+      moderationDetails: video.moderationDetails,
+    });
+
+    this.videoStatusEventPublisher.publishVideoStatusChanged({
+      videoId: video.id,
+      userId: video.ownerId,
+      status: video.status,
+      thumbnailStatus: video.thumbnailStatus,
+      thumbnailUrl: video.thumbnailUrl,
+      updatedAt: video.updatedAt.toISOString(),
+      ...jobFields,
+    });
   }
 }

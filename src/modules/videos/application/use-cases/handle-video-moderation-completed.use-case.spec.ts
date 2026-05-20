@@ -26,6 +26,9 @@ describe('HandleVideoModerationCompletedUseCase', () => {
     logInfo: jest.fn(),
     logWarn: jest.fn(),
   };
+  const videoStatusEventPublisher = {
+    publishVideoStatusChanged: jest.fn(),
+  };
   let useCase: HandleVideoModerationCompletedUseCase;
 
   beforeEach(() => {
@@ -45,6 +48,7 @@ describe('HandleVideoModerationCompletedUseCase', () => {
       videoProcessingJobDispatcher as never,
       moderationOutcomePublisher as never,
       idempotencyStore as never,
+      videoStatusEventPublisher as never,
       logger as never,
     );
   });
@@ -76,6 +80,7 @@ describe('HandleVideoModerationCompletedUseCase', () => {
       rawFileKey: 'uploads/raw/channel-1/video.mp4',
       resolution: ['480p', '720p'],
       userId: 'owner-1',
+      thumbnailTargetObjectKey: 'videos/video-1/thumbnails/default.jpg',
     });
     expect(
       moderationOutcomePublisher.publishModerationOutcome,
@@ -103,6 +108,14 @@ describe('HandleVideoModerationCompletedUseCase', () => {
     );
     expect(idempotencyStore.delete).toHaveBeenCalledWith(
       'media:event:processing:event-1',
+    );
+    expect(videoStatusEventPublisher.publishVideoStatusChanged).toHaveBeenCalledWith(
+      expect.objectContaining({
+        videoId: 'video-1',
+        userId: 'owner-1',
+        status: VideoStatus.PROCESSING,
+        jobStatus: 'processing',
+      }),
     );
   });
 
@@ -431,6 +444,11 @@ function buildVideo(
     rawFileKey: 'uploads/raw/channel-1/video.mp4',
     masterPlaylistKey: null,
     thumbnailUrl: null,
+    thumbnailObjectKey: null,
+    thumbnailSource: 'auto' as never,
+    thumbnailStatus: 'pending' as never,
+    thumbnailGeneratedAt: null,
+    thumbnailError: null,
     durationSeconds: null,
     resolutions: [],
     errorMessage: null,

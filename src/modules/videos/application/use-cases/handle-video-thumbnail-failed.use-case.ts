@@ -10,6 +10,12 @@ import {
   VIDEO_REPOSITORY,
 } from '../../domain/repositories/video.repository';
 import type { HandleVideoThumbnailFailedCommand } from '../dtos/handle-video-thumbnail-failed.command';
+import {
+  VIDEO_STATUS_EVENT_PUBLISHER,
+  type IVideoStatusEventPublisher,
+} from '../interfaces/video-status-event-publisher.interface';
+import { mapVideoStatusToJobFields } from '../dtos/video-job-status';
+import type { VideoEntity } from '../../domain/entities/video.entity';
 
 @Injectable()
 export class HandleVideoThumbnailFailedUseCase extends BaseUseCase<
@@ -21,6 +27,8 @@ export class HandleVideoThumbnailFailedUseCase extends BaseUseCase<
     private readonly videoRepository: IVideoRepository,
     @Inject(IDEMPOTENCY_STORE)
     private readonly idempotencyStore: IIdempotencyStore,
+    @Inject(VIDEO_STATUS_EVENT_PUBLISHER)
+    private readonly videoStatusEventPublisher: IVideoStatusEventPublisher,
     private readonly loggerService: LoggerService,
   ) {
     super();
@@ -43,6 +51,7 @@ export class HandleVideoThumbnailFailedUseCase extends BaseUseCase<
 
     video.markAutoThumbnailFailed(command.data.message);
     await this.videoRepository.save(video);
+    this.publishVideoStatusChanged(video);
   }
 
   private async markEventProcessed(eventId: string): Promise<boolean> {
@@ -51,5 +60,23 @@ export class HandleVideoThumbnailFailedUseCase extends BaseUseCase<
       '1',
       60 * 60 * 24,
     );
+  }
+
+  private publishVideoStatusChanged(video: VideoEntity): void {
+    const jobFields = mapVideoStatusToJobFields({
+      status: video.status,
+      errorMessage: video.errorMessage,
+      moderationDetails: video.moderationDetails,
+    });
+
+    this.videoStatusEventPublisher.publishVideoStatusChanged({
+      videoId: video.id,
+      userId: video.ownerId,
+      status: video.status,
+      thumbnailStatus: video.thumbnailStatus,
+      thumbnailUrl: video.thumbnailUrl,
+      updatedAt: video.updatedAt.toISOString(),
+      ...jobFields,
+    });
   }
 }
