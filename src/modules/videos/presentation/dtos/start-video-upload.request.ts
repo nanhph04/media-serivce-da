@@ -3,28 +3,20 @@ import { Transform } from 'class-transformer';
 import type { TransformFnParams } from 'class-transformer';
 import {
   ArrayUnique,
-  IsInt,
   IsArray,
+  IsDateString,
   IsIn,
+  IsInt,
   IsNotEmpty,
+  IsOptional,
   IsString,
   MaxLength,
   Min,
-  IsOptional,
 } from 'class-validator';
 
 const THUMBNAIL_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp'] as const;
 
-export class InitVideoUploadRequestDto {
-  @ApiPropertyOptional({
-    deprecated: true,
-    description:
-      'Deprecated: ignored by backend; channel is resolved from x-user-id.',
-  })
-  @IsString()
-  @IsOptional()
-  channelId?: string;
-
+export class StartVideoUploadRequestDto {
   @ApiProperty()
   @IsString()
   @MaxLength(200)
@@ -35,7 +27,7 @@ export class InitVideoUploadRequestDto {
   @IsOptional()
   description = '';
 
-  @ApiProperty({ description: 'Primary category id.' })
+  @ApiProperty()
   @IsString()
   @IsNotEmpty()
   categoryId!: string;
@@ -71,11 +63,21 @@ export class InitVideoUploadRequestDto {
   @IsOptional()
   requiredTierLevel?: number | null;
 
-  @ApiPropertyOptional({
-    enum: THUMBNAIL_EXTENSIONS,
-    description:
-      'Optional custom thumbnail extension. When provided, init-upload returns a thumbnail presigned upload URL.',
-  })
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  fileName!: string;
+
+  @ApiProperty()
+  @IsInt()
+  @Min(1)
+  fileSize!: number;
+
+  @ApiProperty()
+  @IsDateString()
+  fileLastModified!: string;
+
+  @ApiPropertyOptional({ enum: THUMBNAIL_EXTENSIONS })
   @Transform(({ value }: TransformFnParams): unknown =>
     typeof value === 'string' ? value.trim().toLowerCase() : value,
   )

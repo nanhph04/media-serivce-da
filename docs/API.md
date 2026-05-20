@@ -49,7 +49,7 @@
 
 ## 2. CHANNEL APIs
 
-### 2.0 GET `/api/media/channels/me`
+### 2.0 GET `/api/media/me/channel`
 
 - Muc dich: lay channel cua user hien tai de frontend resolve `channelId` creator context.
 - Header:
@@ -71,7 +71,7 @@
     - `membershipRequestedAt` (string ISO | null)
     - `membershipReviewedAt` (string ISO | null)
 
-### 2.1 POST `/api/media/channels`
+### 2.1 POST `/api/media/me/channel`
 
 - Muc dich: tao channel moi.
 - Header:
@@ -100,7 +100,7 @@
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
 
-### 2.2 PATCH `/api/media/channels/:id`
+### 2.2 PATCH `/api/media/me/channel`
 
 - Muc dich: cap nhat channel.
 - Header:
@@ -247,7 +247,7 @@
     - `total` (number)
     - `totalPages` (number)
 
-### 2.6 PATCH `/api/media/channels/:id/admin/membership`
+### 2.6 PATCH `/api/media/admin/channels/:id/membership`
 
 - Muc dich: admin dong/mo kha nang nhan membership cua channel.
 - Header:
@@ -350,7 +350,7 @@
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
 
-### 3.3 POST `/api/media/channels/:channelId/membership-review/request`
+### 3.3 POST `/api/media/channels/:channelId/membership-review-requests`
 
 - Muc dich: creator gui yeu cau admin duyet quyen mo membership cho channel.
 - Header:
@@ -402,7 +402,7 @@
   - `userId`: lay tu header `x-user-id`
 - Ghi chu:
   - Channel phai du nguong eligibility va duoc admin approve membership (`membershipReviewStatus = approved`) moi duoc tao tier.
-  - Creator nen goi `POST /api/media/channels/:channelId/membership-review/request` de xin admin duyet truoc khi tao tier.
+  - Creator nen goi `POST /api/media/channels/:channelId/membership-review-requests` de xin admin duyet truoc khi tao tier.
   - Neu channel chua duoc approve, API nay tra HTTP 403 va khong tao tier.
 - Response HTTP 201:
   - Envelope `data`:
@@ -474,9 +474,9 @@ Nhung response video list/detail chinh co cac field thumbnail:
 - `thumbnailStatus` (`pending` | `processing` | `ready` | `failed`): trang thai thumbnail.
 
 Frontend nen render `thumbnailUrl` khi `thumbnailStatus = ready`; cac trang thai khac dung placeholder.
-Public/list/metadata response tra `/api/media/videos/:id/thumbnail`. Studio/owner response tra `/api/media/videos/me/:id/thumbnail`.
+Public/list/metadata response tra `/api/media/videos/:id/thumbnail`. Studio/owner response tra `/api/media/studio/videos/:id/thumbnail`.
 
-### 4.0 GET `/api/media/videos/me?limit=20&status=draft,processing&visibility=private`
+### 4.0 GET `/api/media/studio/videos?limit=20&status=draft,processing&visibility=private`
 
 - Muc dich: lay danh sach video Studio cua chinh creator hien tai, gom ca draft/private/trang thai xu ly.
 - Header:
@@ -523,7 +523,7 @@ Public/list/metadata response tra `/api/media/videos/:id/thumbnail`. Studio/owne
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
 
-### 4.0B GET `/api/media/videos/me/:id/detail`
+### 4.0B GET `/api/media/studio/videos/:id`
 
 - Muc dich: lay chi tiet video Studio cua chinh creator hien tai theo `id`, gom ca `draft`, `private`, `pending_moderation`, `processing`, `pending_manual_review`, `rejected`, `failed`, `ready`.
 - Header:
@@ -538,11 +538,11 @@ Public/list/metadata response tra `/api/media/videos/:id/thumbnail`. Studio/owne
   - Neu video khong ton tai tra `NOT_FOUND` / HTTP 404.
   - Neu video thuoc owner khac tra `FORBIDDEN` / HTTP 403.
   - Dung endpoint nay cho man hinh Studio/detail quan ly video. Khong dung `GET /api/media/videos/:id/metadata` cho video chua public-ready, vi metadata endpoint chi expose video `ready + public + active`.
-  - Neu response co `status = draft`, FE co the cho user `confirm-upload`, `replace-upload`, hoac `cancel upload`.
+  - Neu response co `status = draft`, FE co the cho user resume/submit/cancel bang multipart upload lifecycle.
 - Response HTTP 200:
-  - Envelope `data`: object cung shape voi item cua `GET /api/media/videos/me`, gom `status`, `jobStatus`, `jobStatusMessage`, `failureReason`, `moderationDetails`, thumbnail fields, delete fields va timestamps.
+  - Envelope `data`: object cung shape voi item cua `GET /api/media/studio/videos`, gom `status`, `jobStatus`, `jobStatusMessage`, `failureReason`, `moderationDetails`, thumbnail fields, delete fields va timestamps.
 
-### 4.0C GET `/api/media/videos/me/:id/thumbnail`
+### 4.0C GET `/api/media/studio/videos/:id/thumbnail`
 
 - Muc dich: stream thumbnail private cho creator trong Studio.
 - Header:
@@ -594,14 +594,14 @@ Public/list/metadata response tra `/api/media/videos/:id/thumbnail`. Studio/owne
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
 
-### 4.1 POST `/api/media/videos/init-upload`
+### 4.1 POST `/api/media/studio/videos/uploads`
 
-- Muc dich: tao video draft va tra presigned upload URL.
+- Muc dich: tao video draft va bat dau resumable multipart upload cho raw video.
+- Day la API upload chinh cho FE/mobile. User van chon 1 file video hoan chinh; client tu chia file thanh cac part nho va upload truc tiep len MinIO bang presigned URL.
 - Header:
   - `x-user-id`: He thong tu set
   - `x-internal-secret`: He thong tu set
 - Body:
-  - `channelId` (string, optional, deprecated): backend IGNORE, channel duoc resolve tu `x-user-id`
   - `title` (string, bat buoc, max 200)
   - `description` (string, optional, default `""`)
   - `categoryId` (string, bat buoc): ID cua category chinh, category phai ton tai va dang `active`
@@ -609,15 +609,16 @@ Public/list/metadata response tra `/api/media/videos/:id/thumbnail`. Studio/owne
   - `visibility` (`public` | `private`, optional, default `public`)
   - `price` (number, optional, default 0, min 0)
   - `requiredTierLevel` (number | null, optional, min 1)
+  - `fileName` (string, bat buoc): ten file goc tren client
+  - `fileSize` (number, bat buoc, min 1): kich thuoc file byte
+  - `fileLastModified` (string ISO, bat buoc): thoi diem file duoc sua tren client
   - `thumbnailExtension` (`jpg` | `jpeg` | `png` | `webp`, optional): neu creator muon upload custom thumbnail, backend se tra them presigned URL rieng cho thumbnail.
-- He thong tu set them khi xu ly:
-  - `userId`: lay tu header `x-user-id`
 - Ghi chu:
-  - Backend KHONG con fallback ve category mac dinh.
-  - Backend KHONG nhan `categories` nua; uploader chi duoc gui `categoryId`.
-  - Neu thieu `categoryId`, `categoryId` rong sau khi trim, hoac category khong ton tai / khong active thi tra `BAD_REQUEST` / HTTP 400.
-  - Neu `tagIds` bi duplicate, co tag khong ton tai, hoac tag khong active thi tra `BAD_REQUEST` / HTTP 400.
-  - Neu co `thumbnailExtension`, client upload anh custom thumbnail vao `thumbnailUploadUrl` truoc khi goi confirm.
+  - Backend tao draft video voi `status = draft`.
+  - Backend tao MinIO multipart upload session va luu `uploadId`, `partSizeBytes`, file metadata, expiry trong DB.
+  - `partSizeBytes` mac dinh hien tai la 16MB.
+  - Backend validate `fileSize > 0` va khong vuot gioi han upload.
+  - Neu co `thumbnailExtension`, client upload anh custom thumbnail vao `thumbnailUploadUrl` truoc khi goi submit.
   - Neu khong co `thumbnailExtension`, he thong se auto-generate thumbnail bang Media Processing Service sau moderation/transcode.
 - Response HTTP 201:
   - Envelope `data`:
@@ -625,85 +626,156 @@ Public/list/metadata response tra `/api/media/videos/:id/thumbnail`. Studio/owne
     - `status` (string)
     - `rawFileKey` (string)
     - `bucket` (string)
-    - `uploadUrl` (string)
-    - `thumbnailObjectKey` (string | null): key MinIO cho custom thumbnail neu request co `thumbnailExtension`
+    - `uploadId` (string): MinIO multipart upload session id
+    - `partSizeBytes` (number): kich thuoc moi part client nen cat bang `Blob.slice`
+    - `expiresAt` (string ISO): thoi diem upload session het han
+    - `thumbnailObjectKey` (string | null)
     - `thumbnailBucket` (string | null)
-    - `thumbnailUploadUrl` (string | null): presigned URL de upload custom thumbnail
+    - `thumbnailUploadUrl` (string | null)
+- Vi du response:
 
-### 4.2 POST `/api/media/videos/:id/confirm-upload`
+```json
+{
+  "success": true,
+  "code": 201,
+  "data": {
+    "videoId": "video-123",
+    "status": "draft",
+    "rawFileKey": "uploads/raw/channel-1/1710000000000-uuid.mp4",
+    "bucket": "media-raw",
+    "uploadId": "minio-upload-id",
+    "partSizeBytes": 16777216,
+    "expiresAt": "2026-05-21T10:00:00.000Z",
+    "thumbnailObjectKey": null,
+    "thumbnailBucket": null,
+    "thumbnailUploadUrl": null
+  }
+}
+```
 
-- Muc dich: xac nhan upload xong de he thong xu ly video.
+### 4.2 POST `/api/media/studio/videos/:videoId/uploads/:uploadId/part-urls`
+
+- Muc dich: xin presigned URL de upload mot hoac nhieu part cua video.
 - Header:
   - `x-user-id`: He thong tu set
   - `x-internal-secret`: He thong tu set
 - Path param:
-  - `id` (string): videoId
+  - `videoId` (string)
+  - `uploadId` (string)
+- Body:
+  - `partNumbers` (number[], bat buoc): danh sach part can upload hoac can xin lai URL
+- Ghi chu:
+  - Chi owner duoc xin URL.
+  - Video phai con `status = draft`.
+  - `uploadId` phai thuoc dung `videoId`.
+  - `partNumber` bat dau tu 1 va khong duoc vuot tong so part tinh tu `fileSize / partSizeBytes`.
+  - Presigned URL co the het han; FE chi can goi lai endpoint nay voi cac part chua xong.
+- Response HTTP 200:
+  - Envelope `data.parts[]`:
+    - `partNumber` (number)
+    - `uploadUrl` (string)
+    - `expiresAt` (string ISO)
+
+### 4.3 POST `/api/media/studio/videos/:videoId/uploads/:uploadId/parts/:partNumber/completed`
+
+- Muc dich: bao cho backend biet mot part da upload thanh cong len MinIO.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-internal-secret`: He thong tu set
+- Path param:
+  - `videoId` (string)
+  - `uploadId` (string)
+  - `partNumber` (number)
+- Body:
+  - `etag` (string, bat buoc): gia tri `ETag` tra ve tu MinIO sau khi upload part thanh cong
+  - `sizeBytes` (number, bat buoc): kich thuoc part da upload
+- Ghi chu:
+  - Endpoint nay chi luu trang thai part trong DB, khong ghep file.
+  - Neu client retry va gui lai cung `partNumber`, backend cap nhat `etag` moi.
+- Response HTTP 200:
+  - Envelope `data`:
+    - `videoId` (string)
+    - `uploadId` (string)
+    - `partNumber` (number)
+    - `completed` (boolean)
+
+### 4.4 GET `/api/media/studio/videos/:videoId/uploads/:uploadId/status`
+
+- Muc dich: lay upload session va danh sach part da hoan thanh de resume khi mat mang hoac reload app.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-internal-secret`: He thong tu set
+- Response HTTP 200:
+  - Envelope `data`:
+    - `videoId` (string)
+    - `uploadId` (string)
+    - `rawFileKey` (string)
+    - `partSizeBytes` (number)
+    - `fileName` (string)
+    - `fileSize` (number)
+    - `fileLastModified` (string ISO)
+    - `status` (`active`)
+    - `expiresAt` (string ISO)
+    - `parts` (array): cac part da upload thanh cong, moi item co `partNumber`, `etag`, `sizeBytes`, `uploadedAt`
+- Cach resume:
+  - FE tinh tong part tu `fileSize` va `partSizeBytes`.
+  - FE bo qua cac `partNumber` da co trong `parts`.
+  - FE goi `part-urls` cho cac part con thieu va upload tiep.
+
+### 4.5 POST `/api/media/studio/videos/:videoId/uploads/:uploadId/complete`
+
+- Muc dich: yeu cau backend hoan tat MinIO multipart upload, ghep cac part thanh 1 raw object hoan chinh.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-internal-secret`: He thong tu set
+- Request:
+  - Khong co body.
+- Ghi chu:
+  - Backend kiem tra du tat ca part theo `fileSize / partSizeBytes`.
+  - Backend sort parts tang dan theo `partNumber` va goi MinIO complete multipart.
+  - Sau khi thanh cong, raw object ton tai tai `rawFileKey`.
+- Response HTTP 200:
+  - Envelope `data`:
+    - `videoId` (string)
+    - `uploadId` (string)
+    - `rawFileKey` (string)
+    - `completed` (boolean)
+
+### 4.6 POST `/api/media/studio/videos/:videoId/uploads/:uploadId/submit`
+
+- Muc dich: submit video da upload xong vao moderation/processing pipeline.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-internal-secret`: He thong tu set
 - Body:
   - `resolutions` (string[], bat buoc, unique, 1-3 phan tu)
   - Gia tri hop le hien tai: `480p`, `720p`, `1080p`
-  - `thumbnailObjectKey` (string, optional): object key custom thumbnail da upload bang URL tra ve tu `init-upload`
-- He thong tu set them khi xu ly:
-  - `userId`: lay tu header `x-user-id`
+  - `thumbnailObjectKey` (string, optional): object key custom thumbnail da upload bang URL tra ve tu `POST /videos/uploads`
 - Ghi chu:
-  - Chi owner duoc confirm.
-  - Chi confirm duoc khi video con `status = draft`; cac status khac tra `CONFLICT` / HTTP 409.
+  - Endpoint nay dung lai logic confirm upload hien tai.
   - Backend kiem tra raw object ton tai, size > 0, va khong vuot gioi han upload.
-  - Neu co `thumbnailObjectKey`, backend kiem tra object ton tai trong bucket processed, dung prefix `videos/{videoId}/thumbnails/custom.`, dinh dang `jpg/jpeg/png/webp`, size > 0 va <= 5MB. Hop le thi set `thumbnailSource = custom`, `thumbnailStatus = ready`.
-  - Neu khong co `thumbnailObjectKey`, backend set `thumbnailSource = auto`, `thumbnailStatus = processing`; Media Processing Service tao file `videos/{videoId}/thumbnails/default.jpg`.
-  - Khi confirm thanh cong, backend copy raw object sang immutable key `uploads/confirmed/{videoId}/{uuid}.mp4` truoc khi publish moderation event. Presigned URL cu neu con han se khong ghi de file dang moderation/transcode.
+  - Khi submit thanh cong, backend copy raw object sang immutable key `uploads/confirmed/{videoId}/{uuid}.mp4`, set thumbnail state, chuyen video sang `pending_moderation`, va publish moderation event.
 - Response HTTP 201:
   - Envelope `data`:
     - `status` (string)
     - `message` (string)
 
-### 4.3 POST `/api/media/videos/:id/replace-upload`
+### 4.7 DELETE `/api/media/studio/videos/:videoId/uploads/:uploadId`
 
-- Muc dich: doi raw upload file cho video draft va tra presigned upload URL moi.
+- Muc dich: huy multipart upload session va xoa video draft khi user khong muon upload nua.
 - Header:
   - `x-user-id`: He thong tu set
   - `x-internal-secret`: He thong tu set
-- Path param:
-  - `id` (string): videoId
-- Request:
-  - Khong co body.
-- He thong tu set them khi xu ly:
-  - `userId`: lay tu header `x-user-id`
-- Ghi chu:
-  - Chi owner duoc replace.
-  - Chi replace duoc khi video con `status = draft`; cac status khac tra `CONFLICT` / HTTP 409.
-  - Backend sinh `rawFileKey` moi va upload URL moi.
-  - Raw object cu se duoc xoa best-effort neu ton tai; neu xoa cu that bai thi upload moi van duoc tra ve va cleanup job se don sau.
-- Response HTTP 201:
-  - Envelope `data`:
-    - `videoId` (string)
-    - `status` (string)
-    - `rawFileKey` (string)
-    - `bucket` (string)
-    - `uploadUrl` (string)
-
-### 4.4 DELETE `/api/media/videos/:id/upload`
-
-- Muc dich: huy upload video draft khi user khong muon upload nua.
-- Header:
-  - `x-user-id`: He thong tu set
-  - `x-internal-secret`: He thong tu set
-- Path param:
-  - `id` (string): videoId
-- Request:
-  - Khong co body.
-- He thong tu set them khi xu ly:
-  - `userId`: lay tu header `x-user-id`
 - Ghi chu:
   - Chi owner duoc cancel.
-  - Chi cancel duoc khi video con `status = draft`; cac status khac tra `CONFLICT` / HTTP 409.
-  - Backend xoa raw object neu ton tai, xoa processing progress cache, va hard delete video draft trong DB.
-  - Neu raw object chua duoc upload thi van xoa draft video binh thuong.
+  - Chi cancel duoc khi video con `status = draft`.
+  - Backend abort MinIO multipart upload neu session con active, xoa raw object neu ton tai, va hard delete video draft trong DB.
 - Response HTTP 200:
   - Envelope `data`:
     - `videoId` (string)
     - `cancelled` (boolean)
 
-### 4.5 DELETE `/api/media/videos/:id/failed-upload`
+### 4.8 DELETE `/api/media/studio/videos/:id/failed-upload`
 
 - Muc dich: xoa video upload/xu ly that bai khoi studio cua owner.
 - Header:
@@ -723,7 +795,7 @@ Public/list/metadata response tra `/api/media/videos/:id/thumbnail`. Studio/owne
     - `videoId` (string)
     - `deleted` (boolean)
 
-### 4.6 DELETE `/api/media/videos/:id`
+### 4.9 DELETE `/api/media/studio/videos/:id`
 
 - Muc dich: unpublish/xoa mem video cua owner.
 - Header:
@@ -743,7 +815,7 @@ Public/list/metadata response tra `/api/media/videos/:id/thumbnail`. Studio/owne
     - `videoId` (string)
     - `unpublished` (boolean)
 
-### 4.7 GET `/api/media/videos/:id/play`
+### 4.7 GET `/api/media/me/videos/:id/play`
 
 - Muc dich: lay thong tin phat video cho user hien tai.
 - Header:
@@ -763,7 +835,7 @@ Public/list/metadata response tra `/api/media/videos/:id/thumbnail`. Studio/owne
     - `resumePositionSeconds` (number): vi tri tiep tuc xem, `0` neu chua co tien do
     - `isResumeAvailable` (boolean): `true` neu co the xem tiep tu tien do da luu
 
-### 4.8 POST `/api/media/videos/:id/progress`
+### 4.8 POST `/api/media/me/videos/:id/progress`
 
 - Muc dich: luu tien do xem video cua user hien tai.
 - Header:
@@ -783,7 +855,7 @@ Public/list/metadata response tra `/api/media/videos/:id/thumbnail`. Studio/owne
     - `positionSeconds` (number)
     - `completed` (boolean)
 
-### 4.9 POST `/api/media/videos/:id/playback-token/refresh`
+### 4.9 POST `/api/media/me/videos/:id/playback-token/refresh`
 
 - Muc dich: cap moi playback token cho video dang xem.
 - Header:
@@ -867,7 +939,7 @@ Public/list/metadata response tra `/api/media/videos/:id/thumbnail`. Studio/owne
     - `Content-Type`: theo extension `.jpg`, `.jpeg`, `.png`, `.webp`
     - `Cache-Control: public, max-age=3600`
 
-### 4.11 PATCH `/api/media/videos/:id/metadata`
+### 4.11 PATCH `/api/media/studio/videos/:id/metadata`
 
 - Muc dich: creator cap nhat metadata cua video.
 - Header:
@@ -924,7 +996,7 @@ Public/list/metadata response tra `/api/media/videos/:id/thumbnail`. Studio/owne
     - `deleteReason` (string | null)
     - `updatedAt` (string ISO)
 
-### 4.12 GET `/api/media/videos/discovery/latest?limit=20`
+### 4.12 GET `/api/media/videos/latest?limit=20`
 
 - Muc dich: lay danh sach video moi nhat.
 - Public API: khong can `x-internal-secret`.
@@ -954,7 +1026,7 @@ Public/list/metadata response tra `/api/media/videos/:id/thumbnail`. Studio/owne
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
 
-### 4.13 GET `/api/media/videos/library/purchased?page=1&limit=20`
+### 4.13 GET `/api/media/me/videos/purchased?page=1&limit=20`
 
 - Muc dich: lay thu vien video da mua/unlock cua user hien tai.
 - Header:
@@ -991,7 +1063,7 @@ Public/list/metadata response tra `/api/media/videos/:id/thumbnail`. Studio/owne
     - `total` (number)
     - `totalPages` (number)
 
-### 4.14 GET `/api/media/videos/discovery/by-category?category=...&page=1&limit=20`
+### 4.14 GET `/api/media/videos/by-category?category=...&page=1&limit=20`
 
 - Muc dich: lay danh sach video theo category.
 - Public API: khong can `x-internal-secret`.
@@ -1044,17 +1116,17 @@ Public/list/metadata response tra `/api/media/videos/:id/thumbnail`. Studio/owne
   - `page` (number, optional, default 1, min 1)
   - `limit` (number, optional, default 20, min 1, max 50)
 - Ghi chu:
-  - Endpoint nay dung chung logic voi `GET /api/media/videos/discovery/by-category?category=...`.
+  - Endpoint nay dung chung logic voi `GET /api/media/videos/by-category?category=...`.
   - Neu category khong ton tai hoac khong `active` thi tra `NOT_FOUND` / HTTP 404.
 - Response HTTP 200:
-  - Envelope `data`: array, moi object giong shape cua `GET /api/media/videos/discovery/by-category`
+  - Envelope `data`: array, moi object giong shape cua `GET /api/media/videos/by-category`
   - Envelope `pagination`:
     - `page` (number)
     - `limit` (number)
     - `total` (number)
     - `totalPages` (number)
 
-### 4.16 GET `/api/media/videos/discovery/subscribed?limit=20`
+### 4.16 GET `/api/media/me/videos/subscribed?limit=20`
 
 - Muc dich: lay video public moi tu cac channel ma user dang co membership active.
 - Header:
@@ -1092,7 +1164,7 @@ Public/list/metadata response tra `/api/media/videos/:id/thumbnail`. Studio/owne
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
 
-### 4.17 GET `/api/media/videos/continue-watching?limit=20`
+### 4.17 GET `/api/media/me/videos/continue-watching?limit=20`
 
 - Muc dich: lay danh sach video user dang xem do de hien thi muc xem tiep.
 - Header:
@@ -1139,7 +1211,7 @@ Public/list/metadata response tra `/api/media/videos/:id/thumbnail`. Studio/owne
     - channels co `status = active`
 - Response HTTP 200:
   - Envelope `data`:
-    - `videos` (array), moi object giong shape cua `GET /api/media/videos/discovery/latest`
+    - `videos` (array), moi object giong shape cua `GET /api/media/videos/latest`
     - `channels` (array), moi object gom:
       - `id` (string)
       - `userId` (string)
@@ -1239,20 +1311,6 @@ Public/list/metadata response tra `/api/media/videos/:id/thumbnail`. Studio/owne
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
 
-### 7.2A GET `/api/media/categories/admin/all?q=...`
-
-- Muc dich: admin lay tat ca category hoac search category qua route categories controller.
-- Trang thai: deprecated compatibility route. Route chuan la `GET /api/media/admin/categories`.
-- Header:
-  - `x-user-id`: He thong tu set
-  - `x-user-role`: Bat buoc la `admin`
-  - `x-internal-secret`: He thong tu set
-- Query:
-  - `q` (string, optional): keyword search theo `name` hoac `slug`.
-- Ghi chu:
-  - Route nay dang ton tai song song voi `GET /api/media/admin/categories`.
-  - Response shape va rule admin giong `GET /api/media/admin/categories`.
-
 ### 7.3 POST `/api/media/admin/categories`
 
 - Muc dich: admin tao category moi.
@@ -1276,17 +1334,6 @@ Public/list/metadata response tra `/api/media/videos/:id/thumbnail`. Studio/owne
     - `displayOrder` (number)
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
-
-### 7.3A POST `/api/media/categories`
-
-- Muc dich: admin tao category moi qua route categories controller.
-- Trang thai: deprecated compatibility route. Route chuan la `POST /api/media/admin/categories`.
-- Header:
-  - `x-user-id`: He thong tu set
-  - `x-user-role`: Bat buoc la `admin`
-  - `x-internal-secret`: He thong tu set
-- Body/response/rule:
-  - Giong `POST /api/media/admin/categories`.
 
 ### 7.4 PATCH `/api/media/admin/categories/:id`
 
@@ -1315,17 +1362,6 @@ Public/list/metadata response tra `/api/media/videos/:id/thumbnail`. Studio/owne
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
 
-### 7.4A PATCH `/api/media/categories/:id`
-
-- Muc dich: admin cap nhat category qua route categories controller.
-- Trang thai: deprecated compatibility route. Route chuan la `PATCH /api/media/admin/categories/:id`.
-- Header:
-  - `x-user-id`: He thong tu set
-  - `x-user-role`: Bat buoc la `admin`
-  - `x-internal-secret`: He thong tu set
-- Path/body/response/rule:
-  - Giong `PATCH /api/media/admin/categories/:id`.
-
 ### 7.5 DELETE `/api/media/admin/categories/:id`
 
 - Muc dich: admin xoa mem category bang cach chuyen `status` ve `inactive`.
@@ -1337,17 +1373,6 @@ Public/list/metadata response tra `/api/media/videos/:id/thumbnail`. Studio/owne
   - `id` (string): categoryId
 - Response HTTP 200:
   - Envelope `data`: category sau khi inactive.
-
-### 7.5A DELETE `/api/media/categories/:id`
-
-- Muc dich: admin xoa mem category qua route categories controller.
-- Trang thai: deprecated compatibility route. Route chuan la `DELETE /api/media/admin/categories/:id`.
-- Header:
-  - `x-user-id`: He thong tu set
-  - `x-user-role`: Bat buoc la `admin`
-  - `x-internal-secret`: He thong tu set
-- Path/response/rule:
-  - Giong `DELETE /api/media/admin/categories/:id`.
 
 ## 8. TAG APIs
 
@@ -1447,7 +1472,7 @@ Public/list/metadata response tra `/api/media/videos/:id/thumbnail`. Studio/owne
 - Query:
   - `status` (`pending` | `approved` | `rejected`, optional, default `pending`)
 - Ghi chu:
-  - Channel vao danh sach `pending` khi creator goi `POST /api/media/channels/:id/membership-review/request` va channel du dieu kien.
+  - Channel vao danh sach `pending` khi creator goi `POST /api/media/channels/:id/membership-review-requests` va channel du dieu kien.
   - Neu thieu role hoac role khac `admin` thi tra `FORBIDDEN` / HTTP 403 voi message `Admin role is required`.
 - Response HTTP 200:
   - Envelope `data`: array, moi object gom:

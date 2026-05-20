@@ -37,10 +37,13 @@ import { GetSubscribedVideosUseCase } from '../../application/use-cases/get-subs
 import { GetVideoMetadataUseCase } from '../../application/use-cases/get-video-metadata.use-case';
 import { GetVideoThumbnailUseCase } from '../../application/use-cases/get-video-thumbnail.use-case';
 import { GetVideosByCategoryUseCase } from '../../application/use-cases/get-videos-by-category.use-case';
-import { InitVideoUploadUseCase } from '../../application/use-cases/init-video-upload.use-case';
+import { StartVideoUploadUseCase } from '../../application/use-cases/start-video-upload.use-case';
+import { CreateVideoUploadPartUrlsUseCase } from '../../application/use-cases/create-video-upload-part-urls.use-case';
+import { RecordVideoUploadPartCompletedUseCase } from '../../application/use-cases/record-video-upload-part-completed.use-case';
+import { GetVideoUploadStatusUseCase } from '../../application/use-cases/get-video-upload-status.use-case';
+import { CompleteVideoUploadUseCase } from '../../application/use-cases/complete-video-upload.use-case';
 import { PlayVideoUseCase } from '../../application/use-cases/play-video.use-case';
 import { RefreshPlaybackTokenUseCase } from '../../application/use-cases/refresh-playback-token.use-case';
-import { ReplaceVideoUploadUseCase } from '../../application/use-cases/replace-video-upload.use-case';
 import { SearchPublicVideosUseCase } from '../../application/use-cases/search-public-videos.use-case';
 import { UpdateVideoProgressUseCase } from '../../application/use-cases/update-video-progress.use-case';
 import { UpdateVideoMetadataUseCase } from '../../application/use-cases/update-video-metadata.use-case';
@@ -51,9 +54,18 @@ import type { ContinueWatchingItemResponse } from '../../application/dtos/contin
 import { ConfirmVideoUploadRequestDto } from '../dtos/confirm-video-upload.request';
 import { ConfirmVideoUploadResponseDto } from '../dtos/confirm-video-upload.response';
 import { ContinueWatchingItemResponseDto } from '../dtos/continue-watching-item.response';
-import { InitVideoUploadRequestDto } from '../dtos/init-video-upload.request';
-import { InitVideoUploadResponseDto } from '../dtos/init-video-upload.response';
-import { ReplaceVideoUploadResponseDto } from '../dtos/replace-video-upload.response';
+import { StartVideoUploadRequestDto } from '../dtos/start-video-upload.request';
+import { StartVideoUploadResponseDto } from '../dtos/start-video-upload.response';
+import {
+  CreateVideoUploadPartUrlsRequestDto,
+  RecordVideoUploadPartCompletedRequestDto,
+} from '../dtos/video-upload-session.request';
+import {
+  CompleteVideoUploadResponseDto,
+  VideoUploadPartCompletedResponseDto,
+  VideoUploadPartUrlsResponseDto,
+  VideoUploadStatusResponseDto,
+} from '../dtos/video-upload-session.response';
 import { CancelVideoUploadResponseDto } from '../dtos/cancel-video-upload.response';
 import { DeleteFailedVideoResponseDto } from '../dtos/delete-failed-video.response';
 import { PlayVideoResponseDto } from '../dtos/play-video.response';
@@ -74,12 +86,10 @@ import type { UpdateVideoProgressResponse } from '../../application/dtos/update-
 @ApiTags('videos')
 @ApiHeader({ name: 'x-user-id', required: true })
 @UseGuards(InternalGatewayGuard)
-@Controller('videos')
+@Controller()
 export class VideosController {
   constructor(
-    private readonly initVideoUploadUseCase: InitVideoUploadUseCase,
     private readonly confirmVideoUploadUseCase: ConfirmVideoUploadUseCase,
-    private readonly replaceVideoUploadUseCase: ReplaceVideoUploadUseCase,
     private readonly cancelVideoUploadUseCase: CancelVideoUploadUseCase,
     private readonly deleteFailedVideoUseCase: DeleteFailedVideoUseCase,
     private readonly playVideoUseCase: PlayVideoUseCase,
@@ -97,9 +107,14 @@ export class VideosController {
     private readonly updateVideoMetadataUseCase: UpdateVideoMetadataUseCase,
     private readonly unpublishVideoUseCase: UnpublishVideoUseCase,
     private readonly searchPublicVideosUseCase: SearchPublicVideosUseCase,
+    private readonly startVideoUploadUseCase: StartVideoUploadUseCase,
+    private readonly createVideoUploadPartUrlsUseCase: CreateVideoUploadPartUrlsUseCase,
+    private readonly recordVideoUploadPartCompletedUseCase: RecordVideoUploadPartCompletedUseCase,
+    private readonly getVideoUploadStatusUseCase: GetVideoUploadStatusUseCase,
+    private readonly completeVideoUploadUseCase: CompleteVideoUploadUseCase,
   ) {}
 
-  @Get('me')
+  @Get('studio/videos')
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'status', required: false, type: String })
   @ApiQuery({ name: 'visibility', required: false, type: String })
@@ -122,7 +137,7 @@ export class VideosController {
     );
   }
 
-  @Get('me/:id/detail')
+  @Get('studio/videos/:id')
   @ApiOperation({
     summary: 'Get the current user studio video detail for any video status',
   })
@@ -139,7 +154,7 @@ export class VideosController {
     return apiResponseContract(this.toStudioVideoListItemDto(video));
   }
 
-  @Get('me/:id/thumbnail')
+  @Get('studio/videos/:id/thumbnail')
   async ownerThumbnail(
     @CurrentUserId() userId: string,
     @Param('id') videoId: string,
@@ -156,7 +171,7 @@ export class VideosController {
     return new StreamableFile(thumbnail.stream);
   }
 
-  @Get(':id/thumbnail')
+  @Get('videos/:id/thumbnail')
   @SkipInternalGatewayGuard()
   async publicThumbnail(
     @Param('id') videoId: string,
@@ -172,17 +187,17 @@ export class VideosController {
     return new StreamableFile(thumbnail.stream);
   }
 
-  @Post('init-upload')
+  @Post('studio/videos/uploads')
   @ApiOperation({
-    summary: 'Create a draft video and return a presigned upload URL',
+    summary: 'Create a draft video and start a resumable multipart upload',
   })
-  @ApiCreatedSuccessResponse(InitVideoUploadResponseDto)
-  async initUpload(
+  @ApiCreatedSuccessResponse(StartVideoUploadResponseDto)
+  async startUpload(
     @CurrentUserId() userId: string,
-    @Body() dto: InitVideoUploadRequestDto,
-  ): Promise<ApiResponse<InitVideoUploadResponseDto>> {
+    @Body() dto: StartVideoUploadRequestDto,
+  ): Promise<ApiResponse<StartVideoUploadResponseDto>> {
     return apiResponseContract(
-      await this.initVideoUploadUseCase.execute({
+      await this.startVideoUploadUseCase.execute({
         userId,
         title: dto.title,
         description: dto.description,
@@ -191,12 +206,86 @@ export class VideosController {
         visibility: dto.visibility as VideoVisibility,
         price: dto.price,
         requiredTierLevel: dto.requiredTierLevel ?? null,
+        fileName: dto.fileName,
+        fileSize: dto.fileSize,
+        fileLastModified: new Date(dto.fileLastModified),
         thumbnailExtension: dto.thumbnailExtension,
       }),
     );
   }
 
-  @Get()
+  @Post('studio/videos/:videoId/uploads/:uploadId/part-urls')
+  @ApiSuccessResponse(VideoUploadPartUrlsResponseDto)
+  async createUploadPartUrls(
+    @CurrentUserId() userId: string,
+    @Param('videoId') videoId: string,
+    @Param('uploadId') uploadId: string,
+    @Body() dto: CreateVideoUploadPartUrlsRequestDto,
+  ): Promise<ApiResponse<VideoUploadPartUrlsResponseDto>> {
+    return apiResponseContract(
+      await this.createVideoUploadPartUrlsUseCase.execute({
+        userId,
+        videoId,
+        uploadId,
+        partNumbers: dto.partNumbers,
+      }),
+    );
+  }
+
+  @Post('studio/videos/:videoId/uploads/:uploadId/parts/:partNumber/completed')
+  @ApiSuccessResponse(VideoUploadPartCompletedResponseDto)
+  async recordUploadPartCompleted(
+    @CurrentUserId() userId: string,
+    @Param('videoId') videoId: string,
+    @Param('uploadId') uploadId: string,
+    @Param('partNumber') partNumber: string,
+    @Body() dto: RecordVideoUploadPartCompletedRequestDto,
+  ): Promise<ApiResponse<VideoUploadPartCompletedResponseDto>> {
+    return apiResponseContract(
+      await this.recordVideoUploadPartCompletedUseCase.execute({
+        userId,
+        videoId,
+        uploadId,
+        partNumber: Number(partNumber),
+        etag: dto.etag,
+        sizeBytes: dto.sizeBytes,
+      }),
+    );
+  }
+
+  @Get('studio/videos/:videoId/uploads/:uploadId/status')
+  @ApiSuccessResponse(VideoUploadStatusResponseDto)
+  async uploadStatus(
+    @CurrentUserId() userId: string,
+    @Param('videoId') videoId: string,
+    @Param('uploadId') uploadId: string,
+  ): Promise<ApiResponse<VideoUploadStatusResponseDto>> {
+    return apiResponseContract(
+      await this.getVideoUploadStatusUseCase.execute({
+        userId,
+        videoId,
+        uploadId,
+      }),
+    );
+  }
+
+  @Post('studio/videos/:videoId/uploads/:uploadId/complete')
+  @ApiSuccessResponse(CompleteVideoUploadResponseDto)
+  async completeUpload(
+    @CurrentUserId() userId: string,
+    @Param('videoId') videoId: string,
+    @Param('uploadId') uploadId: string,
+  ): Promise<ApiResponse<CompleteVideoUploadResponseDto>> {
+    return apiResponseContract(
+      await this.completeVideoUploadUseCase.execute({
+        userId,
+        videoId,
+        uploadId,
+      }),
+    );
+  }
+
+  @Get('videos')
   @SkipInternalGatewayGuard()
   @ApiQuery({ name: 'q', required: false, type: String })
   @ApiQuery({ name: 'category', required: false, type: String })
@@ -219,11 +308,11 @@ export class VideosController {
     return apiResponseContract(rows.map((row) => this.toVideoListItemDto(row)));
   }
 
-  @Post(':id/confirm-upload')
+  @Post('studio/videos/:videoId/uploads/:uploadId/submit')
   @ApiCreatedSuccessResponse(ConfirmVideoUploadResponseDto)
-  async confirmUpload(
+  async submitUpload(
     @CurrentUserId() userId: string,
-    @Param('id') videoId: string,
+    @Param('videoId') videoId: string,
     @Body() dto: ConfirmVideoUploadRequestDto,
   ): Promise<ApiResponse<ConfirmVideoUploadResponseDto>> {
     return apiResponseContract(
@@ -236,35 +325,23 @@ export class VideosController {
     );
   }
 
-  @Post(':id/replace-upload')
-  @ApiCreatedSuccessResponse(ReplaceVideoUploadResponseDto)
-  async replaceUpload(
-    @CurrentUserId() userId: string,
-    @Param('id') videoId: string,
-  ): Promise<ApiResponse<ReplaceVideoUploadResponseDto>> {
-    return apiResponseContract(
-      await this.replaceVideoUploadUseCase.execute({
-        userId,
-        videoId,
-      }),
-    );
-  }
-
-  @Delete(':id/upload')
+  @Delete('studio/videos/:videoId/uploads/:uploadId')
   @ApiSuccessResponse(CancelVideoUploadResponseDto)
-  async cancelUpload(
+  async cancelMultipartUpload(
     @CurrentUserId() userId: string,
-    @Param('id') videoId: string,
+    @Param('videoId') videoId: string,
+    @Param('uploadId') uploadId: string,
   ): Promise<ApiResponse<CancelVideoUploadResponseDto>> {
     return apiResponseContract(
       await this.cancelVideoUploadUseCase.execute({
         userId,
         videoId,
+        uploadId,
       }),
     );
   }
 
-  @Delete(':id/failed-upload')
+  @Delete('studio/videos/:id/failed-upload')
   @ApiSuccessResponse(DeleteFailedVideoResponseDto)
   async deleteFailedVideo(
     @CurrentUserId() userId: string,
@@ -278,7 +355,7 @@ export class VideosController {
     );
   }
 
-  @Delete(':id')
+  @Delete('studio/videos/:id')
   @ApiSuccessResponse(UnpublishVideoResponseDto)
   async unpublishVideo(
     @CurrentUserId() userId: string,
@@ -292,7 +369,7 @@ export class VideosController {
     );
   }
 
-  @Get(':id/play')
+  @Get('me/videos/:id/play')
   @ApiSuccessResponse(PlayVideoResponseDto)
   async playVideo(
     @CurrentUserId() userId: string,
@@ -306,7 +383,7 @@ export class VideosController {
     );
   }
 
-  @Post(':id/progress')
+  @Post('me/videos/:id/progress')
   @ApiSuccessResponse(UpdateVideoProgressResponseDto)
   async updateProgress(
     @CurrentUserId() userId: string,
@@ -324,7 +401,7 @@ export class VideosController {
     return apiResponseContract(this.toUpdateVideoProgressDto(response));
   }
 
-  @Post(':id/playback-token/refresh')
+  @Post('me/videos/:id/playback-token/refresh')
   @ApiSuccessResponse(RefreshPlaybackTokenResponseDto)
   async refreshPlaybackToken(
     @CurrentUserId() userId: string,
@@ -338,7 +415,7 @@ export class VideosController {
     );
   }
 
-  @Get(':id/metadata')
+  @Get('videos/:id/metadata')
   @SkipInternalGatewayGuard()
   @ApiSuccessResponse(VideoMetadataResponseDto)
   async getMetadata(
@@ -348,7 +425,7 @@ export class VideosController {
     return apiResponseContract(this.toVideoMetadataDto(metadata));
   }
 
-  @Patch(':id/metadata')
+  @Patch('studio/videos/:id/metadata')
   @ApiHeader({ name: 'x-internal-secret', required: true })
   @ApiHeader({ name: 'x-user-id', required: true })
   @ApiSuccessResponse(VideoMetadataResponseDto)
@@ -372,7 +449,7 @@ export class VideosController {
     return apiResponseContract(this.toVideoMetadataDto(metadata));
   }
 
-  @Get('discovery/latest')
+  @Get('videos/latest')
   @SkipInternalGatewayGuard()
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiSuccessResponse(VideoListItemResponseDto, { isArray: true })
@@ -385,7 +462,7 @@ export class VideosController {
     return apiResponseContract(rows.map((row) => this.toVideoListItemDto(row)));
   }
 
-  @Get('library/purchased')
+  @Get('me/videos/purchased')
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiSuccessResponse(PurchasedVideoResponseDto, { isArray: true })
@@ -407,7 +484,7 @@ export class VideosController {
     );
   }
 
-  @Get('discovery/by-category')
+  @Get('videos/by-category')
   @SkipInternalGatewayGuard()
   @ApiQuery({ name: 'category', required: true })
   @ApiQuery({ name: 'page', required: false, type: Number })
@@ -430,7 +507,7 @@ export class VideosController {
     );
   }
 
-  @Get('discovery/subscribed')
+  @Get('me/videos/subscribed')
   @ApiOperation({
     summary:
       'Get recent public videos from channels where the current user has an active membership',
@@ -450,7 +527,7 @@ export class VideosController {
     return apiResponseContract(rows.map((row) => this.toVideoListItemDto(row)));
   }
 
-  @Get('continue-watching')
+  @Get('me/videos/continue-watching')
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiSuccessResponse(ContinueWatchingItemResponseDto, { isArray: true })
   async continueWatching(

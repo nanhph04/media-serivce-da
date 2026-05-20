@@ -1,9 +1,11 @@
-export interface InitVideoUploadResponse {
+export interface StartVideoUploadResponse {
   videoId: string;
   status: string;
   rawFileKey: string;
   bucket: string;
-  uploadUrl: string;
+  uploadId: string;
+  partSizeBytes: number;
+  expiresAt: string;
   thumbnailObjectKey: string | null;
   thumbnailBucket: string | null;
   thumbnailUploadUrl: string | null;

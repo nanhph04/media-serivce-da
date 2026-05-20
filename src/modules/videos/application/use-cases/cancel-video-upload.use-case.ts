@@ -12,11 +12,16 @@ import {
   type IVideoRepository,
   VIDEO_REPOSITORY,
 } from '../../domain/repositories/video.repository';
+import {
+  type IVideoUploadSessionRepository,
+  VideoUploadSessionStatus,
+  VIDEO_UPLOAD_SESSION_REPOSITORY,
+} from '../../domain/repositories/video-upload-session.repository';
 import type { CancelVideoUploadResponse } from '../dtos/cancel-video-upload.response';
 
 @Injectable()
 export class CancelVideoUploadUseCase extends BaseUseCase<
-  { userId: string; videoId: string },
+  { userId: string; videoId: string; uploadId?: string },
   CancelVideoUploadResponse
 > {
   constructor(
@@ -24,6 +29,8 @@ export class CancelVideoUploadUseCase extends BaseUseCase<
     private readonly videoRepository: IVideoRepository,
     @Inject(OBJECT_STORAGE_SERVICE)
     private readonly objectStorageService: IObjectStorageService,
+    @Inject(VIDEO_UPLOAD_SESSION_REPOSITORY)
+    private readonly uploadSessionRepository: IVideoUploadSessionRepository,
   ) {
     super();
   }
@@ -31,6 +38,7 @@ export class CancelVideoUploadUseCase extends BaseUseCase<
   async execute(command: {
     userId: string;
     videoId: string;
+    uploadId?: string;
   }): Promise<CancelVideoUploadResponse> {
     const video = await this.videoRepository.findById(command.videoId);
     if (!video) {
@@ -41,6 +49,22 @@ export class CancelVideoUploadUseCase extends BaseUseCase<
     }
 
     video.assertDraftUploadMutable();
+    if (command.uploadId) {
+      const session =
+        await this.uploadSessionRepository.findByVideoAndUploadId(
+          video.id,
+          command.uploadId,
+        );
+      if (session && session.status === VideoUploadSessionStatus.ACTIVE) {
+        await this.objectStorageService.abortMultipartUpload({
+          bucket: 'raw',
+          objectKey: session.rawFileKey,
+          uploadId: session.uploadId,
+        });
+        await this.uploadSessionRepository.markAborted(session.id);
+      }
+    }
+
     if (await this.objectStorageService.objectExists('raw', video.rawFileKey)) {
       await this.objectStorageService.deleteObject('raw', video.rawFileKey);
     }

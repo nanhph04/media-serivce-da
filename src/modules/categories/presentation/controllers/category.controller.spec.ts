@@ -1,25 +1,10 @@
-import { CategoryStatus } from '../../domain/entities/category.entity';
 import { CategoryController } from './category.controller';
 
 describe('CategoryController', () => {
-  const createCategoryUseCase = {
-    execute: jest.fn(),
-  };
-  const getAllCategoriesUseCase = {
-    execute: jest.fn(),
-  };
   const getCategoriesUseCase = {
     execute: jest.fn(),
   };
-  const updateCategoryUseCase = {
-    execute: jest.fn(),
-  };
-  const controller = new CategoryController(
-    createCategoryUseCase as never,
-    getAllCategoriesUseCase as never,
-    getCategoriesUseCase as never,
-    updateCategoryUseCase as never,
-  );
+  const controller = new CategoryController(getCategoriesUseCase as never);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -34,7 +19,6 @@ describe('CategoryController', () => {
     expect(getCategoriesUseCase.execute).toHaveBeenCalledWith({
       q: undefined,
     });
-    expect(getAllCategoriesUseCase.execute).not.toHaveBeenCalled();
     expect(result).toEqual([
       {
         ...category,
@@ -61,104 +45,15 @@ describe('CategoryController', () => {
       },
     ]);
   });
-
-  it('returns all categories for admin', async () => {
-    const category = buildCategoryResponse(CategoryStatus.DELETED);
-    getAllCategoriesUseCase.execute.mockResolvedValue([category]);
-
-    const result = await controller.getAllCategoriesForAdmin('user-1', 'admin');
-
-    expect(getAllCategoriesUseCase.execute).toHaveBeenCalledWith({
-      q: undefined,
-    });
-    expect(result).toEqual([
-      {
-        ...category,
-        createdAt: '2026-01-01T00:00:00.000Z',
-        updatedAt: '2026-01-01T00:00:00.000Z',
-      },
-    ]);
-  });
-
-  it('searches all categories for admin using query keyword', async () => {
-    const category = buildCategoryResponse(CategoryStatus.INACTIVE);
-    getAllCategoriesUseCase.execute.mockResolvedValue([category]);
-
-    const result = await controller.getAllCategoriesForAdmin(
-      'user-1',
-      'admin',
-      'movie',
-    );
-
-    expect(getAllCategoriesUseCase.execute).toHaveBeenCalledWith({
-      q: 'movie',
-    });
-    expect(result).toEqual([
-      {
-        ...category,
-        createdAt: '2026-01-01T00:00:00.000Z',
-        updatedAt: '2026-01-01T00:00:00.000Z',
-      },
-    ]);
-  });
-
-  it('creates category when role is admin', async () => {
-    const category = buildCategoryResponse();
-    createCategoryUseCase.execute.mockResolvedValue(category);
-
-    const result = await controller.createCategory('user-1', 'admin', {
-      name: 'Music',
-    });
-
-    expect(createCategoryUseCase.execute).toHaveBeenCalledWith({
-      name: 'Music',
-      description: undefined,
-      parentId: null,
-      displayOrder: undefined,
-    });
-    expect(result).toEqual({
-      ...category,
-      createdAt: '2026-01-01T00:00:00.000Z',
-      updatedAt: '2026-01-01T00:00:00.000Z',
-    });
-  });
-
-  it('updates category when role is admin', async () => {
-    const category = buildCategoryResponse();
-    updateCategoryUseCase.execute.mockResolvedValue(category);
-
-    const result = await controller.updateCategory(
-      'user-1',
-      'admin',
-      'category-1',
-      {
-        description: 'Updated',
-      },
-    );
-
-    expect(updateCategoryUseCase.execute).toHaveBeenCalledWith({
-      categoryId: 'category-1',
-      name: undefined,
-      description: 'Updated',
-      parentId: undefined,
-      status: undefined,
-      displayOrder: undefined,
-    });
-    expect(result).toEqual({
-      ...category,
-      createdAt: '2026-01-01T00:00:00.000Z',
-      updatedAt: '2026-01-01T00:00:00.000Z',
-    });
-  });
 });
 
-function buildCategoryResponse(status = CategoryStatus.ACTIVE): {
+function buildCategoryResponse(): {
   id: string;
   name: string;
   slug: string;
   description: undefined;
   parentId: string | null;
-  status: CategoryStatus;
+  status: string;
   displayOrder: number;
   createdAt: Date;
   updatedAt: Date;
@@ -169,7 +64,7 @@ function buildCategoryResponse(status = CategoryStatus.ACTIVE): {
     slug: 'music',
     description: undefined,
     parentId: null,
-    status,
+    status: 'active',
     displayOrder: 0,
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
     updatedAt: new Date('2026-01-01T00:00:00.000Z'),

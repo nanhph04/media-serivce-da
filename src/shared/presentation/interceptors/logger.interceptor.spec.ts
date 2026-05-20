@@ -17,7 +17,7 @@ describe('LoggerInterceptor', () => {
   it('logs masked body for mutation requests outside streaming routes', () => {
     const context = createContext({
       method: 'POST',
-      url: '/api/media/videos/init-upload',
+      url: '/api/media/studio/videos/uploads',
       body: {
         title: 'Video',
         password: 'secret',
@@ -83,7 +83,7 @@ describe('LoggerInterceptor', () => {
   it('redacts token when logging non-stream routes', () => {
     const context = createContext({
       method: 'POST',
-      url: '/api/media/videos/video-1/playback-token/refresh?token=secret-token',
+      url: '/api/media/me/videos/video-1/playback-token/refresh?token=secret-token',
       body: {},
     });
 
@@ -92,7 +92,7 @@ describe('LoggerInterceptor', () => {
     expect(logger.logInfo).toHaveBeenCalledWith(
       'Incoming request',
       expect.objectContaining({
-        url: '/api/media/videos/video-1/playback-token/refresh?token=%5Bredacted%5D',
+        url: '/api/media/me/videos/video-1/playback-token/refresh?token=%5Bredacted%5D',
       }),
     );
   });

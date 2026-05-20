@@ -1,3 +1,4 @@
+import { PATH_METADATA } from '@nestjs/common/constants';
 import { ChannelStatus } from '../../domain/entities/channel.entity';
 import { ChannelController } from './channel.controller';
 
@@ -17,7 +18,7 @@ describe('ChannelController', () => {
   const getMembershipStatusUseCase = {
     execute: jest.fn(),
   };
-  const moderateChannelMembershipUseCase = {
+  const requestChannelMembershipReviewUseCase = {
     execute: jest.fn(),
   };
 
@@ -27,11 +28,20 @@ describe('ChannelController', () => {
     getCurrentChannelUseCase as never,
     getChannelDetailUseCase as never,
     getMembershipStatusUseCase as never,
-    moderateChannelMembershipUseCase as never,
+    requestChannelMembershipReviewUseCase as never,
   );
 
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  it('exposes canonical current user and channel routes', () => {
+    expect(getRoutePaths('createChannel')).toEqual('me/channel');
+    expect(getRoutePaths('updateChannel')).toEqual('me/channel');
+    expect(getRoutePaths('getCurrentChannel')).toEqual('me/channel');
+    expect(getRoutePaths('requestMembershipReview')).toEqual(
+      'channels/:id/membership-review-requests',
+    );
   });
 
   it('returns the current user channel summary', async () => {
@@ -65,3 +75,10 @@ describe('ChannelController', () => {
     });
   });
 });
+
+function getRoutePaths(methodName: keyof ChannelController): string | string[] {
+  return Reflect.getMetadata(
+    PATH_METADATA,
+    ChannelController.prototype[methodName],
+  ) as string | string[];
+}

@@ -28,7 +28,7 @@ export class ConfirmVideoUploadRequestDto {
   @ApiProperty({
     required: false,
     description:
-      'Optional custom thumbnail object key returned by init-upload.',
+      'Optional custom thumbnail object key returned by start upload.',
   })
   @IsString()
   @IsOptional()

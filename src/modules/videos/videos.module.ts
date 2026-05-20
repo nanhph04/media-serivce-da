@@ -31,13 +31,16 @@ import { HandleVideoModerationCompletedUseCase } from './application/use-cases/h
 import { HandleVideoPaymentSuccessUseCase } from './application/use-cases/handle-video-payment-success.use-case';
 import { HandleVideoDeleteRefundCompletedUseCase } from './application/use-cases/handle-video-delete-refund-completed.use-case';
 import { HandleVideoViewedUseCase } from './application/use-cases/handle-video-viewed.use-case';
-import { InitVideoUploadUseCase } from './application/use-cases/init-video-upload.use-case';
+import { CompleteVideoUploadUseCase } from './application/use-cases/complete-video-upload.use-case';
+import { CreateVideoUploadPartUrlsUseCase } from './application/use-cases/create-video-upload-part-urls.use-case';
+import { GetVideoUploadStatusUseCase } from './application/use-cases/get-video-upload-status.use-case';
+import { RecordVideoUploadPartCompletedUseCase } from './application/use-cases/record-video-upload-part-completed.use-case';
+import { StartVideoUploadUseCase } from './application/use-cases/start-video-upload.use-case';
 import { ListAdminReportsUseCase } from './application/use-cases/list-admin-reports.use-case';
 import { ListAdminVideosUseCase } from './application/use-cases/list-admin-videos.use-case';
 import { ModerateAdminVideoUseCase } from './application/use-cases/moderate-admin-video.use-case';
 import { PlayVideoUseCase } from './application/use-cases/play-video.use-case';
 import { RefreshPlaybackTokenUseCase } from './application/use-cases/refresh-playback-token.use-case';
-import { ReplaceVideoUploadUseCase } from './application/use-cases/replace-video-upload.use-case';
 import { SearchPublicVideosUseCase } from './application/use-cases/search-public-videos.use-case';
 import { FlushPendingVideoViewsUseCase } from './application/use-cases/flush-pending-video-views.use-case';
 import { UpdateVideoProgressUseCase } from './application/use-cases/update-video-progress.use-case';
@@ -69,6 +72,9 @@ import { VideoPurchaseUnlockRepository } from './infrastructure/persistence/vide
 import { VideoTagOrmEntity } from './infrastructure/persistence/video-tag.orm-entity';
 import { VideoOrmEntity } from './infrastructure/persistence/video.orm-entity';
 import { VideoRepository } from './infrastructure/persistence/video.repository';
+import { VideoUploadPartOrmEntity } from './infrastructure/persistence/video-upload-part.orm-entity';
+import { VideoUploadSessionOrmEntity } from './infrastructure/persistence/video-upload-session.orm-entity';
+import { VideoUploadSessionRepository } from './infrastructure/persistence/video-upload-session.repository';
 import { VideoWatchProgressOrmEntity } from './infrastructure/persistence/video-watch-progress.orm-entity';
 import { VideoWatchProgressRepository } from './infrastructure/persistence/video-watch-progress.repository';
 import { VideoQueryService } from './infrastructure/query/video-query.service';
@@ -89,6 +95,7 @@ import { VIDEO_WORKER_HEALTH_CHECKER } from './application/interfaces/video-work
 import { VIDEO_STATUS_EVENT_PUBLISHER } from './application/interfaces/video-status-event-publisher.interface';
 import { VIDEO_PURCHASE_UNLOCK_REPOSITORY } from './domain/repositories/video-purchase-unlock.repository';
 import { VIDEO_REPOSITORY } from './domain/repositories/video.repository';
+import { VIDEO_UPLOAD_SESSION_REPOSITORY } from './domain/repositories/video-upload-session.repository';
 import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-watch-progress.repository';
 
 @Module({
@@ -99,6 +106,8 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
       VideoTagOrmEntity,
       VideoPurchaseUnlockOrmEntity,
       VideoWatchProgressOrmEntity,
+      VideoUploadSessionOrmEntity,
+      VideoUploadPartOrmEntity,
       ChannelOrmEntity,
       MembershipTierOrmEntity,
     ]),
@@ -118,14 +127,18 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
     VideoRepository,
     VideoPurchaseUnlockRepository,
     VideoWatchProgressRepository,
+    VideoUploadSessionRepository,
     VideoQueryService,
     VideoCacheInvalidator,
     VideoViewAggregationService,
     VideoStatusSseService,
     VideoWatchAccessService,
-    InitVideoUploadUseCase,
+    StartVideoUploadUseCase,
+    CreateVideoUploadPartUrlsUseCase,
+    RecordVideoUploadPartCompletedUseCase,
+    GetVideoUploadStatusUseCase,
+    CompleteVideoUploadUseCase,
     ConfirmVideoUploadUseCase,
-    ReplaceVideoUploadUseCase,
     CancelVideoUploadUseCase,
     DeleteFailedVideoUseCase,
     CheckStaleVideoProcessingUseCase,
@@ -187,6 +200,10 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
     {
       provide: VIDEO_WATCH_PROGRESS_REPOSITORY,
       useExisting: VideoWatchProgressRepository,
+    },
+    {
+      provide: VIDEO_UPLOAD_SESSION_REPOSITORY,
+      useExisting: VideoUploadSessionRepository,
     },
     {
       provide: VIDEO_QUERY_SERVICE,

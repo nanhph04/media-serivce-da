@@ -12,3 +12,28 @@ Thumbnail metadata is stored on `videos`; image binary files are stored in MinIO
 - `thumbnail_error` (`text`, nullable): last auto-generation failure message.
 
 Migration: `1746240000000-add-video-thumbnails.ts`.
+
+## video upload session tables
+
+Resumable multipart upload state is stored in two tables. Raw video bytes stay in
+MinIO; these tables only store control metadata needed to resume and complete an
+upload.
+
+- `video_upload_sessions`
+  - `video_id`: draft video being uploaded.
+  - `user_id`: owner that started the upload.
+  - `raw_file_key`: target object key in raw bucket.
+  - `upload_id`: MinIO multipart upload id.
+  - `part_size_bytes`: byte size used by the client when slicing the file.
+  - `file_name`, `file_size`, `file_last_modified`: client file identity metadata.
+  - `status`: `active`, `completed`, or `aborted`.
+  - `expires_at`: cleanup cutoff for abandoned uploads.
+
+- `video_upload_parts`
+  - `session_id`: upload session id.
+  - `part_number`: 1-based part index.
+  - `etag`: MinIO ETag returned after uploading that part.
+  - `size_bytes`: uploaded part size.
+  - `uploaded_at`: when media service recorded the part.
+
+Migration: `1746250000000-create-video-upload-sessions.ts`.

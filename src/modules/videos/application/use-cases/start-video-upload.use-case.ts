@@ -1,9 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import {
   OBJECT_STORAGE_SERVICE,
   type IObjectStorageService,
 } from '@shared/application/interfaces/object-storage.service.interface';
+import {
+  VIDEO_UPLOAD_CONFIG,
+  type IVideoUploadConfig,
+} from '@shared/application/interfaces/video-upload-config.interface';
+import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import { BadRequestException } from '@shared/domain/exceptions/domain.exception';
 import {
   CategoryStatus,
@@ -13,27 +17,34 @@ import {
   CATEGORY_REPOSITORY,
   type ICategoryRepository,
 } from '../../../categories/domain/repositories/category.repository';
+import {
+  CHANNEL_ACCESS_SERVICE,
+  type IChannelAccessService,
+} from '../../../channels/application/interfaces/channel-access.service.interface';
 import { TagStatus, type Tag } from '../../../tags/domain/entities/tag.entity';
 import {
   TAG_REPOSITORY,
   type ITagRepository,
 } from '../../../tags/domain/repositories/tag.repository';
-import {
-  CHANNEL_ACCESS_SERVICE,
-  type IChannelAccessService,
-} from '../../../channels/application/interfaces/channel-access.service.interface';
 import { VideoEntity } from '../../domain/entities/video.entity';
 import {
   type IVideoRepository,
   VIDEO_REPOSITORY,
 } from '../../domain/repositories/video.repository';
-import type { InitVideoUploadCommand } from '../dtos/init-video-upload.command';
-import type { InitVideoUploadResponse } from '../dtos/init-video-upload.response';
+import {
+  type IVideoUploadSessionRepository,
+  VIDEO_UPLOAD_SESSION_REPOSITORY,
+} from '../../domain/repositories/video-upload-session.repository';
+import type { StartVideoUploadCommand } from '../dtos/start-video-upload.command';
+import type { StartVideoUploadResponse } from '../dtos/start-video-upload.response';
+
+const MULTIPART_UPLOAD_PART_SIZE_BYTES = 16 * 1024 * 1024;
+const MULTIPART_UPLOAD_TTL_HOURS = 24;
 
 @Injectable()
-export class InitVideoUploadUseCase extends BaseUseCase<
-  InitVideoUploadCommand,
-  InitVideoUploadResponse
+export class StartVideoUploadUseCase extends BaseUseCase<
+  StartVideoUploadCommand,
+  StartVideoUploadResponse
 > {
   constructor(
     @Inject(VIDEO_REPOSITORY)
@@ -46,17 +57,28 @@ export class InitVideoUploadUseCase extends BaseUseCase<
     private readonly objectStorageService: IObjectStorageService,
     @Inject(TAG_REPOSITORY)
     private readonly tagRepository: ITagRepository,
+    @Inject(VIDEO_UPLOAD_SESSION_REPOSITORY)
+    private readonly uploadSessionRepository: IVideoUploadSessionRepository,
+    @Inject(VIDEO_UPLOAD_CONFIG)
+    private readonly videoUploadConfig: IVideoUploadConfig,
   ) {
     super();
   }
 
-  async execute(
-    command: InitVideoUploadCommand,
-  ): Promise<InitVideoUploadResponse> {
+  async execute(command: StartVideoUploadCommand): Promise<StartVideoUploadResponse> {
+    if (command.fileSize <= 0) {
+      throw new BadRequestException('Video file size must be greater than zero');
+    }
+
+    const maxVideoUploadSizeBytes =
+      this.videoUploadConfig.getMaxVideoUploadSizeBytes();
+    if (command.fileSize > maxVideoUploadSizeBytes) {
+      throw new BadRequestException('Video file exceeds maximum upload size');
+    }
+
     const channelId = await this.channelAccessService.getOwnedActiveChannelId(
       command.userId,
     );
-
     const rawFileKey = `uploads/raw/${channelId}/${Date.now()}-${crypto.randomUUID()}.mp4`;
     const category = await this.resolveCategory(command.categoryId);
     const tags = await this.resolveTags(command.tagIds);
@@ -78,16 +100,34 @@ export class InitVideoUploadUseCase extends BaseUseCase<
     );
 
     await this.videoRepository.save(video);
+    const uploadId = await this.objectStorageService.createMultipartUpload(
+      'raw',
+      rawFileKey,
+    );
+
+    const expiresAt = new Date(
+      Date.now() + MULTIPART_UPLOAD_TTL_HOURS * 60 * 60 * 1000,
+    );
+    await this.uploadSessionRepository.create({
+      videoId: video.id,
+      userId: command.userId,
+      rawFileKey,
+      uploadId,
+      partSizeBytes: MULTIPART_UPLOAD_PART_SIZE_BYTES,
+      fileName: command.fileName,
+      fileSize: command.fileSize,
+      fileLastModified: command.fileLastModified,
+      expiresAt,
+    });
 
     return {
       videoId: video.id,
       status: video.status,
       rawFileKey,
       bucket: this.objectStorageService.getBucketName('raw'),
-      uploadUrl: await this.objectStorageService.createUploadUrl(
-        'raw',
-        rawFileKey,
-      ),
+      uploadId,
+      partSizeBytes: MULTIPART_UPLOAD_PART_SIZE_BYTES,
+      expiresAt: expiresAt.toISOString(),
       thumbnailObjectKey,
       thumbnailBucket: thumbnailObjectKey
         ? this.objectStorageService.getBucketName('processed')
@@ -114,15 +154,11 @@ export class InitVideoUploadUseCase extends BaseUseCase<
 
   private async resolveCategory(categoryId: string): Promise<Category> {
     const normalizedCategoryId = categoryId.trim();
-
     if (!normalizedCategoryId) {
       throw new BadRequestException('Exactly one category is required');
     }
 
-    const category = await this.categoryRepository.findById(
-      normalizedCategoryId,
-    );
-
+    const category = await this.categoryRepository.findById(normalizedCategoryId);
     if (!category || category.status !== CategoryStatus.ACTIVE) {
       throw new BadRequestException('Category is invalid');
     }
@@ -145,7 +181,6 @@ export class InitVideoUploadUseCase extends BaseUseCase<
     }
 
     const tags = await this.tagRepository.findByIds(normalizedTagIds);
-
     if (
       tags.length !== normalizedTagIds.length ||
       tags.some((tag) => tag.status !== TagStatus.ACTIVE)

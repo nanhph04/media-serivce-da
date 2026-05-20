@@ -84,8 +84,8 @@ GET /api/media/categories/:slug/videos
 GET /api/media/tags
 GET /api/media/search
 GET /api/media/videos
-GET /api/media/videos/discovery/latest
-GET /api/media/videos/discovery/by-category
+GET /api/media/videos/latest
+GET /api/media/videos/by-category
 GET /api/media/videos/:id/metadata
 GET /api/media/videos/:id/thumbnail
 GET /api/media/stream/:videoId/master.m3u8?token=...
@@ -94,8 +94,8 @@ GET /api/media/stream/:videoId/segments/:segmentName?token=...
 
 Stream routes are public for gateway auth/header purposes, but they still require
 the playback `token` query parameter. Clients obtain the token from
-`GET /api/media/videos/:id/play` or
-`POST /api/media/videos/:id/playback-token/refresh`.
+`GET /api/media/me/videos/:id/play` or
+`POST /api/media/me/videos/:id/playback-token/refresh`.
 
 Optional-auth route:
 
@@ -126,32 +126,32 @@ Protected routes include creator, membership, progress, admin, and write APIs,
 for example:
 
 ```text
-GET    /api/media/channels/me
-POST   /api/media/channels
-PATCH  /api/media/channels/:id
+GET    /api/media/me/channel
+POST   /api/media/me/channel`r`nPATCH  /api/media/me/channel
 GET    /api/media/channels/:id/membership-status
-PATCH  /api/media/channels/:id/admin/membership
+PATCH  /api/media/admin/channels/:id/membership
 POST   /api/media/channels/:channelId/membership-tiers
 PATCH  /api/media/channels/:channelId/membership-tiers/:tierId
 DELETE /api/media/channels/:channelId/membership-tiers/:tierId
 GET    /api/media/memberships/me
 PATCH  /api/media/memberships/:membershipId/auto-renew
-GET    /api/media/videos/me
-GET    /api/media/videos/me/:id/detail
-GET    /api/media/videos/me/:id/thumbnail
-POST   /api/media/videos/init-upload
-POST   /api/media/videos/:id/confirm-upload
-POST   /api/media/videos/:id/replace-upload
-DELETE /api/media/videos/:id/upload
-GET    /api/media/videos/:id/play
-POST   /api/media/videos/:id/progress
-GET    /api/media/videos/:id/progress
-GET    /api/media/videos/:id/progress/stream
-POST   /api/media/videos/:id/playback-token/refresh
-PATCH  /api/media/videos/:id/metadata
-GET    /api/media/videos/library/purchased
-GET    /api/media/videos/discovery/subscribed
-GET    /api/media/videos/continue-watching
+GET    /api/media/studio/videos
+GET    /api/media/studio/videos/:id
+GET    /api/media/studio/videos/:id/thumbnail
+POST   /api/media/studio/videos/uploads
+POST   /api/media/studio/videos/:videoId/uploads/:uploadId/part-urls
+POST   /api/media/studio/videos/:videoId/uploads/:uploadId/parts/:partNumber/completed
+GET    /api/media/studio/videos/:videoId/uploads/:uploadId/status
+POST   /api/media/studio/videos/:videoId/uploads/:uploadId/complete
+POST   /api/media/studio/videos/:videoId/uploads/:uploadId/submit
+DELETE /api/media/studio/videos/:videoId/uploads/:uploadId
+GET    /api/media/me/videos/:id/play
+POST   /api/media/me/videos/:id/progress
+POST   /api/media/me/videos/:id/playback-token/refresh
+PATCH  /api/media/studio/videos/:id/metadata
+GET    /api/media/me/videos/purchased
+GET    /api/media/me/videos/subscribed
+GET    /api/media/me/videos/continue-watching
 GET    /api/media/admin/categories
 POST   /api/media/admin/categories
 PATCH  /api/media/admin/categories/:id
@@ -183,7 +183,6 @@ Authorization: Bearer <accessToken>
 This route uses a dedicated streaming proxy:
 
 ```text
-GET /api/media/videos/:id/progress/stream
 ```
 
 It is protected. Gateway verifies JWT and forwards `x-user-*`,
@@ -230,6 +229,32 @@ Public video responses expose:
 }
 ```
 
+## Resumable Video Upload Contract
+
+Clients should use multipart upload routes:
+
+```text
+POST   /api/media/studio/videos/uploads
+POST   /api/media/studio/videos/:videoId/uploads/:uploadId/part-urls
+POST   /api/media/studio/videos/:videoId/uploads/:uploadId/parts/:partNumber/completed
+GET    /api/media/studio/videos/:videoId/uploads/:uploadId/status
+POST   /api/media/studio/videos/:videoId/uploads/:uploadId/complete
+POST   /api/media/studio/videos/:videoId/uploads/:uploadId/submit
+DELETE /api/media/studio/videos/:videoId/uploads/:uploadId
+```
+
+Gateway must treat all of these as protected routes and forward:
+
+```text
+x-user-id
+x-internal-secret
+x-request-id
+```
+
+The actual video bytes are uploaded by the client directly to MinIO presigned
+part URLs returned by media service. Gateway only proxies metadata/control API
+calls, not the raw video bytes.
+
 ## Error Shape
 
 Gateway-generated errors use:
@@ -243,7 +268,7 @@ Gateway-generated errors use:
   "errors": ["Invalid or expired token"],
   "requestId": "request-id",
   "timestamp": "2026-05-12T00:00:00.000Z",
-  "path": "/api/media/videos/me"
+  "path": "/api/media/studio/videos"
 }
 ```
 

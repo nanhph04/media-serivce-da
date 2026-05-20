@@ -12,23 +12,19 @@ import { ApiCreatedSuccessResponse } from '@shared/presentation/decorators/api-s
 import { ApiSuccessResponse } from '@shared/presentation/decorators/api-success-response.decorator';
 import { CurrentRequestId } from '@shared/presentation/decorators/request-id.decorator';
 import { CurrentUserId } from '@shared/presentation/decorators/user-id.decorator';
-import { CurrentUserRole } from '@shared/presentation/decorators/user-role.decorator';
 import { SkipInternalGatewayGuard } from '@shared/presentation/decorators/skip-internal-gateway.decorator';
 import {
   ApiResponse,
   apiResponseContract,
 } from '@shared/presentation/dto/api-response.dto';
-import { AdminRoleGuard } from '@shared/presentation/guards/admin-role.guard';
 import { InternalGatewayGuard } from '@shared/presentation/guards/internal-gateway.guard';
 import { CreateChannelUseCase } from '../../application/use-cases/create-channel.use-case';
 import { GetCurrentChannelUseCase } from '../../application/use-cases/get-current-channel.use-case';
 import { GetChannelDetailUseCase } from '../../application/use-cases/get-channel-detail.use-case';
 import { GetMembershipStatusUseCase } from '../../application/use-cases/get-membership-status.use-case';
-import { ModerateChannelMembershipUseCase } from '../../application/use-cases/moderate-channel-membership.use-case';
 import { RequestChannelMembershipReviewUseCase } from '../../application/use-cases/request-channel-membership-review.use-case';
 import { UpdateChannelUseCase } from '../../application/use-cases/update-channel.use-case';
 import { CreateChannelRequestDto } from '../dtos/create-channel.request';
-import { ModerateChannelMembershipRequestDto } from '../dtos/moderate-channel-membership.request';
 import { UpdateChannelRequestDto } from '../dtos/update-channel.request';
 import { ChannelResponseDto } from '../dtos/channel.response';
 import { CurrentChannelResponseDto } from '../dtos/current-channel.response';
@@ -46,7 +42,7 @@ import {
 @ApiTags('channels')
 @ApiHeader({ name: 'x-user-id', required: true })
 @UseGuards(InternalGatewayGuard)
-@Controller('channels')
+@Controller()
 export class ChannelController {
   constructor(
     private readonly createChannelUseCase: CreateChannelUseCase,
@@ -54,11 +50,10 @@ export class ChannelController {
     private readonly getCurrentChannelUseCase: GetCurrentChannelUseCase,
     private readonly getChannelDetailUseCase: GetChannelDetailUseCase,
     private readonly getMembershipStatusUseCase: GetMembershipStatusUseCase,
-    private readonly moderateChannelMembershipUseCase: ModerateChannelMembershipUseCase,
     private readonly requestChannelMembershipReviewUseCase: RequestChannelMembershipReviewUseCase,
   ) {}
 
-  @Post()
+  @Post('me/channel')
   @ApiCreatedSuccessResponse(ChannelResponseDto)
   async createChannel(
     @CurrentUserId() userId: string,
@@ -74,15 +69,18 @@ export class ChannelController {
     return apiResponseContract(toChannelResponseDto(channel));
   }
 
-  @Patch(':id')
+  @Patch('me/channel')
   @ApiSuccessResponse(ChannelResponseDto)
   async updateChannel(
     @CurrentUserId() userId: string,
-    @Param('id') channelId: string,
     @Body() dto: UpdateChannelRequestDto,
   ): Promise<ApiResponse<ChannelResponseDto>> {
+    const currentChannel = await this.getCurrentChannelUseCase.execute({
+      userId,
+    });
+
     const channel = await this.updateChannelUseCase.execute({
-      channelId,
+      channelId: currentChannel.channelId,
       userId,
       name: dto.name,
       bio: dto.bio,
@@ -92,7 +90,7 @@ export class ChannelController {
     return apiResponseContract(toChannelResponseDto(channel));
   }
 
-  @Get('me')
+  @Get('me/channel')
   @ApiSuccessResponse(CurrentChannelResponseDto)
   async getCurrentChannel(
     @CurrentUserId() userId: string,
@@ -101,7 +99,7 @@ export class ChannelController {
     return apiResponseContract(toCurrentChannelResponseDto(result));
   }
 
-  @Get(':id')
+  @Get('channels/:id')
   @SkipInternalGatewayGuard()
   @ApiSuccessResponse(ChannelDetailResponseDto)
   async getChannelDetail(
@@ -111,7 +109,7 @@ export class ChannelController {
     return apiResponseContract(toChannelDetailResponseDto(result));
   }
 
-  @Get(':id/membership-status')
+  @Get('channels/:id/membership-status')
   @ApiSuccessResponse(ChannelMembershipStatusResponseDto)
   async getMembershipStatus(
     @CurrentUserId() userId: string,
@@ -124,7 +122,7 @@ export class ChannelController {
     return apiResponseContract(toChannelMembershipStatusResponseDto(status));
   }
 
-  @Post(':id/membership-review/request')
+  @Post('channels/:id/membership-review-requests')
   @ApiSuccessResponse(ChannelResponseDto)
   async requestMembershipReview(
     @CurrentUserId() userId: string,
@@ -133,25 +131,6 @@ export class ChannelController {
     const channel = await this.requestChannelMembershipReviewUseCase.execute({
       channelId,
       userId,
-    });
-
-    return apiResponseContract(toChannelResponseDto(channel));
-  }
-
-  @Patch(':id/admin/membership')
-  @UseGuards(AdminRoleGuard)
-  @ApiHeader({ name: 'x-user-role', required: true })
-  @ApiSuccessResponse(ChannelResponseDto)
-  async moderateMembership(
-    @CurrentUserId() userId: string,
-    @CurrentUserRole() _role: string | undefined,
-    @Param('id') channelId: string,
-    @Body() dto: ModerateChannelMembershipRequestDto,
-  ): Promise<ApiResponse<ChannelResponseDto>> {
-    const channel = await this.moderateChannelMembershipUseCase.execute({
-      channelId,
-      adminId: userId,
-      action: dto.action,
     });
 
     return apiResponseContract(toChannelResponseDto(channel));

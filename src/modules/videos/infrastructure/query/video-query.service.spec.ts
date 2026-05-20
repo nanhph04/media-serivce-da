@@ -430,7 +430,7 @@ describe('VideoQueryService', () => {
         visibility: VideoVisibility.PRIVATE,
         price: 0,
         requiredTierLevel: null,
-        thumbnailUrl: '/api/media/videos/me/video-1/thumbnail',
+        thumbnailUrl: '/api/media/studio/videos/video-1/thumbnail',
         thumbnailSource: VideoThumbnailSource.AUTO,
         thumbnailStatus: VideoThumbnailStatus.READY,
         durationSeconds: 120,

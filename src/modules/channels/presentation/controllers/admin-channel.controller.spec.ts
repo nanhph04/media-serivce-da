@@ -1,3 +1,4 @@
+import { PATH_METADATA } from '@nestjs/common/constants';
 import { MembershipReviewStatus } from '../../domain/entities/channel.entity';
 import { AdminChannelController } from './admin-channel.controller';
 
@@ -17,16 +18,24 @@ describe('AdminChannelController', () => {
   const reviewChannelMembershipUseCase = {
     execute: jest.fn(),
   };
+  const moderateChannelMembershipUseCase = {
+    execute: jest.fn(),
+  };
   const controller = new AdminChannelController(
     adminLockChannelUseCase as never,
     getAdminChannelSummaryUseCase as never,
     listAdminChannelsUseCase as never,
     listMembershipReviewsUseCase as never,
     reviewChannelMembershipUseCase as never,
+    moderateChannelMembershipUseCase as never,
   );
 
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  it('exposes explicit admin channel membership moderation route', () => {
+    expect(getRoutePaths('moderateMembership')).toEqual(':id/membership');
   });
 
   it('maps admin lock channel request to use case command', async () => {
@@ -163,4 +172,43 @@ describe('AdminChannelController', () => {
       reason: undefined,
     });
   });
+
+  it('maps admin membership moderation request to use case command', async () => {
+    moderateChannelMembershipUseCase.execute.mockResolvedValue({
+      id: 'channel-1',
+      userId: 'owner-1',
+      name: 'Channel',
+      bio: 'Bio',
+      isEligibleForMembership: true,
+      isMembershipClosedByAdmin: false,
+      membershipReviewStatus: MembershipReviewStatus.APPROVED,
+      membershipRejectionReason: null,
+      membershipRequestedAt: new Date('2026-01-01T00:00:00.000Z'),
+      membershipReviewedAt: new Date('2026-01-02T00:00:00.000Z'),
+      avatarUrl: '',
+      bannerUrl: '',
+      status: 'active',
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+    });
+
+    await controller.moderateMembership('admin-1', 'admin', 'channel-1', {
+      action: 'approve',
+    });
+
+    expect(moderateChannelMembershipUseCase.execute).toHaveBeenCalledWith({
+      channelId: 'channel-1',
+      adminId: 'admin-1',
+      action: 'approve',
+    });
+  });
 });
+
+function getRoutePaths(
+  methodName: keyof AdminChannelController,
+): string | string[] {
+  return Reflect.getMetadata(
+    PATH_METADATA,
+    AdminChannelController.prototype[methodName],
+  ) as string | string[];
+}

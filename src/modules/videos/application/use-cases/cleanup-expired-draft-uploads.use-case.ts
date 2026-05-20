@@ -10,6 +10,10 @@ import {
   type IVideoRepository,
   VIDEO_REPOSITORY,
 } from '../../domain/repositories/video.repository';
+import {
+  type IVideoUploadSessionRepository,
+  VIDEO_UPLOAD_SESSION_REPOSITORY,
+} from '../../domain/repositories/video-upload-session.repository';
 
 @Injectable()
 export class CleanupExpiredDraftUploadsUseCase extends BaseUseCase<void, void> {
@@ -20,6 +24,8 @@ export class CleanupExpiredDraftUploadsUseCase extends BaseUseCase<void, void> {
     private readonly objectStorageService: IObjectStorageService,
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
+    @Inject(VIDEO_UPLOAD_SESSION_REPOSITORY)
+    private readonly uploadSessionRepository?: IVideoUploadSessionRepository,
   ) {
     super();
     this.loggerService.setContext(CleanupExpiredDraftUploadsUseCase.name);
@@ -36,6 +42,19 @@ export class CleanupExpiredDraftUploadsUseCase extends BaseUseCase<void, void> {
 
     for (const draft of drafts) {
       await this.cleanupDraft(draft.id, draft.rawFileKey);
+    }
+
+    if (!this.uploadSessionRepository) {
+      return;
+    }
+
+    const expiredSessions =
+      await this.uploadSessionRepository.findActiveExpired(
+        this.configService.getVideoDraftCleanupBatchSize(),
+        new Date(),
+      );
+    for (const session of expiredSessions) {
+      await this.abortExpiredSession(session.id, session.rawFileKey, session.uploadId);
     }
   }
 
@@ -55,6 +74,27 @@ export class CleanupExpiredDraftUploadsUseCase extends BaseUseCase<void, void> {
     } catch (error: unknown) {
       this.loggerService.logWarn('Failed to clean up expired draft upload', {
         videoId,
+        rawFileKey,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  private async abortExpiredSession(
+    sessionId: string,
+    rawFileKey: string,
+    uploadId: string,
+  ): Promise<void> {
+    try {
+      await this.objectStorageService.abortMultipartUpload({
+        bucket: 'raw',
+        objectKey: rawFileKey,
+        uploadId,
+      });
+      await this.uploadSessionRepository?.markAborted(sessionId);
+    } catch (error: unknown) {
+      this.loggerService.logWarn('Failed to abort expired multipart upload', {
+        sessionId,
         rawFileKey,
         error: error instanceof Error ? error.message : 'Unknown error',
       });

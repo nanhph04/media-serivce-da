@@ -4,15 +4,10 @@ import {
 } from '../../domain/entities/video.entity';
 import { VideosController } from './videos.controller';
 import { Readable } from 'stream';
+import { PATH_METADATA } from '@nestjs/common/constants';
 
 describe('VideosController', () => {
-  const initVideoUploadUseCase = {
-    execute: jest.fn(),
-  };
   const confirmVideoUploadUseCase = {
-    execute: jest.fn(),
-  };
-  const replaceVideoUploadUseCase = {
     execute: jest.fn(),
   };
   const cancelVideoUploadUseCase = {
@@ -66,10 +61,23 @@ describe('VideosController', () => {
   const searchPublicVideosUseCase = {
     execute: jest.fn(),
   };
+  const startVideoUploadUseCase = {
+    execute: jest.fn(),
+  };
+  const createVideoUploadPartUrlsUseCase = {
+    execute: jest.fn(),
+  };
+  const recordVideoUploadPartCompletedUseCase = {
+    execute: jest.fn(),
+  };
+  const getVideoUploadStatusUseCase = {
+    execute: jest.fn(),
+  };
+  const completeVideoUploadUseCase = {
+    execute: jest.fn(),
+  };
   const controller = new VideosController(
-    initVideoUploadUseCase as never,
     confirmVideoUploadUseCase as never,
-    replaceVideoUploadUseCase as never,
     cancelVideoUploadUseCase as never,
     deleteFailedVideoUseCase as never,
     playVideoUseCase as never,
@@ -87,10 +95,26 @@ describe('VideosController', () => {
     updateVideoMetadataUseCase as never,
     unpublishVideoUseCase as never,
     searchPublicVideosUseCase as never,
+    startVideoUploadUseCase as never,
+    createVideoUploadPartUrlsUseCase as never,
+    recordVideoUploadPartCompletedUseCase as never,
+    getVideoUploadStatusUseCase as never,
+    completeVideoUploadUseCase as never,
   );
 
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  it('exposes canonical public, studio, and viewer video routes', () => {
+    expect(getRoutePaths('searchVideos')).toEqual('videos');
+    expect(getRoutePaths('latest')).toEqual('videos/latest');
+    expect(getRoutePaths('studioVideos')).toEqual('studio/videos');
+    expect(getRoutePaths('studioVideoDetail')).toEqual('studio/videos/:id');
+    expect(getRoutePaths('purchased')).toEqual('me/videos/purchased');
+    expect(getRoutePaths('continueWatching')).toEqual(
+      'me/videos/continue-watching',
+    );
   });
 
   it('returns video metadata response dto', async () => {
@@ -142,17 +166,21 @@ describe('VideosController', () => {
     });
   });
 
-  it('initializes upload using current user channel context', async () => {
-    initVideoUploadUseCase.execute.mockResolvedValue({
+  it('starts multipart upload using current user channel context', async () => {
+    startVideoUploadUseCase.execute.mockResolvedValue({
       videoId: 'video-1',
       status: VideoStatus.DRAFT,
       rawFileKey: 'uploads/raw/channel-1/file.mp4',
       bucket: 'raw-videos',
-      uploadUrl: 'https://upload.example.com',
+      uploadId: 'upload-1',
+      partSizeBytes: 16777216,
+      expiresAt: '2026-05-21T10:00:00.000Z',
+      thumbnailObjectKey: null,
+      thumbnailBucket: null,
+      thumbnailUploadUrl: null,
     });
 
-    const result = await controller.initUpload('owner-1', {
-      channelId: 'legacy-channel-1',
+    const result = await controller.startUpload('owner-1', {
       title: 'Video',
       description: 'Description',
       categoryId: 'category-1',
@@ -160,9 +188,12 @@ describe('VideosController', () => {
       visibility: 'public',
       price: 0,
       requiredTierLevel: null,
+      fileName: 'video.mp4',
+      fileSize: 123456,
+      fileLastModified: '2026-05-20T10:00:00.000Z',
     });
 
-    expect(initVideoUploadUseCase.execute).toHaveBeenCalledWith({
+    expect(startVideoUploadUseCase.execute).toHaveBeenCalledWith({
       userId: 'owner-1',
       title: 'Video',
       description: 'Description',
@@ -171,89 +202,41 @@ describe('VideosController', () => {
       visibility: 'public',
       price: 0,
       requiredTierLevel: null,
+      fileName: 'video.mp4',
+      fileSize: 123456,
+      fileLastModified: new Date('2026-05-20T10:00:00.000Z'),
+      thumbnailExtension: undefined,
     });
     expect(result).toEqual({
       videoId: 'video-1',
       status: VideoStatus.DRAFT,
       rawFileKey: 'uploads/raw/channel-1/file.mp4',
       bucket: 'raw-videos',
-      uploadUrl: 'https://upload.example.com',
+      uploadId: 'upload-1',
+      partSizeBytes: 16777216,
+      expiresAt: '2026-05-21T10:00:00.000Z',
+      thumbnailObjectKey: null,
+      thumbnailBucket: null,
+      thumbnailUploadUrl: null,
     });
   });
 
-  it('initializes upload without legacy channel id', async () => {
-    initVideoUploadUseCase.execute.mockResolvedValue({
-      videoId: 'video-2',
-      status: VideoStatus.DRAFT,
-      rawFileKey: 'uploads/raw/channel-1/file-2.mp4',
-      bucket: 'raw-videos',
-      uploadUrl: 'https://upload.example.com/2',
-    });
-
-    const result = await controller.initUpload('owner-1', {
-      title: 'Video 2',
-      description: '',
-      categoryId: 'category-2',
-      tagIds: [],
-      visibility: 'public',
-      price: 0,
-      requiredTierLevel: null,
-    });
-
-    expect(initVideoUploadUseCase.execute).toHaveBeenCalledWith({
-      userId: 'owner-1',
-      title: 'Video 2',
-      description: '',
-      categoryId: 'category-2',
-      tagIds: [],
-      visibility: 'public',
-      price: 0,
-      requiredTierLevel: null,
-    });
-    expect(result).toEqual({
-      videoId: 'video-2',
-      status: VideoStatus.DRAFT,
-      rawFileKey: 'uploads/raw/channel-1/file-2.mp4',
-      bucket: 'raw-videos',
-      uploadUrl: 'https://upload.example.com/2',
-    });
-  });
-
-  it('replaces a draft upload for the current user', async () => {
-    replaceVideoUploadUseCase.execute.mockResolvedValue({
-      videoId: 'video-1',
-      status: VideoStatus.DRAFT,
-      rawFileKey: 'uploads/raw/channel-1/file-2.mp4',
-      bucket: 'raw-videos',
-      uploadUrl: 'https://upload.example.com/2',
-    });
-
-    const result = await controller.replaceUpload('owner-1', 'video-1');
-
-    expect(replaceVideoUploadUseCase.execute).toHaveBeenCalledWith({
-      userId: 'owner-1',
-      videoId: 'video-1',
-    });
-    expect(result).toEqual({
-      videoId: 'video-1',
-      status: VideoStatus.DRAFT,
-      rawFileKey: 'uploads/raw/channel-1/file-2.mp4',
-      bucket: 'raw-videos',
-      uploadUrl: 'https://upload.example.com/2',
-    });
-  });
-
-  it('cancels a draft upload for the current user', async () => {
+  it('cancels a multipart draft upload for the current user', async () => {
     cancelVideoUploadUseCase.execute.mockResolvedValue({
       videoId: 'video-1',
       cancelled: true,
     });
 
-    const result = await controller.cancelUpload('owner-1', 'video-1');
+    const result = await controller.cancelMultipartUpload(
+      'owner-1',
+      'video-1',
+      'upload-1',
+    );
 
     expect(cancelVideoUploadUseCase.execute).toHaveBeenCalledWith({
       userId: 'owner-1',
       videoId: 'video-1',
+      uploadId: 'upload-1',
     });
     expect(result).toEqual({
       videoId: 'video-1',
@@ -768,6 +751,13 @@ describe('VideosController', () => {
     ]);
   });
 });
+
+function getRoutePaths(methodName: keyof VideosController): string | string[] {
+  return Reflect.getMetadata(
+    PATH_METADATA,
+    VideosController.prototype[methodName],
+  ) as string | string[];
+}
 
 function buildMetadata(): {
   id: string;

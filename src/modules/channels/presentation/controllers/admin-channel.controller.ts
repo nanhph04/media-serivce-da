@@ -22,12 +22,14 @@ import { AdminLockChannelUseCase } from '../../application/use-cases/admin-lock-
 import { GetAdminChannelSummaryUseCase } from '../../application/use-cases/get-admin-channel-summary.use-case';
 import { ListAdminChannelsUseCase } from '../../application/use-cases/list-admin-channels.use-case';
 import { ListMembershipReviewsUseCase } from '../../application/use-cases/list-membership-reviews.use-case';
+import { ModerateChannelMembershipUseCase } from '../../application/use-cases/moderate-channel-membership.use-case';
 import { ReviewChannelMembershipUseCase } from '../../application/use-cases/review-channel-membership.use-case';
 import { AdminChannelQueryDto } from '../dtos/admin-channel-query.dto';
 import { AdminChannelsResponseDto } from '../dtos/admin-channels.response';
 import { AdminChannelSummaryResponseDto } from '../dtos/admin-channel-summary.response';
 import { MembershipReviewQueryRequestDto } from '../dtos/membership-review-query.request';
 import { MembershipReviewResponseDto } from '../dtos/membership-review.response';
+import { ModerateChannelMembershipRequestDto } from '../dtos/moderate-channel-membership.request';
 import { ReviewChannelMembershipRequestDto } from '../dtos/review-channel-membership.request';
 import { ChannelResponseDto } from '../dtos/channel.response';
 import { LockChannelRequestDto } from '../dtos/lock-channel.request';
@@ -43,6 +45,7 @@ export class AdminChannelController {
     private readonly listAdminChannelsUseCase: ListAdminChannelsUseCase,
     private readonly listMembershipReviewsUseCase: ListMembershipReviewsUseCase,
     private readonly reviewChannelMembershipUseCase: ReviewChannelMembershipUseCase,
+    private readonly moderateChannelMembershipUseCase: ModerateChannelMembershipUseCase,
   ) {}
 
   @Get('summary')
@@ -134,6 +137,26 @@ export class AdminChannelController {
       role,
       action: dto.action,
       reason: dto.reason,
+    });
+
+    return apiResponseContract(toChannelResponseDto(channel));
+  }
+
+  @Patch(':id/membership')
+  @ApiHeader({ name: 'x-user-id', required: true })
+  @ApiHeader({ name: 'x-user-role', required: true })
+  @ApiHeader({ name: 'x-internal-secret', required: true })
+  @ApiSuccessResponse(ChannelResponseDto)
+  async moderateMembership(
+    @CurrentUserId() adminId: string,
+    @CurrentUserRole() _role: string | undefined,
+    @Param('id') channelId: string,
+    @Body() dto: ModerateChannelMembershipRequestDto,
+  ): Promise<ApiResponse<ChannelResponseDto>> {
+    const channel = await this.moderateChannelMembershipUseCase.execute({
+      channelId,
+      adminId,
+      action: dto.action,
     });
 
     return apiResponseContract(toChannelResponseDto(channel));

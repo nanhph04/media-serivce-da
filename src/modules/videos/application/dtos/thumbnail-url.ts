@@ -16,7 +16,7 @@ export function buildOwnerThumbnailUrl(video: VideoEntity): string | null {
     return null;
   }
 
-  return `/api/media/videos/me/${video.id}/thumbnail`;
+  return `/api/media/studio/videos/${video.id}/thumbnail`;
 }
 
 function isThumbnailReady(video: VideoEntity): boolean {

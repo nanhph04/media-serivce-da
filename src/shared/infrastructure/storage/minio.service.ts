@@ -7,7 +7,27 @@ import type {
   IObjectStorageService,
   StorageObjectMetadata,
   StorageBucket,
+  UploadedPart,
 } from '../../application/interfaces/object-storage.service.interface';
+
+interface MinioMultipartClient {
+  initiateNewMultipartUpload(
+    bucketName: string,
+    objectName: string,
+    headers: Record<string, string>,
+  ): Promise<string>;
+  completeMultipartUpload(
+    bucketName: string,
+    objectName: string,
+    uploadId: string,
+    etags: { part: number; etag?: string }[],
+  ): Promise<{ etag: string; versionId: string | null }>;
+  abortMultipartUpload(
+    bucketName: string,
+    objectName: string,
+    uploadId: string,
+  ): Promise<void>;
+}
 
 @Injectable()
 export class MinioService implements OnModuleInit, IObjectStorageService {
@@ -106,6 +126,67 @@ export class MinioService implements OnModuleInit, IObjectStorageService {
     return this.rewritePublicUrlIfNeeded(presignedUrl);
   }
 
+  async createMultipartUpload(
+    bucket: StorageBucket,
+    objectKey: string,
+  ): Promise<string> {
+    return this.getMultipartClient().initiateNewMultipartUpload(
+      this.getBucketName(bucket),
+      objectKey,
+      {},
+    );
+  }
+
+  async createUploadPartUrl(input: {
+    bucket: StorageBucket;
+    objectKey: string;
+    uploadId: string;
+    partNumber: number;
+    expirySeconds?: number;
+  }): Promise<string> {
+    const presignedUrl = await this.client.presignedUrl(
+      'PUT',
+      this.getBucketName(input.bucket),
+      input.objectKey,
+      input.expirySeconds ?? 900,
+      {
+        partNumber: String(input.partNumber),
+        uploadId: input.uploadId,
+      },
+    );
+
+    return this.rewritePublicUrlIfNeeded(presignedUrl);
+  }
+
+  async completeMultipartUpload(input: {
+    bucket: StorageBucket;
+    objectKey: string;
+    uploadId: string;
+    parts: UploadedPart[];
+  }): Promise<void> {
+    await this.getMultipartClient().completeMultipartUpload(
+      this.getBucketName(input.bucket),
+      input.objectKey,
+      input.uploadId,
+      input.parts.map((part) => ({
+        part: part.partNumber,
+        etag: part.etag,
+      })),
+    );
+  }
+
+  async abortMultipartUpload(input: {
+    bucket: StorageBucket;
+    objectKey: string;
+    uploadId: string;
+  }): Promise<void> {
+    await this.getMultipartClient().abortMultipartUpload(
+      this.getBucketName(input.bucket),
+      input.objectKey,
+      input.uploadId,
+    );
+  }
+
   async objectExists(
     bucket: StorageBucket,
     objectKey: string,
@@ -202,6 +283,10 @@ export class MinioService implements OnModuleInit, IObjectStorageService {
     }
 
     return parsedUrl.toString();
+  }
+
+  private getMultipartClient(): MinioMultipartClient {
+    return this.client as unknown as MinioMultipartClient;
   }
 
   private resolveOptionalNumber(key: string): number | null {

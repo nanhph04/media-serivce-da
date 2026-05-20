@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-export class InitVideoUploadResponseDto {
+export class StartVideoUploadResponseDto {
   @ApiProperty()
   videoId!: string;
 
@@ -14,7 +14,13 @@ export class InitVideoUploadResponseDto {
   bucket!: string;
 
   @ApiProperty()
-  uploadUrl!: string;
+  uploadId!: string;
+
+  @ApiProperty()
+  partSizeBytes!: number;
+
+  @ApiProperty()
+  expiresAt!: string;
 
   @ApiPropertyOptional({ nullable: true })
   thumbnailObjectKey!: string | null;

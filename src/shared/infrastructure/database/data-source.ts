@@ -9,6 +9,8 @@ import { TagOrmEntity } from '../../../modules/tags/infrastructure/persistence/t
 import { VideoCategoryOrmEntity } from '../../../modules/videos/infrastructure/persistence/video-category.orm-entity';
 import { VideoPurchaseUnlockOrmEntity } from '../../../modules/videos/infrastructure/persistence/video-purchase-unlock.orm-entity';
 import { VideoTagOrmEntity } from '../../../modules/videos/infrastructure/persistence/video-tag.orm-entity';
+import { VideoUploadPartOrmEntity } from '../../../modules/videos/infrastructure/persistence/video-upload-part.orm-entity';
+import { VideoUploadSessionOrmEntity } from '../../../modules/videos/infrastructure/persistence/video-upload-session.orm-entity';
 import { VideoOrmEntity } from '../../../modules/videos/infrastructure/persistence/video.orm-entity';
 import { VideoWatchProgressOrmEntity } from '../../../modules/videos/infrastructure/persistence/video-watch-progress.orm-entity';
 import { OutboxMessageOrmEntity } from '../messaging/outbox-message.orm-entity';
@@ -70,6 +72,8 @@ export default new DataSource({
     VideoPurchaseUnlockOrmEntity,
     VideoCategoryOrmEntity,
     VideoTagOrmEntity,
+    VideoUploadSessionOrmEntity,
+    VideoUploadPartOrmEntity,
     VideoWatchProgressOrmEntity,
     OutboxMessageOrmEntity,
   ],

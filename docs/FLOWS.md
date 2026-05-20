@@ -18,14 +18,28 @@ sequenceDiagram
     participant Moderation as Moderation Service
     participant Processor as Media Processing Service
 
-    Creator->>Media: Init upload
-    Media-->>Creator: videoId + raw upload URL + optional thumbnail upload URL
-    Creator->>Storage: Upload raw video to bucket raw
+    Creator->>Media: Start upload
+    Media->>Storage: Create multipart upload in bucket raw
+    Media-->>Creator: videoId + uploadId + partSizeBytes + optional thumbnail upload URL
+    loop For each missing part
+        Creator->>Media: Request part URLs
+        Media-->>Creator: presigned part URLs
+        Creator->>Storage: Upload part bytes to bucket raw
+        Storage-->>Creator: ETag
+        Creator->>Media: Mark part completed with ETag
+    end
+    opt Network lost or app reloaded
+        Creator->>Media: Get upload status
+        Media-->>Creator: completed partNumbers + ETags
+        Creator->>Media: Request URLs for missing parts
+    end
+    Creator->>Media: Complete multipart upload
+    Media->>Storage: Complete multipart upload into raw object
     opt Custom thumbnail
         Creator->>Storage: Upload thumbnail to bucket processed
     end
 
-    Creator->>Media: Confirm upload
+    Creator->>Media: Submit upload
     Media->>Storage: Copy raw draft to raw confirmed
     Media->>Storage: Delete raw draft best-effort
     alt Custom thumbnail provided
@@ -68,24 +82,35 @@ sequenceDiagram
 
 ## Raw file lifecycle
 
-- `uploads/raw/{channelId}/...` is created by `init-upload` and used by the client presigned upload URL.
-- `confirm-upload` copies the draft object to `uploads/confirmed/{videoId}/{uuid}.mp4`.
+- `uploads/raw/{channelId}/...` is reserved by `POST /api/media/studio/videos/uploads`.
+- The client uploads the raw video through MinIO multipart upload parts. Media Service stores `uploadId`, `partSizeBytes`, file metadata and uploaded part ETags in `video_upload_sessions` and `video_upload_parts`.
+- `POST /api/media/studio/videos/:videoId/uploads/:uploadId/complete` asks MinIO to assemble the uploaded parts into one raw object at `rawFileKey`.
+- `POST /api/media/studio/videos/:videoId/uploads/:uploadId/submit` copies the completed draft object to `uploads/confirmed/{videoId}/{uuid}.mp4`.
 - After `video.processed.success`, Media Service deletes the confirmed raw object best-effort.
 - If MinIO delete fails, playback still uses bucket `processed`; leftover raw objects can be cleaned manually or by lifecycle cleanup.
 - Failed, rejected, cancelled draft, expired draft and hard-deleted videos use their own cleanup flows.
 
+## Resumable upload client rule
+
+- User selects one complete video file.
+- Client computes `totalParts = ceil(file.size / partSizeBytes)`.
+- For each part, client reads bytes with `file.slice(start, end)`.
+- After each successful part PUT, MinIO returns `ETag`; client sends it to `parts/:partNumber/completed`.
+- If network is lost, client calls `status`, skips completed `partNumber`s, requests URLs only for missing parts, and continues upload.
+- User never manually chooses parts; the part split is only an implementation detail between client, Media Service and MinIO.
+
 ## Thumbnail flow
 
 - Custom thumbnail:
-  - Client calls `POST /api/media/videos/init-upload` with `thumbnailExtension`.
+  - Client calls `POST /api/media/studio/videos/uploads` with `thumbnailExtension`.
   - Media Service returns `thumbnailObjectKey` and `thumbnailUploadUrl`.
   - Client uploads the image to bucket `processed`.
-  - Client sends `thumbnailObjectKey` on `confirm-upload`.
+  - Client sends `thumbnailObjectKey` on `submit`.
   - Media Service validates prefix, extension and size, then sets `thumbnailSource = custom`, `thumbnailStatus = ready`.
   - Late auto thumbnail events never overwrite custom thumbnails.
 
 - Auto thumbnail:
-  - If `confirm-upload` has no `thumbnailObjectKey`, Media Service sets `thumbnailSource = auto`, `thumbnailStatus = processing`.
+  - If `submit` has no `thumbnailObjectKey`, Media Service sets `thumbnailSource = auto`, `thumbnailStatus = processing`.
   - After moderation `SAFE`, Media Service enqueues the transcode job with target key `videos/{videoId}/thumbnails/default.jpg`.
   - Media Processing Service uses FFmpeg to capture a frame, uploads JPEG to bucket `processed`, then publishes `video.thumbnail.generated`.
   - Media Service consumes `video.thumbnail.generated` and updates `thumbnailUrl`, `thumbnail_object_key`, and `thumbnailStatus = ready`.

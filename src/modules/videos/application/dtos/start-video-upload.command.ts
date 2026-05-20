@@ -1,6 +1,6 @@
 import type { VideoVisibility } from '../../domain/entities/video.entity';
 
-export interface InitVideoUploadCommand {
+export interface StartVideoUploadCommand {
   userId: string;
   title: string;
   description: string;
@@ -9,5 +9,8 @@ export interface InitVideoUploadCommand {
   visibility: VideoVisibility;
   price: number;
   requiredTierLevel: number | null;
+  fileName: string;
+  fileSize: number;
+  fileLastModified: Date;
   thumbnailExtension?: string;
 }
