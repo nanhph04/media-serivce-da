@@ -3,7 +3,9 @@ import {
   ChannelEntity,
   ChannelStatus,
 } from '../../domain/entities/channel.entity';
+import type { IChannelMembershipRepository } from '../../domain/repositories/channel-membership.repository';
 import type { IChannelRepository } from '../../domain/repositories/channel.repository';
+import type { IChannelStatusEventPublisher } from '../interfaces/channel-status-event.publisher.interface';
 import { AdminLockChannelUseCase } from './admin-lock-channel.use-case';
 
 describe('AdminLockChannelUseCase', () => {
@@ -11,7 +13,13 @@ describe('AdminLockChannelUseCase', () => {
     const channel = buildChannel(ChannelStatus.ACTIVE);
     const update = jest.fn().mockResolvedValue(undefined);
     const repository = createRepository(channel, update);
-    const useCase = new AdminLockChannelUseCase(repository);
+    const membershipRepository = createMembershipRepository();
+    const channelStatusEventPublisher = createChannelStatusEventPublisher();
+    const useCase = new AdminLockChannelUseCase(
+      repository,
+      membershipRepository,
+      channelStatusEventPublisher,
+    );
 
     const result = await useCase.execute({
       channelId: 'channel-1',
@@ -20,7 +28,11 @@ describe('AdminLockChannelUseCase', () => {
     });
 
     expect(channel.status).toBe(ChannelStatus.SUSPENDED);
+    expect(
+      membershipRepository.disableAutoRenewByChannelId,
+    ).toHaveBeenCalledWith('channel-1');
     expect(update).toHaveBeenCalledWith(channel);
+    expect(channelStatusEventPublisher.publishStatusChanged).toHaveBeenCalled();
     expect(result.status).toBe(ChannelStatus.SUSPENDED);
   });
 
@@ -28,7 +40,13 @@ describe('AdminLockChannelUseCase', () => {
     const channel = buildChannel(ChannelStatus.SUSPENDED);
     const update = jest.fn().mockResolvedValue(undefined);
     const repository = createRepository(channel, update);
-    const useCase = new AdminLockChannelUseCase(repository);
+    const membershipRepository = createMembershipRepository();
+    const channelStatusEventPublisher = createChannelStatusEventPublisher();
+    const useCase = new AdminLockChannelUseCase(
+      repository,
+      membershipRepository,
+      channelStatusEventPublisher,
+    );
 
     const result = await useCase.execute({
       channelId: 'channel-1',
@@ -37,12 +55,20 @@ describe('AdminLockChannelUseCase', () => {
     });
 
     expect(channel.status).toBe(ChannelStatus.ACTIVE);
+    expect(
+      membershipRepository.disableAutoRenewByChannelId,
+    ).not.toHaveBeenCalled();
     expect(update).toHaveBeenCalledWith(channel);
+    expect(channelStatusEventPublisher.publishStatusChanged).toHaveBeenCalled();
     expect(result.status).toBe(ChannelStatus.ACTIVE);
   });
 
   it('rejects when channel does not exist', async () => {
-    const useCase = new AdminLockChannelUseCase(createRepository(null));
+    const useCase = new AdminLockChannelUseCase(
+      createRepository(null),
+      createMembershipRepository(),
+      createChannelStatusEventPublisher(),
+    );
 
     await expect(
       useCase.execute({
@@ -62,6 +88,18 @@ function createRepository(
     findById: jest.fn().mockResolvedValue(channel),
     update,
   } as unknown as IChannelRepository;
+}
+
+function createMembershipRepository(): IChannelMembershipRepository {
+  return {
+    disableAutoRenewByChannelId: jest.fn().mockResolvedValue(undefined),
+  } as unknown as IChannelMembershipRepository;
+}
+
+function createChannelStatusEventPublisher(): IChannelStatusEventPublisher {
+  return {
+    publishStatusChanged: jest.fn().mockResolvedValue(undefined),
+  };
 }
 
 function buildChannel(status: ChannelStatus): ChannelEntity {

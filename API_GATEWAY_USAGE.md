@@ -148,6 +148,8 @@ DELETE /api/media/studio/videos/:videoId/uploads/:uploadId
 GET    /api/media/me/videos/:id/play
 POST   /api/media/me/videos/:id/progress
 POST   /api/media/me/videos/:id/playback-token/refresh
+POST   /api/media/videos/:id/reports
+POST   /api/media/channels/:id/reports
 PATCH  /api/media/studio/videos/:id/metadata
 GET    /api/media/me/videos/purchased
 GET    /api/media/me/videos/subscribed
@@ -170,6 +172,7 @@ GET    /api/media/admin/videos/:id
 PATCH  /api/media/admin/videos/:id/moderation
 GET    /api/media/admin/reports/summary
 GET    /api/media/admin/reports
+PATCH  /api/media/admin/reports/:id/status
 ```
 
 For protected routes, clients must send:

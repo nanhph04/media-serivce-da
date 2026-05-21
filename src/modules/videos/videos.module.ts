@@ -78,7 +78,6 @@ import { VideoUploadSessionRepository } from './infrastructure/persistence/video
 import { VideoWatchProgressOrmEntity } from './infrastructure/persistence/video-watch-progress.orm-entity';
 import { VideoWatchProgressRepository } from './infrastructure/persistence/video-watch-progress.repository';
 import { VideoQueryService } from './infrastructure/query/video-query.service';
-import { AdminReportController } from './presentation/controllers/admin-report.controller';
 import { AdminVideoController } from './presentation/controllers/admin-video.controller';
 import { VideoEventsController } from './presentation/controllers/video-events.controller';
 import { VideosController } from './presentation/controllers/videos.controller';
@@ -118,7 +117,6 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
   ],
   controllers: [
     AdminVideoController,
-    AdminReportController,
     VideoEventsController,
     VideosController,
     CategoryVideosController,
