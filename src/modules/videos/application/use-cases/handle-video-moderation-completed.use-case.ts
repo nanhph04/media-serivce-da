@@ -8,6 +8,10 @@ import {
   VIDEO_PROCESSING_JOB_DISPATCHER,
   type IVideoProcessingJobDispatcher,
 } from '@shared/application/interfaces/video-processing-job-dispatcher.interface';
+import {
+  OBJECT_STORAGE_SERVICE,
+  type IObjectStorageService,
+} from '@shared/application/interfaces/object-storage.service.interface';
 import { LoggerService } from '@shared/infrastructure/logger/logger.service';
 import {
   type IVideoRepository,
@@ -43,6 +47,8 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
     private readonly videoRepository: IVideoRepository,
     @Inject(VIDEO_PROCESSING_JOB_DISPATCHER)
     private readonly videoProcessingJobDispatcher: IVideoProcessingJobDispatcher,
+    @Inject(OBJECT_STORAGE_SERVICE)
+    private readonly objectStorageService: IObjectStorageService,
     @Inject(VIDEO_MODERATION_OUTCOME_PUBLISHER)
     private readonly moderationOutcomePublisher: IVideoModerationOutcomePublisher,
     @Inject(IDEMPOTENCY_STORE)
@@ -117,6 +123,10 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
         thumbnailTargetObjectKey:
           video.thumbnailSource === VideoThumbnailSource.AUTO
             ? this.createAutoThumbnailObjectKey(video.id)
+            : undefined,
+        thumbnailTargetBucket:
+          video.thumbnailSource === VideoThumbnailSource.AUTO
+            ? this.objectStorageService.getBucketName('public')
             : undefined,
       });
       await this.publishOutcome({

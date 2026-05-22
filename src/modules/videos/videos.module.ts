@@ -21,7 +21,6 @@ import { GetStudioVideoDetailUseCase } from './application/use-cases/get-studio-
 import { GetStudioVideosUseCase } from './application/use-cases/get-studio-videos.use-case';
 import { GetSubscribedVideosUseCase } from './application/use-cases/get-subscribed-videos.use-case';
 import { GetVideoMetadataUseCase } from './application/use-cases/get-video-metadata.use-case';
-import { GetVideoThumbnailUseCase } from './application/use-cases/get-video-thumbnail.use-case';
 import { GetVideosByCategoryUseCase } from './application/use-cases/get-videos-by-category.use-case';
 import { HandleVideoProcessedFailedUseCase } from './application/use-cases/handle-video-processed-failed.use-case';
 import { HandleVideoProcessedSuccessUseCase } from './application/use-cases/handle-video-processed-success.use-case';
@@ -156,7 +155,6 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
     ModerateAdminVideoUseCase,
     GetContinueWatchingUseCase,
     GetVideoMetadataUseCase,
-    GetVideoThumbnailUseCase,
     UpdateVideoMetadataUseCase,
     GetLatestVideosUseCase,
     GetPurchasedVideosUseCase,

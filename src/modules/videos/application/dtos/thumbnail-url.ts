@@ -8,7 +8,7 @@ export function buildPublicThumbnailUrl(video: VideoEntity): string | null {
     return null;
   }
 
-  return `/api/media/videos/${video.id}/thumbnail`;
+  return video.thumbnailUrl;
 }
 
 export function buildOwnerThumbnailUrl(video: VideoEntity): string | null {
@@ -16,12 +16,13 @@ export function buildOwnerThumbnailUrl(video: VideoEntity): string | null {
     return null;
   }
 
-  return `/api/media/studio/videos/${video.id}/thumbnail`;
+  return video.thumbnailUrl;
 }
 
 function isThumbnailReady(video: VideoEntity): boolean {
   return (
     video.thumbnailStatus === VideoThumbnailStatus.READY &&
-    video.thumbnailObjectKey !== null
+    video.thumbnailObjectKey !== null &&
+    video.thumbnailUrl !== null
   );
 }

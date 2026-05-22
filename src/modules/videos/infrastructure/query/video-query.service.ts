@@ -326,6 +326,7 @@ export class VideoQueryService implements IVideoQueryService {
         'progress.lastWatchedAt AS "lastWatchedAt"',
         'video.title AS "title"',
         'video.thumbnailObjectKey AS "thumbnailObjectKey"',
+        'video.thumbnailUrl AS "thumbnailUrl"',
         'video.thumbnailStatus AS "thumbnailStatus"',
         'video.durationSeconds AS "videoDurationSeconds"',
         'video.viewCount AS "viewCount"',
@@ -338,6 +339,7 @@ export class VideoQueryService implements IVideoQueryService {
         lastWatchedAt: Date | string;
         title: string;
         thumbnailObjectKey: string | null;
+        thumbnailUrl: string | null;
         thumbnailStatus: VideoThumbnailStatus | string;
         videoDurationSeconds: number | string | null;
         viewCount: number | string;
@@ -358,8 +360,9 @@ export class VideoQueryService implements IVideoQueryService {
         title: row.title,
         thumbnailUrl:
           row.thumbnailStatus === VideoThumbnailStatus.READY &&
-          row.thumbnailObjectKey
-            ? `/api/media/videos/${row.videoId}/thumbnail`
+          row.thumbnailObjectKey &&
+          row.thumbnailUrl
+            ? row.thumbnailUrl
             : null,
         durationSeconds,
         resumePositionSeconds,
@@ -416,7 +419,7 @@ export class VideoQueryService implements IVideoQueryService {
       ...item,
       thumbnailUrl:
         item.thumbnailStatus === VideoThumbnailStatus.READY && item.thumbnailUrl
-          ? `/api/media/videos/${item.id}/thumbnail`
+          ? item.thumbnailUrl
           : null,
       publishedAt: item.publishedAt ? new Date(item.publishedAt) : null,
       createdAt: new Date(item.createdAt),
@@ -432,7 +435,7 @@ export class VideoQueryService implements IVideoQueryService {
       thumbnailUrl:
         metadata.thumbnailStatus === VideoThumbnailStatus.READY &&
         metadata.thumbnailUrl
-          ? `/api/media/videos/${metadata.id}/thumbnail`
+          ? metadata.thumbnailUrl
           : null,
       membershipTiers: metadata.membershipTiers.map((tier) => ({
         ...tier,
@@ -453,7 +456,7 @@ export class VideoQueryService implements IVideoQueryService {
       thumbnailUrl:
         metadata.thumbnailStatus === VideoThumbnailStatus.READY &&
         metadata.thumbnailUrl
-          ? `/api/media/videos/${metadata.id}/thumbnail`
+          ? metadata.thumbnailUrl
           : null,
       membershipTiers: metadata.membershipTiers.map((tier) => ({
         ...tier,

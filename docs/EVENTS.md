@@ -203,6 +203,7 @@ Purpose:
 - Consumed by media-service after media-processing-service generates an auto thumbnail.
 - media-service updates video thumbnail metadata only when the video still uses `thumbnailSource = auto`.
 - If the video already uses `thumbnailSource = custom`, the event is ignored so user-uploaded thumbnail is not overwritten.
+- Thumbnail objects are stored in `MINIO_PUBLIC_BUCKET`. Media service stores a permanent public URL built from the configured public MinIO endpoint.
 
 Topic:
 
@@ -216,7 +217,7 @@ Data:
 {
   "videoId": "video-id",
   "thumbnailObjectKey": "videos/video-id/thumbnails/default.jpg",
-  "thumbnailUrl": "http://localhost:9000/media-processed/videos/video-id/thumbnails/default.jpg",
+  "thumbnailUrl": "http://localhost:9000/media-public/videos/video-id/thumbnails/default.jpg",
   "width": 1280,
   "height": 720,
   "capturedAtSecond": 12

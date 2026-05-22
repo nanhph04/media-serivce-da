@@ -160,7 +160,7 @@ export class ConfirmVideoUploadUseCase extends BaseUseCase<
     }
 
     const exists = await this.objectStorageService.objectExists(
-      'processed',
+      'public',
       thumbnailObjectKey,
     );
     if (!exists) {
@@ -168,7 +168,7 @@ export class ConfirmVideoUploadUseCase extends BaseUseCase<
     }
 
     const thumbnailMetadata = await this.objectStorageService.getObjectMetadata(
-      'processed',
+      'public',
       thumbnailObjectKey,
     );
     if (
@@ -181,7 +181,7 @@ export class ConfirmVideoUploadUseCase extends BaseUseCase<
     video.markCustomThumbnailReady({
       objectKey: thumbnailObjectKey,
       url: this.objectStorageService.createObjectUrl(
-        'processed',
+        'public',
         thumbnailObjectKey,
       ),
     });

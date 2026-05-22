@@ -26,7 +26,7 @@ KAFKA_VIDEO_THUMBNAIL_FAILED_TOPIC=video.thumbnail.failed
 When `KAFKA_AUTO_CREATE_TOPICS=true`, include these topics in
 `KAFKA_TOPICS_TO_CREATE`.
 
-Object storage for thumbnails:
+Object storage for public media assets:
 
 ```text
 MINIO_PROCESSED_BUCKET=media-processed
@@ -36,7 +36,16 @@ MINIO_PUBLIC_PORT=
 MINIO_PUBLIC_USE_SSL=
 ```
 
-Custom thumbnail uploads use presigned PUT URLs in `MINIO_PROCESSED_BUCKET`.
-Channel avatar/banner uploads are stored in `MINIO_PUBLIC_BUCKET` and responses
-store the permanent public object URL.
-Auto thumbnails are written by media-processing-service to the same bucket.
+`MINIO_PUBLIC_BUCKET` must allow public `s3:GetObject` reads. Media service
+creates the bucket and applies a public-read policy during startup when it can
+reach MinIO.
+
+Stored in `MINIO_PUBLIC_BUCKET`:
+
+- Channel avatar and banner uploads. Responses store permanent public object URLs.
+- Custom video thumbnails uploaded by clients through presigned PUT URLs.
+- Auto video thumbnails written by media-processing-service to the public bucket
+  passed in the transcode job.
+
+Clients render the stored `avatarUrl`, `bannerUrl`, and `thumbnailUrl` directly.
+These URLs are not presigned GET URLs.

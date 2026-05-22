@@ -7,11 +7,8 @@ import {
   Patch,
   Post,
   Query,
-  Res,
-  StreamableFile,
   UseGuards,
 } from '@nestjs/common';
-import type { Response } from 'express';
 import { ApiHeader, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ApiCreatedSuccessResponse } from '@shared/presentation/decorators/api-success-response.decorator';
 import { ApiSuccessResponse } from '@shared/presentation/decorators/api-success-response.decorator';
@@ -35,7 +32,6 @@ import { GetStudioVideoDetailUseCase } from '../../application/use-cases/get-stu
 import { GetStudioVideosUseCase } from '../../application/use-cases/get-studio-videos.use-case';
 import { GetSubscribedVideosUseCase } from '../../application/use-cases/get-subscribed-videos.use-case';
 import { GetVideoMetadataUseCase } from '../../application/use-cases/get-video-metadata.use-case';
-import { GetVideoThumbnailUseCase } from '../../application/use-cases/get-video-thumbnail.use-case';
 import { GetVideosByCategoryUseCase } from '../../application/use-cases/get-videos-by-category.use-case';
 import { StartVideoUploadUseCase } from '../../application/use-cases/start-video-upload.use-case';
 import { CreateVideoUploadPartUrlsUseCase } from '../../application/use-cases/create-video-upload-part-urls.use-case';
@@ -103,7 +99,6 @@ export class VideosController {
     private readonly getVideosByCategoryUseCase: GetVideosByCategoryUseCase,
     private readonly getSubscribedVideosUseCase: GetSubscribedVideosUseCase,
     private readonly getVideoMetadataUseCase: GetVideoMetadataUseCase,
-    private readonly getVideoThumbnailUseCase: GetVideoThumbnailUseCase,
     private readonly updateVideoMetadataUseCase: UpdateVideoMetadataUseCase,
     private readonly unpublishVideoUseCase: UnpublishVideoUseCase,
     private readonly searchPublicVideosUseCase: SearchPublicVideosUseCase,
@@ -152,39 +147,6 @@ export class VideosController {
     });
 
     return apiResponseContract(this.toStudioVideoListItemDto(video));
-  }
-
-  @Get('studio/videos/:id/thumbnail')
-  async ownerThumbnail(
-    @CurrentUserId() userId: string,
-    @Param('id') videoId: string,
-    @Res({ passthrough: true }) response: Response,
-  ): Promise<StreamableFile> {
-    const thumbnail = await this.getVideoThumbnailUseCase.execute({
-      userId,
-      videoId,
-      mode: 'owner',
-    });
-
-    response.setHeader('Content-Type', thumbnail.contentType);
-    response.setHeader('Cache-Control', thumbnail.cacheControl);
-    return new StreamableFile(thumbnail.stream);
-  }
-
-  @Get('videos/:id/thumbnail')
-  @SkipInternalGatewayGuard()
-  async publicThumbnail(
-    @Param('id') videoId: string,
-    @Res({ passthrough: true }) response: Response,
-  ): Promise<StreamableFile> {
-    const thumbnail = await this.getVideoThumbnailUseCase.execute({
-      videoId,
-      mode: 'public',
-    });
-
-    response.setHeader('Content-Type', thumbnail.contentType);
-    response.setHeader('Cache-Control', thumbnail.cacheControl);
-    return new StreamableFile(thumbnail.stream);
   }
 
   @Post('studio/videos/uploads')

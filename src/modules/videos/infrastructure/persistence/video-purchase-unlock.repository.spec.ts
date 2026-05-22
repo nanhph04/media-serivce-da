@@ -157,7 +157,7 @@ describe('VideoPurchaseUnlockRepository', () => {
       channelName: 'Cinema Labs',
       title: 'Premium Video',
       description: 'Description',
-      thumbnailUrl: '/api/media/videos/video-1/thumbnail',
+      thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
       durationSeconds: 120,
       categories: ['music'],
       tags: ['action'],

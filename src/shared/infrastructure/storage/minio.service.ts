@@ -49,10 +49,8 @@ export class MinioService implements OnModuleInit, IObjectStorageService {
     this.processedBucket = this.configService.getOrThrow<string>(
       'MINIO_PROCESSED_BUCKET',
     );
-    this.publicBucket = this.configService.get<string>(
-      'MINIO_PUBLIC_BUCKET',
-      'media-public',
-    );
+    this.publicBucket =
+      this.configService.get<string>('MINIO_PUBLIC_BUCKET') ?? 'media-public';
     this.publicEndpoint = this.configService.get<string>(
       'MINIO_PUBLIC_ENDPOINT',
     );
@@ -104,7 +102,7 @@ export class MinioService implements OnModuleInit, IObjectStorageService {
     }
 
     const presignedUrl = await this.client.presignedPutObject(
-      this.processedBucket,
+      this.getBucketName(bucket),
       objectKey,
       expirySeconds,
     );

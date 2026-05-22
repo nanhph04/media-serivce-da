@@ -1,6 +1,6 @@
 # Media Service - API Gateway Usage
 
-Last updated: 2026-05-13
+Last updated: 2026-05-22
 
 ## Purpose
 
@@ -87,10 +87,13 @@ GET /api/media/videos
 GET /api/media/videos/latest
 GET /api/media/videos/by-category
 GET /api/media/videos/:id/metadata
-GET /api/media/videos/:id/thumbnail
 GET /api/media/stream/:videoId/master.m3u8?token=...
 GET /api/media/stream/:videoId/segments/:segmentName?token=...
 ```
+
+Video responses expose `thumbnailUrl` as a permanent public MinIO object URL
+from `MINIO_PUBLIC_BUCKET`. Clients should render that URL directly; they do not
+call a gateway/media thumbnail route.
 
 Stream routes are public for gateway auth/header purposes, but they still require
 the playback `token` query parameter. Clients obtain the token from
@@ -127,7 +130,10 @@ for example:
 
 ```text
 GET    /api/media/me/channel
-POST   /api/media/me/channel`r`nPATCH  /api/media/me/channel
+POST   /api/media/me/channel
+PATCH  /api/media/me/channel
+POST   /api/media/me/channel/avatar
+POST   /api/media/me/channel/banner
 GET    /api/media/channels/:id/membership-status
 PATCH  /api/media/admin/channels/:id/membership
 POST   /api/media/channels/:channelId/membership-tiers
@@ -137,7 +143,6 @@ GET    /api/media/memberships/me
 PATCH  /api/media/memberships/:membershipId/auto-renew
 GET    /api/media/studio/videos
 GET    /api/media/studio/videos/:id
-GET    /api/media/studio/videos/:id/thumbnail
 POST   /api/media/studio/videos/uploads
 POST   /api/media/studio/videos/:videoId/uploads/:uploadId/part-urls
 POST   /api/media/studio/videos/:videoId/uploads/:uploadId/parts/:partNumber/completed
@@ -257,6 +262,14 @@ x-request-id
 The actual video bytes are uploaded by the client directly to MinIO presigned
 part URLs returned by media service. Gateway only proxies metadata/control API
 calls, not the raw video bytes.
+
+If `thumbnailExtension` is provided when starting an upload, media service also
+returns a presigned PUT URL for a custom thumbnail in `MINIO_PUBLIC_BUCKET`.
+After submit, video responses expose the permanent public `thumbnailUrl`; the
+client should not use the presigned PUT URL for rendering.
+
+Channel avatar/banner upload routes accept multipart `file`, upload the object
+to `MINIO_PUBLIC_BUCKET`, and return permanent public `avatarUrl`/`bannerUrl`.
 
 ## Error Shape
 

@@ -13,6 +13,9 @@ describe('HandleVideoModerationCompletedUseCase', () => {
   const videoProcessingJobDispatcher = {
     enqueueTranscodeJob: jest.fn(),
   };
+  const objectStorageService = {
+    getBucketName: jest.fn(),
+  };
   const idempotencyStore = {
     exists: jest.fn(),
     setIfNotExists: jest.fn(),
@@ -40,12 +43,14 @@ describe('HandleVideoModerationCompletedUseCase', () => {
     videoProcessingJobDispatcher.enqueueTranscodeJob.mockResolvedValue(
       undefined,
     );
+    objectStorageService.getBucketName.mockReturnValue('media-public');
     moderationOutcomePublisher.publishModerationOutcome.mockResolvedValue(
       undefined,
     );
     useCase = new HandleVideoModerationCompletedUseCase(
       videoRepository as never,
       videoProcessingJobDispatcher as never,
+      objectStorageService as never,
       moderationOutcomePublisher as never,
       idempotencyStore as never,
       videoStatusEventPublisher as never,
@@ -81,6 +86,7 @@ describe('HandleVideoModerationCompletedUseCase', () => {
       resolution: ['480p', '720p'],
       userId: 'owner-1',
       thumbnailTargetObjectKey: 'videos/video-1/thumbnails/default.jpg',
+      thumbnailTargetBucket: 'media-public',
     });
     expect(
       moderationOutcomePublisher.publishModerationOutcome,

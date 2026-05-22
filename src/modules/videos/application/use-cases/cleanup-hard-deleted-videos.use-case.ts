@@ -38,6 +38,9 @@ export class CleanupHardDeletedVideosUseCase extends BaseUseCase<void, void> {
         if (video.masterPlaylistKey) {
           await this.deleteObjectIfExists('processed', video.masterPlaylistKey);
         }
+        if (video.thumbnailObjectKey) {
+          await this.deleteObjectIfExists('public', video.thumbnailObjectKey);
+        }
         await this.videoRepository.hardDeleteById(video.id);
         this.loggerService.logInfo('Hard deleted refunded video', {
           videoId: video.id,
@@ -52,7 +55,7 @@ export class CleanupHardDeletedVideosUseCase extends BaseUseCase<void, void> {
   }
 
   private async deleteObjectIfExists(
-    bucket: 'raw' | 'processed',
+    bucket: 'raw' | 'processed' | 'public',
     objectKey: string,
   ): Promise<void> {
     if (await this.objectStorageService.objectExists(bucket, objectKey)) {

@@ -111,8 +111,8 @@
 - Body:
   - `name` (string, optional, max 100): Nguoi dung nhap
   - `bio` (string, optional, max 1000): Nguoi dung nhap
-  - `avatarUrl` (string, optional): Nguoi dung nhap hoac client set tu ket qua upload
-  - `bannerUrl` (string, optional): Nguoi dung nhap hoac client set tu ket qua upload
+  - `avatarUrl` (string, optional): URL anh public co dinh, thuong lay tu `POST /api/media/me/channel/avatar`
+  - `bannerUrl` (string, optional): URL anh public co dinh, thuong lay tu `POST /api/media/me/channel/banner`
 - He thong tu set them khi xu ly:
   - `userId`: lay tu header `x-user-id`
 - Response HTTP 200:
@@ -132,6 +132,38 @@
     - `status` (string)
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
+
+### 2.2A POST `/api/media/me/channel/avatar`
+
+- Muc dich: upload avatar channel len MinIO public bucket va cap nhat `avatarUrl` cua channel hien tai.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-internal-secret`: He thong tu set
+- Content-Type: `multipart/form-data`
+- Form data:
+  - `file` (binary, bat buoc): anh JPEG, PNG, hoac WebP. Gioi han 5MB.
+- Ghi chu:
+  - Backend upload object vao `MINIO_PUBLIC_BUCKET`.
+  - Response `avatarUrl` la URL MinIO public co dinh, khong phai presigned GET URL.
+  - Client dung truc tiep URL nay de render anh.
+- Response HTTP 200:
+  - Envelope `data`: cung shape voi `ChannelResponse`, trong do `avatarUrl` da duoc cap nhat.
+
+### 2.2B POST `/api/media/me/channel/banner`
+
+- Muc dich: upload banner channel len MinIO public bucket va cap nhat `bannerUrl` cua channel hien tai.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-internal-secret`: He thong tu set
+- Content-Type: `multipart/form-data`
+- Form data:
+  - `file` (binary, bat buoc): anh JPEG, PNG, hoac WebP. Gioi han 10MB.
+- Ghi chu:
+  - Backend upload object vao `MINIO_PUBLIC_BUCKET`.
+  - Response `bannerUrl` la URL MinIO public co dinh, khong phai presigned GET URL.
+  - Client dung truc tiep URL nay de render anh.
+- Response HTTP 200:
+  - Envelope `data`: cung shape voi `ChannelResponse`, trong do `bannerUrl` da duoc cap nhat.
 
 ### 2.3 GET `/api/media/channels/:id`
 
@@ -469,12 +501,12 @@
 
 Nhung response video list/detail chinh co cac field thumbnail:
 
-- `thumbnailUrl` (string | null): URL proxy qua media API neu anh da san sang; khong tra URL MinIO truc tiep.
+- `thumbnailUrl` (string | null): URL MinIO public co dinh neu anh da san sang; khong can presigned GET URL.
 - `thumbnailSource` (`auto` | `custom`): nguon thumbnail dang active.
 - `thumbnailStatus` (`pending` | `processing` | `ready` | `failed`): trang thai thumbnail.
 
 Frontend nen render `thumbnailUrl` khi `thumbnailStatus = ready`; cac trang thai khac dung placeholder.
-Public/list/metadata response tra `/api/media/videos/:id/thumbnail`. Studio/owner response tra `/api/media/studio/videos/:id/thumbnail`.
+Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbnailUrl`. Media API khong con endpoint rieng de stream thumbnail cu; frontend dung truc tiep `thumbnailUrl`.
 
 ### 4.0 GET `/api/media/studio/videos?limit=20&status=draft,processing&visibility=private`
 
@@ -542,24 +574,6 @@ Public/list/metadata response tra `/api/media/videos/:id/thumbnail`. Studio/owne
 - Response HTTP 200:
   - Envelope `data`: object cung shape voi item cua `GET /api/media/studio/videos`, gom `status`, `jobStatus`, `jobStatusMessage`, `failureReason`, `moderationDetails`, thumbnail fields, delete fields va timestamps.
 
-### 4.0C GET `/api/media/studio/videos/:id/thumbnail`
-
-- Muc dich: stream thumbnail private cho creator trong Studio.
-- Header:
-  - `x-user-id`: He thong tu set
-  - `x-internal-secret`: He thong tu set
-- Path:
-  - `id` (string): video id
-- Ghi chu:
-  - Chi owner video duoc xem; non-owner tra `FORBIDDEN` / HTTP 403.
-  - Cho phep moi `status` video mien la video co `thumbnailObjectKey` va `thumbnailStatus = ready`.
-  - Bucket `media-processed` van private; endpoint nay proxy stream tu MinIO.
-- Response HTTP 200:
-  - Body: image stream.
-  - Header:
-    - `Content-Type`: theo extension `.jpg`, `.jpeg`, `.png`, `.webp`
-    - `Cache-Control: private, max-age=300`
-
 ### 4.0A GET `/api/media/videos?q=...&category=...&tags=tag1,tag2&limit=20`
 
 - Muc dich: tim kiem/list public videos truc tiep tu video controller.
@@ -612,13 +626,14 @@ Public/list/metadata response tra `/api/media/videos/:id/thumbnail`. Studio/owne
   - `fileName` (string, bat buoc): ten file goc tren client
   - `fileSize` (number, bat buoc, min 1): kich thuoc file byte
   - `fileLastModified` (string ISO, bat buoc): thoi diem file duoc sua tren client
-  - `thumbnailExtension` (`jpg` | `jpeg` | `png` | `webp`, optional): neu creator muon upload custom thumbnail, backend se tra them presigned URL rieng cho thumbnail.
+  - `thumbnailExtension` (`jpg` | `jpeg` | `png` | `webp`, optional): neu creator muon upload custom thumbnail, backend se tra them presigned PUT URL rieng cho thumbnail.
 - Ghi chu:
   - Backend tao draft video voi `status = draft`.
   - Backend tao MinIO multipart upload session va luu `uploadId`, `partSizeBytes`, file metadata, expiry trong DB.
   - `partSizeBytes` mac dinh hien tai la 16MB.
   - Backend validate `fileSize > 0` va khong vuot gioi han upload.
   - Neu co `thumbnailExtension`, client upload anh custom thumbnail vao `thumbnailUploadUrl` truoc khi goi submit.
+  - Custom thumbnail duoc upload vao `MINIO_PUBLIC_BUCKET`; sau submit response/list se tra URL public co dinh trong `thumbnailUrl`.
   - Neu khong co `thumbnailExtension`, he thong se auto-generate thumbnail bang Media Processing Service sau moderation/transcode.
 - Response HTTP 201:
   - Envelope `data`:
@@ -630,8 +645,8 @@ Public/list/metadata response tra `/api/media/videos/:id/thumbnail`. Studio/owne
     - `partSizeBytes` (number): kich thuoc moi part client nen cat bang `Blob.slice`
     - `expiresAt` (string ISO): thoi diem upload session het han
     - `thumbnailObjectKey` (string | null)
-    - `thumbnailBucket` (string | null)
-    - `thumbnailUploadUrl` (string | null)
+    - `thumbnailBucket` (string | null): bucket public, vi du `media-public`, neu co custom thumbnail
+    - `thumbnailUploadUrl` (string | null): presigned PUT URL de upload custom thumbnail; khong dung URL nay de render anh
 - Vi du response:
 
 ```json
@@ -754,6 +769,7 @@ Public/list/metadata response tra `/api/media/videos/:id/thumbnail`. Studio/owne
 - Ghi chu:
   - Endpoint nay dung lai logic confirm upload hien tai.
   - Backend kiem tra raw object ton tai, size > 0, va khong vuot gioi han upload.
+  - Neu co custom thumbnail, backend kiem tra object trong `MINIO_PUBLIC_BUCKET`, set `thumbnailUrl` la URL public co dinh.
   - Khi submit thanh cong, backend copy raw object sang immutable key `uploads/confirmed/{videoId}/{uuid}.mp4`, set thumbnail state, chuyen video sang `pending_moderation`, va publish moderation event.
 - Response HTTP 201:
   - Envelope `data`:
@@ -922,22 +938,6 @@ Public/list/metadata response tra `/api/media/videos/:id/thumbnail`. Studio/owne
     - `deletedBy` (string | null)
     - `deleteReason` (string | null)
     - `updatedAt` (string ISO)
-
-### 4.10A GET `/api/media/videos/:id/thumbnail`
-
-- Muc dich: stream thumbnail public cua video.
-- Public API: khong can `x-internal-secret`.
-- Path param:
-  - `id` (string): videoId
-- Ghi chu:
-  - Chi tra khi video `ready + public + active`, channel `active`, co `thumbnailObjectKey`, va `thumbnailStatus = ready`.
-  - Video private, chua ready, channel inactive, pending delete, hoac chua co thumbnail ready deu tra `NOT_FOUND` / HTTP 404.
-  - Video co phi van co the tra thumbnail public neu video da public-ready; quyen xem video day du van do `/play` kiem soat.
-- Response HTTP 200:
-  - Body: image stream.
-  - Header:
-    - `Content-Type`: theo extension `.jpg`, `.jpeg`, `.png`, `.webp`
-    - `Cache-Control: public, max-age=3600`
 
 ### 4.11 PATCH `/api/media/studio/videos/:id/metadata`
 

@@ -171,8 +171,9 @@ export class VideoPurchaseUnlockRepository implements IVideoPurchaseUnlockReposi
       description: row.description,
       thumbnailUrl:
         row.thumbnailStatus === VideoThumbnailStatus.READY &&
-        row.thumbnailObjectKey
-          ? `/api/media/videos/${row.id}/thumbnail`
+        row.thumbnailObjectKey &&
+        row.thumbnailUrl
+          ? row.thumbnailUrl
           : null,
       durationSeconds: row.durationSeconds,
       categories: [category.slug],

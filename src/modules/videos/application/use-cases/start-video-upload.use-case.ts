@@ -130,11 +130,11 @@ export class StartVideoUploadUseCase extends BaseUseCase<
       expiresAt: expiresAt.toISOString(),
       thumbnailObjectKey,
       thumbnailBucket: thumbnailObjectKey
-        ? this.objectStorageService.getBucketName('processed')
+        ? this.objectStorageService.getBucketName('public')
         : null,
       thumbnailUploadUrl: thumbnailObjectKey
         ? await this.objectStorageService.createUploadUrl(
-            'processed',
+            'public',
             thumbnailObjectKey,
           )
         : null,

@@ -1,6 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import {
+  OBJECT_STORAGE_SERVICE,
+  type IObjectStorageService,
+} from '@shared/application/interfaces/object-storage.service.interface';
+import {
   IDEMPOTENCY_STORE,
   type IIdempotencyStore,
 } from '@shared/application/interfaces/cache-store.interface';
@@ -35,6 +39,8 @@ export class HandleVideoThumbnailGeneratedUseCase extends BaseUseCase<
     private readonly videoCacheInvalidator: IVideoCacheInvalidator,
     @Inject(VIDEO_STATUS_EVENT_PUBLISHER)
     private readonly videoStatusEventPublisher: IVideoStatusEventPublisher,
+    @Inject(OBJECT_STORAGE_SERVICE)
+    private readonly objectStorageService: IObjectStorageService,
     private readonly loggerService: LoggerService,
   ) {
     super();
@@ -58,7 +64,10 @@ export class HandleVideoThumbnailGeneratedUseCase extends BaseUseCase<
     const previousThumbnailUrl = video.thumbnailUrl;
     video.markAutoThumbnailReady({
       objectKey: command.data.thumbnailObjectKey,
-      url: command.data.thumbnailUrl,
+      url: this.objectStorageService.createObjectUrl(
+        'public',
+        command.data.thumbnailObjectKey,
+      ),
     });
 
     if (video.thumbnailUrl === previousThumbnailUrl) {

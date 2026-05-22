@@ -36,7 +36,7 @@ sequenceDiagram
     Creator->>Media: Complete multipart upload
     Media->>Storage: Complete multipart upload into raw object
     opt Custom thumbnail
-        Creator->>Storage: Upload thumbnail to bucket processed
+        Creator->>Storage: Upload thumbnail to bucket public
     end
 
     Creator->>Media: Submit upload
@@ -58,10 +58,10 @@ sequenceDiagram
     Kafka-->>Media: video.moderation.completed
 
     alt SAFE
-        Media->>Processor: Queue transcode job with optional thumbnail target key
+        Media->>Processor: Queue transcode job with optional public thumbnail target bucket/key
         Processor->>Storage: Read raw confirmed from bucket raw
         opt Auto thumbnail
-            Processor->>Storage: Write thumbnail JPEG to bucket processed
+            Processor->>Storage: Write thumbnail JPEG to bucket public
             Processor->>Kafka: Publish video.thumbnail.generated
             Kafka-->>Media: video.thumbnail.generated
             Media->>Media: Set thumbnailStatus=ready
@@ -104,14 +104,15 @@ sequenceDiagram
 - Custom thumbnail:
   - Client calls `POST /api/media/studio/videos/uploads` with `thumbnailExtension`.
   - Media Service returns `thumbnailObjectKey` and `thumbnailUploadUrl`.
-  - Client uploads the image to bucket `processed`.
+  - Client uploads the image to bucket `public` (`MINIO_PUBLIC_BUCKET`) using the presigned PUT URL.
   - Client sends `thumbnailObjectKey` on `submit`.
-  - Media Service validates prefix, extension and size, then sets `thumbnailSource = custom`, `thumbnailStatus = ready`.
+  - Media Service validates prefix, extension and size in `MINIO_PUBLIC_BUCKET`, then sets `thumbnailSource = custom`, `thumbnailStatus = ready`, and stores a permanent public `thumbnailUrl`.
   - Late auto thumbnail events never overwrite custom thumbnails.
 
 - Auto thumbnail:
   - If `submit` has no `thumbnailObjectKey`, Media Service sets `thumbnailSource = auto`, `thumbnailStatus = processing`.
-  - After moderation `SAFE`, Media Service enqueues the transcode job with target key `videos/{videoId}/thumbnails/default.jpg`.
-  - Media Processing Service uses FFmpeg to capture a frame, uploads JPEG to bucket `processed`, then publishes `video.thumbnail.generated`.
+  - After moderation `SAFE`, Media Service enqueues the transcode job with target bucket `MINIO_PUBLIC_BUCKET` and key `videos/{videoId}/thumbnails/default.jpg`.
+  - Media Processing Service uses FFmpeg to capture a frame, uploads JPEG to bucket `public`, then publishes `video.thumbnail.generated`.
   - Media Service consumes `video.thumbnail.generated` and updates `thumbnailUrl`, `thumbnail_object_key`, and `thumbnailStatus = ready`.
+  - Clients render `thumbnailUrl` directly. It is a permanent public MinIO object URL, not a presigned GET URL.
   - If generation fails after retry, Media Processing Service publishes `video.thumbnail.failed`; Media Service sets `thumbnailStatus = failed` and clients should render a placeholder.

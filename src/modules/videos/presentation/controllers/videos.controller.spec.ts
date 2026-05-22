@@ -3,7 +3,6 @@ import {
   VideoVisibility,
 } from '../../domain/entities/video.entity';
 import { VideosController } from './videos.controller';
-import { Readable } from 'stream';
 import { PATH_METADATA } from '@nestjs/common/constants';
 
 describe('VideosController', () => {
@@ -49,9 +48,6 @@ describe('VideosController', () => {
   const getVideoMetadataUseCase = {
     execute: jest.fn(),
   };
-  const getVideoThumbnailUseCase = {
-    execute: jest.fn(),
-  };
   const updateVideoMetadataUseCase = {
     execute: jest.fn(),
   };
@@ -91,7 +87,6 @@ describe('VideosController', () => {
     getVideosByCategoryUseCase as never,
     getSubscribedVideosUseCase as never,
     getVideoMetadataUseCase as never,
-    getVideoThumbnailUseCase as never,
     updateVideoMetadataUseCase as never,
     unpublishVideoUseCase as never,
     searchPublicVideosUseCase as never,
@@ -653,66 +648,6 @@ describe('VideosController', () => {
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-02T00:00:00.000Z',
     });
-  });
-
-  it('streams owner thumbnail with private cache headers', async () => {
-    const stream = Readable.from(['thumbnail']);
-    const response = { setHeader: jest.fn() };
-    getVideoThumbnailUseCase.execute.mockResolvedValue({
-      stream,
-      contentType: 'image/jpeg',
-      cacheControl: 'private, max-age=300',
-    });
-
-    const result = await controller.ownerThumbnail(
-      'owner-1',
-      'video-1',
-      response as never,
-    );
-
-    expect(getVideoThumbnailUseCase.execute).toHaveBeenCalledWith({
-      userId: 'owner-1',
-      videoId: 'video-1',
-      mode: 'owner',
-    });
-    expect(response.setHeader).toHaveBeenCalledWith(
-      'Content-Type',
-      'image/jpeg',
-    );
-    expect(response.setHeader).toHaveBeenCalledWith(
-      'Cache-Control',
-      'private, max-age=300',
-    );
-    expect(result).toBeDefined();
-  });
-
-  it('streams public thumbnail with public cache headers', async () => {
-    const stream = Readable.from(['thumbnail']);
-    const response = { setHeader: jest.fn() };
-    getVideoThumbnailUseCase.execute.mockResolvedValue({
-      stream,
-      contentType: 'image/webp',
-      cacheControl: 'public, max-age=3600',
-    });
-
-    const result = await controller.publicThumbnail(
-      'video-1',
-      response as never,
-    );
-
-    expect(getVideoThumbnailUseCase.execute).toHaveBeenCalledWith({
-      videoId: 'video-1',
-      mode: 'public',
-    });
-    expect(response.setHeader).toHaveBeenCalledWith(
-      'Content-Type',
-      'image/webp',
-    );
-    expect(response.setHeader).toHaveBeenCalledWith(
-      'Cache-Control',
-      'public, max-age=3600',
-    );
-    expect(result).toBeDefined();
   });
 
   it('maps continue watching rows to DTO shape', async () => {
