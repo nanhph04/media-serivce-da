@@ -7,6 +7,7 @@ import type {
   IObjectStorageService,
   StorageObjectMetadata,
   StorageBucket,
+  UploadObjectInput,
   UploadedPart,
 } from '../../application/interfaces/object-storage.service.interface';
 
@@ -34,6 +35,7 @@ export class MinioService implements OnModuleInit, IObjectStorageService {
   private readonly client: Client;
   private readonly rawBucket: string;
   private readonly processedBucket: string;
+  private readonly publicBucket: string;
   private readonly publicEndpoint: string | null;
   private readonly publicPort: number | null;
   private readonly publicUseSSL: boolean | null;
@@ -47,7 +49,13 @@ export class MinioService implements OnModuleInit, IObjectStorageService {
     this.processedBucket = this.configService.getOrThrow<string>(
       'MINIO_PROCESSED_BUCKET',
     );
-    this.publicEndpoint = this.configService.get<string>('MINIO_PUBLIC_ENDPOINT');
+    this.publicBucket = this.configService.get<string>(
+      'MINIO_PUBLIC_BUCKET',
+      'media-public',
+    );
+    this.publicEndpoint = this.configService.get<string>(
+      'MINIO_PUBLIC_ENDPOINT',
+    );
     this.publicPort = this.resolveOptionalNumber('MINIO_PUBLIC_PORT');
     this.publicUseSSL = this.resolveOptionalBoolean('MINIO_PUBLIC_USE_SSL');
     this.client = new Client({
@@ -62,6 +70,8 @@ export class MinioService implements OnModuleInit, IObjectStorageService {
   async onModuleInit(): Promise<void> {
     await this.ensureBucketExists(this.rawBucket);
     await this.ensureBucketExists(this.processedBucket);
+    await this.ensureBucketExists(this.publicBucket);
+    await this.ensureBucketPublicRead(this.publicBucket);
   }
 
   getRawBucket(): string {
@@ -73,7 +83,15 @@ export class MinioService implements OnModuleInit, IObjectStorageService {
   }
 
   getBucketName(bucket: StorageBucket): string {
-    return bucket === 'raw' ? this.rawBucket : this.processedBucket;
+    if (bucket === 'raw') {
+      return this.rawBucket;
+    }
+
+    if (bucket === 'processed') {
+      return this.processedBucket;
+    }
+
+    return this.publicBucket;
   }
 
   async createUploadUrl(
@@ -96,7 +114,8 @@ export class MinioService implements OnModuleInit, IObjectStorageService {
 
   createObjectUrl(bucket: StorageBucket, objectKey: string): string {
     const useSSL =
-      this.publicUseSSL ?? this.configService.getBooleanOrThrow('MINIO_USE_SSL');
+      this.publicUseSSL ??
+      this.configService.getBooleanOrThrow('MINIO_USE_SSL');
     const protocol = useSSL ? 'https:' : 'http:';
     const hostname =
       this.publicEndpoint ??
@@ -187,6 +206,20 @@ export class MinioService implements OnModuleInit, IObjectStorageService {
     );
   }
 
+  async uploadObject(input: UploadObjectInput): Promise<string> {
+    await this.client.putObject(
+      this.getBucketName(input.bucket),
+      input.objectKey,
+      input.body,
+      input.sizeBytes,
+      {
+        'Content-Type': input.contentType,
+      },
+    );
+
+    return this.createObjectUrl(input.bucket, input.objectKey);
+  }
+
   async objectExists(
     bucket: StorageBucket,
     objectKey: string,
@@ -264,6 +297,25 @@ export class MinioService implements OnModuleInit, IObjectStorageService {
 
     await this.client.makeBucket(bucket);
     this.logger.logInfo('Created MinIO bucket', { bucket });
+  }
+
+  private async ensureBucketPublicRead(bucket: string): Promise<void> {
+    const policy = {
+      Version: '2012-10-17',
+      Statement: [
+        {
+          Effect: 'Allow',
+          Principal: {
+            AWS: ['*'],
+          },
+          Action: ['s3:GetObject'],
+          Resource: [`arn:aws:s3:::${bucket}/*`],
+        },
+      ],
+    };
+
+    await this.client.setBucketPolicy(bucket, JSON.stringify(policy));
+    this.logger.logInfo('Configured public read bucket policy', { bucket });
   }
 
   private rewritePublicUrlIfNeeded(url: string): string {

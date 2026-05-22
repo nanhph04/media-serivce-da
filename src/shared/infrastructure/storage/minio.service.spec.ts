@@ -18,6 +18,8 @@ describe('MinioService', () => {
   const statObject = jest.fn();
   const copyObject = jest.fn();
   const removeObject = jest.fn();
+  const putObject = jest.fn();
+  const setBucketPolicy = jest.fn();
   const logger = {
     setContext: jest.fn(),
     logInfo: jest.fn(),
@@ -50,8 +52,12 @@ describe('MinioService', () => {
       statObject,
       copyObject,
       removeObject,
+      putObject,
+      setBucketPolicy,
     }));
     bucketExists.mockResolvedValue(true);
+    putObject.mockResolvedValue(undefined);
+    setBucketPolicy.mockResolvedValue(undefined);
     configService = {
       get: jest.fn((key: string) => {
         if (key in requiredConfig) {
@@ -124,9 +130,7 @@ describe('MinioService', () => {
       'http://localhost:9000/media-raw/video/raw.mp4?X-Amz-Signature=test',
     );
 
-    await expect(
-      service.createUploadUrl('raw', 'video/raw.mp4'),
-    ).resolves.toBe(
+    await expect(service.createUploadUrl('raw', 'video/raw.mp4')).resolves.toBe(
       'http://192.168.1.10:9000/media-raw/video/raw.mp4?X-Amz-Signature=test',
     );
   });
@@ -140,6 +144,29 @@ describe('MinioService', () => {
     expect(getObject).toHaveBeenCalledWith(
       'media-processed',
       'video/master.m3u8',
+    );
+  });
+
+  it('uploads public objects and returns a permanent object URL', async () => {
+    const result = await service.uploadObject({
+      bucket: 'public',
+      objectKey: 'channels/channel-1/avatar/image.jpg',
+      body: Buffer.from('image'),
+      contentType: 'image/jpeg',
+      sizeBytes: 1024,
+    });
+
+    expect(putObject).toHaveBeenCalledWith(
+      'media-public',
+      'channels/channel-1/avatar/image.jpg',
+      expect.any(Buffer),
+      1024,
+      {
+        'Content-Type': 'image/jpeg',
+      },
+    );
+    expect(result).toBe(
+      'http://localhost:9000/media-public/channels/channel-1/avatar/image.jpg',
     );
   });
 

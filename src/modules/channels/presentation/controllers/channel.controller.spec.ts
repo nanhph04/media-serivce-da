@@ -21,6 +21,9 @@ describe('ChannelController', () => {
   const requestChannelMembershipReviewUseCase = {
     execute: jest.fn(),
   };
+  const uploadChannelImageUseCase = {
+    execute: jest.fn(),
+  };
 
   const controller = new ChannelController(
     createChannelUseCase as never,
@@ -29,6 +32,7 @@ describe('ChannelController', () => {
     getChannelDetailUseCase as never,
     getMembershipStatusUseCase as never,
     requestChannelMembershipReviewUseCase as never,
+    uploadChannelImageUseCase as never,
   );
 
   beforeEach(() => {
@@ -42,6 +46,8 @@ describe('ChannelController', () => {
     expect(getRoutePaths('requestMembershipReview')).toEqual(
       'channels/:id/membership-review-requests',
     );
+    expect(getRoutePaths('uploadAvatar')).toEqual('me/channel/avatar');
+    expect(getRoutePaths('uploadBanner')).toEqual('me/channel/banner');
   });
 
   it('returns the current user channel summary', async () => {

@@ -6,6 +6,7 @@ import { ChannelMembershipEligibilityService } from './application/services/chan
 import { CreateChannelUseCase } from './application/use-cases/create-channel.use-case';
 import { GetCurrentChannelUseCase } from './application/use-cases/get-current-channel.use-case';
 import { UpdateChannelUseCase } from './application/use-cases/update-channel.use-case';
+import { UploadChannelImageUseCase } from './application/use-cases/upload-channel-image.use-case';
 import { GetChannelDetailUseCase } from './application/use-cases/get-channel-detail.use-case';
 import { GetMembershipStatusUseCase } from './application/use-cases/get-membership-status.use-case';
 import { GetMyMembershipsUseCase } from './application/use-cases/get-my-memberships.use-case';
@@ -95,6 +96,7 @@ import { CHANNEL_STATUS_EVENT_PUBLISHER } from './application/interfaces/channel
     CreateChannelUseCase,
     GetCurrentChannelUseCase,
     UpdateChannelUseCase,
+    UploadChannelImageUseCase,
     GetChannelDetailUseCase,
     GetMembershipStatusUseCase,
     GetMyMembershipsUseCase,

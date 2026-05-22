@@ -5,9 +5,12 @@ import {
   Param,
   Patch,
   Post,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiHeader, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBody, ApiConsumes, ApiHeader, ApiTags } from '@nestjs/swagger';
 import { ApiCreatedSuccessResponse } from '@shared/presentation/decorators/api-success-response.decorator';
 import { ApiSuccessResponse } from '@shared/presentation/decorators/api-success-response.decorator';
 import { CurrentRequestId } from '@shared/presentation/decorators/request-id.decorator';
@@ -24,6 +27,8 @@ import { GetChannelDetailUseCase } from '../../application/use-cases/get-channel
 import { GetMembershipStatusUseCase } from '../../application/use-cases/get-membership-status.use-case';
 import { RequestChannelMembershipReviewUseCase } from '../../application/use-cases/request-channel-membership-review.use-case';
 import { UpdateChannelUseCase } from '../../application/use-cases/update-channel.use-case';
+import { UploadChannelImageUseCase } from '../../application/use-cases/upload-channel-image.use-case';
+import type { UploadChannelImageFile } from '../../application/dtos/upload-channel-image.command';
 import { CreateChannelRequestDto } from '../dtos/create-channel.request';
 import { UpdateChannelRequestDto } from '../dtos/update-channel.request';
 import { ChannelResponseDto } from '../dtos/channel.response';
@@ -39,6 +44,13 @@ import {
   toChannelResponseDto,
 } from '../mappers/channel-response.mapper';
 
+interface MultipartImageFile {
+  buffer: Buffer;
+  mimetype: string;
+  originalname: string;
+  size: number;
+}
+
 @ApiTags('channels')
 @ApiHeader({ name: 'x-user-id', required: true })
 @UseGuards(InternalGatewayGuard)
@@ -51,6 +63,7 @@ export class ChannelController {
     private readonly getChannelDetailUseCase: GetChannelDetailUseCase,
     private readonly getMembershipStatusUseCase: GetMembershipStatusUseCase,
     private readonly requestChannelMembershipReviewUseCase: RequestChannelMembershipReviewUseCase,
+    private readonly uploadChannelImageUseCase: UploadChannelImageUseCase,
   ) {}
 
   @Post('me/channel')
@@ -87,6 +100,64 @@ export class ChannelController {
       avatarUrl: dto.avatarUrl,
       bannerUrl: dto.bannerUrl,
     });
+    return apiResponseContract(toChannelResponseDto(channel));
+  }
+
+  @Post('me/channel/avatar')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file'],
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @ApiSuccessResponse(ChannelResponseDto)
+  async uploadAvatar(
+    @CurrentUserId() userId: string,
+    @UploadedFile() file: MultipartImageFile | undefined,
+  ): Promise<ApiResponse<ChannelResponseDto>> {
+    const channel = await this.uploadChannelImageUseCase.execute({
+      userId,
+      imageType: 'avatar',
+      file: toUploadChannelImageFile(file),
+    });
+
+    return apiResponseContract(toChannelResponseDto(channel));
+  }
+
+  @Post('me/channel/banner')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file'],
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @ApiSuccessResponse(ChannelResponseDto)
+  async uploadBanner(
+    @CurrentUserId() userId: string,
+    @UploadedFile() file: MultipartImageFile | undefined,
+  ): Promise<ApiResponse<ChannelResponseDto>> {
+    const channel = await this.uploadChannelImageUseCase.execute({
+      userId,
+      imageType: 'banner',
+      file: toUploadChannelImageFile(file),
+    });
+
     return apiResponseContract(toChannelResponseDto(channel));
   }
 
@@ -135,4 +206,19 @@ export class ChannelController {
 
     return apiResponseContract(toChannelResponseDto(channel));
   }
+}
+
+function toUploadChannelImageFile(
+  file: MultipartImageFile | undefined,
+): UploadChannelImageFile | undefined {
+  if (!file) {
+    return undefined;
+  }
+
+  return {
+    buffer: file.buffer,
+    contentType: file.mimetype,
+    originalName: file.originalname,
+    sizeBytes: file.size,
+  };
 }

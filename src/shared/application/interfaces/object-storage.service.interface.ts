@@ -2,7 +2,7 @@ import type { Readable } from 'stream';
 
 export const OBJECT_STORAGE_SERVICE = Symbol('OBJECT_STORAGE_SERVICE');
 
-export type StorageBucket = 'raw' | 'processed';
+export type StorageBucket = 'raw' | 'processed' | 'public';
 
 export interface StorageObjectMetadata {
   sizeBytes: number;
@@ -11,6 +11,14 @@ export interface StorageObjectMetadata {
 export interface UploadedPart {
   partNumber: number;
   etag: string;
+}
+
+export interface UploadObjectInput {
+  bucket: StorageBucket;
+  objectKey: string;
+  body: Buffer;
+  contentType: string;
+  sizeBytes: number;
 }
 
 export interface IObjectStorageService {
@@ -42,6 +50,7 @@ export interface IObjectStorageService {
     objectKey: string;
     uploadId: string;
   }): Promise<void>;
+  uploadObject(input: UploadObjectInput): Promise<string>;
   createObjectUrl(bucket: StorageBucket, objectKey: string): string;
   objectExists(bucket: StorageBucket, objectKey: string): Promise<boolean>;
   copyObject(
