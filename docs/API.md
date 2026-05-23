@@ -495,6 +495,49 @@
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
 
+### 3.6 POST `/api/media/channels/:channelId/memberships/:tierId/purchase`
+
+- Muc dich: user mua membership tier cua channel. Client khong gui gia tien hay
+  owner; media-service tu lay tier/channel authoritative roi goi finance-service
+  internal charge API.
+- Headers:
+  - `x-user-id` bat buoc
+- Input:
+  - path param `channelId`
+  - path param `tierId`
+- Backend xu ly:
+  - check channel active, membership da duoc admin approve va khong bi admin dong
+  - check tier thuoc channel va dang `isAcceptingNew`
+  - check user khong phai owner channel va chua co membership active
+  - charge finance qua `POST /api/internal/payments/charge` voi
+    `serviceType=membership`
+  - tao membership sync sau khi charge thanh cong; van consume
+    `membership.payment.success` de reconcile idempotent
+- Output `data`:
+
+```json
+{
+  "membership": {
+    "id": "membership-record-id",
+    "userId": "user-1",
+    "channelId": "channel-1",
+    "membershipId": "tier-1",
+    "expiryDate": "2026-06-01T00:00:00.000Z",
+    "retryCount": 0,
+    "status": "active",
+    "autoRenewEnabled": true,
+    "renewalStatus": "idle",
+    "renewalReminderSentAt": null,
+    "lastRenewalAttemptAt": null,
+    "nextRenewalAttemptAt": null,
+    "createdAt": "2026-05-01T00:00:00.000Z",
+    "updatedAt": "2026-05-01T00:00:00.000Z"
+  },
+  "chargedCoinAmount": 100,
+  "paymentTransactionId": "txn-id"
+}
+```
+
 ## 4. VIDEO APIs
 
 ### Thumbnail fields
@@ -507,6 +550,27 @@ Nhung response video list/detail chinh co cac field thumbnail:
 
 Frontend nen render `thumbnailUrl` khi `thumbnailStatus = ready`; cac trang thai khac dung placeholder.
 Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbnailUrl`. Media API khong con endpoint rieng de stream thumbnail cu; frontend dung truc tiep `thumbnailUrl`.
+
+### Internal media APIs
+
+- Cac endpoint `/api/media/internal/*` khong phai public gateway contract.
+- Caller phai gui:
+  - `x-internal-service`
+  - `x-internal-service-secret`
+- Caller phai nam trong `MEDIA_INTERNAL_SERVICE_ALLOWLIST`.
+- Secret env theo format `<CALLER_SERVICE>_MEDIA_INTERNAL_SECRET`.
+
+### GET `/api/media/internal/health`
+
+- Muc dich: internal caller verify credential va connectivity toi media-service.
+- Output `data`:
+
+```json
+{
+  "service": "media-service",
+  "status": "ok"
+}
+```
 
 ### 4.0 GET `/api/media/studio/videos?limit=20&status=draft,processing&visibility=private`
 
@@ -1038,7 +1102,9 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
 - He thong tu set them khi xu ly:
   - `userId`: lay tu header `x-user-id`
 - Ghi chu:
-  - Du lieu den tu bang `video_purchase_unlocks`, duoc tao khi media_service nhan event `video.payment.success`.
+  - Du lieu den tu bang `video_purchase_unlocks`, duoc tao sync khi user goi
+    `POST /api/media/videos/:id/purchase`; event `video.payment.success` van
+    duoc consume de retry/reconcile idempotent.
   - Endpoint nay chi list video user da unlock/mua le, khong phai membership feed.
   - Sap xep theo lan unlock moi nhat truoc.
 - Response HTTP 200:
@@ -1063,7 +1129,37 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
     - `total` (number)
     - `totalPages` (number)
 
-### 4.14 GET `/api/media/videos/by-category?category=...&page=1&limit=20`
+### 4.14 POST `/api/media/videos/:id/purchase`
+
+- Muc dich: user mua le video tinh phi. Client khong gui gia tien hay owner;
+  media-service tu lay video authoritative roi goi finance-service internal
+  charge API.
+- Headers:
+  - `x-user-id` bat buoc
+- Input:
+  - path param `id`: video id
+- Backend xu ly:
+  - check video ton tai, `status=ready`, `visibility=public`, chua pending delete
+  - check video co `price > 0`
+  - check user khong phai owner video
+  - neu user da unlock video thi tra ve `unlocked=true` va khong charge lai
+  - charge finance qua `POST /api/internal/payments/charge` voi
+    `serviceType=video`
+  - tao unlock sync sau khi charge thanh cong; van consume `video.payment.success`
+    de reconcile idempotent
+- Output `data`:
+
+```json
+{
+  "videoId": "video-1",
+  "channelId": "channel-1",
+  "priceCoin": 100,
+  "unlocked": true,
+  "paymentTransactionId": "txn-id"
+}
+```
+
+### 4.15 GET `/api/media/videos/by-category?category=...&page=1&limit=20`
 
 - Muc dich: lay danh sach video theo category.
 - Public API: khong can `x-internal-secret`.
@@ -1106,7 +1202,7 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
     - `total` (number)
     - `totalPages` (number)
 
-### 4.15 GET `/api/media/categories/:slug/videos?page=1&limit=20`
+### 4.16 GET `/api/media/categories/:slug/videos?page=1&limit=20`
 
 - Muc dich: lay danh sach video public theo category slug qua nested category route.
 - Public API: khong can `x-internal-secret`.

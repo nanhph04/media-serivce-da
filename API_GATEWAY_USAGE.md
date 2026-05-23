@@ -141,6 +141,7 @@ PATCH  /api/media/channels/:channelId/membership-tiers/:tierId
 DELETE /api/media/channels/:channelId/membership-tiers/:tierId
 GET    /api/media/memberships/me
 PATCH  /api/media/memberships/:membershipId/auto-renew
+POST   /api/media/channels/:channelId/memberships/:tierId/purchase
 GET    /api/media/studio/videos
 GET    /api/media/studio/videos/:id
 POST   /api/media/studio/videos/uploads
@@ -157,6 +158,7 @@ POST   /api/media/videos/:id/reports
 POST   /api/media/channels/:id/reports
 PATCH  /api/media/studio/videos/:id/metadata
 GET    /api/media/me/videos/purchased
+POST   /api/media/videos/:id/purchase
 GET    /api/media/me/videos/subscribed
 GET    /api/media/me/videos/continue-watching
 GET    /api/media/admin/categories
@@ -191,6 +193,7 @@ Authorization: Bearer <accessToken>
 This route uses a dedicated streaming proxy:
 
 ```text
+
 ```
 
 It is protected. Gateway verifies JWT and forwards `x-user-*`,

@@ -1,5 +1,4 @@
-MEDIA SERVICE ENV
-=================
+# MEDIA SERVICE ENV
 
 Membership auto-renew:
 
@@ -25,6 +24,35 @@ KAFKA_VIDEO_THUMBNAIL_FAILED_TOPIC=video.thumbnail.failed
 
 When `KAFKA_AUTO_CREATE_TOPICS=true`, include these topics in
 `KAFKA_TOPICS_TO_CREATE`.
+
+Finance internal payment charge:
+
+```text
+FINANCE_SERVICE_URL=http://localhost:4004
+FINANCE_INTERNAL_SERVICE_NAME=media-service
+MEDIA_FINANCE_INTERNAL_SECRET=change-me
+```
+
+- `FINANCE_SERVICE_URL`: direct finance-service base URL without `/api`.
+- `FINANCE_INTERNAL_SERVICE_NAME`: caller name sent to finance-service.
+- `MEDIA_FINANCE_INTERNAL_SECRET`: shared secret matching finance-service
+  `MEDIA_FINANCE_INTERNAL_SECRET`.
+
+Inbound internal APIs exposed by media-service:
+
+```text
+MEDIA_INTERNAL_SERVICE_ALLOWLIST=finance-service
+FINANCE_SERVICE_MEDIA_INTERNAL_SECRET=change-me
+```
+
+- `MEDIA_INTERNAL_SERVICE_ALLOWLIST`: comma-separated callers allowed to call
+  media-service internal APIs.
+- Internal caller secrets use
+  `<CALLER_SERVICE>_MEDIA_INTERNAL_SECRET`, where hyphens become underscores
+  and names are uppercased. Example: `finance-service` uses
+  `FINANCE_SERVICE_MEDIA_INTERNAL_SECRET`.
+- `FINANCE_MEDIA_INTERNAL_SECRET` is accepted as a legacy alias for
+  `finance-service`.
 
 Object storage for public media assets:
 

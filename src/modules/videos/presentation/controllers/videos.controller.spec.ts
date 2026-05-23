@@ -18,6 +18,9 @@ describe('VideosController', () => {
   const playVideoUseCase = {
     execute: jest.fn(),
   };
+  const purchaseVideoUseCase = {
+    execute: jest.fn(),
+  };
   const updateVideoProgressUseCase = {
     execute: jest.fn(),
   };
@@ -77,6 +80,7 @@ describe('VideosController', () => {
     cancelVideoUploadUseCase as never,
     deleteFailedVideoUseCase as never,
     playVideoUseCase as never,
+    purchaseVideoUseCase as never,
     updateVideoProgressUseCase as never,
     refreshPlaybackTokenUseCase as never,
     getContinueWatchingUseCase as never,
@@ -106,6 +110,7 @@ describe('VideosController', () => {
     expect(getRoutePaths('latest')).toEqual('videos/latest');
     expect(getRoutePaths('studioVideos')).toEqual('studio/videos');
     expect(getRoutePaths('studioVideoDetail')).toEqual('studio/videos/:id');
+    expect(getRoutePaths('purchaseVideo')).toEqual('videos/:id/purchase');
     expect(getRoutePaths('purchased')).toEqual('me/videos/purchased');
     expect(getRoutePaths('continueWatching')).toEqual(
       'me/videos/continue-watching',
@@ -213,6 +218,35 @@ describe('VideosController', () => {
       thumbnailObjectKey: null,
       thumbnailBucket: null,
       thumbnailUploadUrl: null,
+    });
+  });
+
+  it('purchases a video for the current user', async () => {
+    purchaseVideoUseCase.execute.mockResolvedValue({
+      videoId: 'video-1',
+      channelId: 'channel-1',
+      priceCoin: 100,
+      unlocked: true,
+      paymentTransactionId: 'tx-1',
+    });
+
+    const result = await controller.purchaseVideo(
+      'viewer-1',
+      'trace-1',
+      'video-1',
+    );
+
+    expect(purchaseVideoUseCase.execute).toHaveBeenCalledWith({
+      userId: 'viewer-1',
+      traceId: 'trace-1',
+      videoId: 'video-1',
+    });
+    expect(result).toEqual({
+      videoId: 'video-1',
+      channelId: 'channel-1',
+      priceCoin: 100,
+      unlocked: true,
+      paymentTransactionId: 'tx-1',
     });
   });
 

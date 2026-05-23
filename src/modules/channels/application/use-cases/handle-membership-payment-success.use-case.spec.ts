@@ -9,55 +9,58 @@ import { HandleMembershipPaymentSuccessUseCase } from './handle-membership-payme
 class FakeChannelMembershipRepository {
   public readonly items = new Map<string, ChannelMembershipEntity>();
 
-  async create(membership: ChannelMembershipEntity): Promise<void> {
+  create(membership: ChannelMembershipEntity): Promise<void> {
     this.items.set(
       this.key(membership.userId, membership.channelId),
       membership,
     );
+    return Promise.resolve();
   }
 
-  async update(membership: ChannelMembershipEntity): Promise<void> {
+  update(membership: ChannelMembershipEntity): Promise<void> {
     this.items.set(
       this.key(membership.userId, membership.channelId),
       membership,
     );
+    return Promise.resolve();
   }
 
-  async findById(): Promise<ChannelMembershipEntity | null> {
-    return null;
+  findById(): Promise<ChannelMembershipEntity | null> {
+    return Promise.resolve(null);
   }
 
-  async findByUserIdAndChannelId(
+  findByUserIdAndChannelId(
     userId: string,
     channelId: string,
   ): Promise<ChannelMembershipEntity | null> {
-    return this.items.get(this.key(userId, channelId)) ?? null;
+    return Promise.resolve(this.items.get(this.key(userId, channelId)) ?? null);
   }
 
-  async findByChannelId(): Promise<ChannelMembershipEntity[]> {
-    return [];
+  findByChannelId(): Promise<ChannelMembershipEntity[]> {
+    return Promise.resolve([]);
   }
 
-  async findByUserId(): Promise<ChannelMembershipEntity[]> {
-    return [];
+  findByUserId(): Promise<ChannelMembershipEntity[]> {
+    return Promise.resolve([]);
   }
 
-  async countByChannelId(): Promise<number> {
-    return 0;
+  countByChannelId(): Promise<number> {
+    return Promise.resolve(0);
   }
 
-  async findByUserIdAndChannelIdActive(
+  findByUserIdAndChannelIdActive(
     userId: string,
     channelId: string,
   ): Promise<ChannelMembershipEntity | null> {
-    return this.items.get(this.key(userId, channelId)) ?? null;
+    return Promise.resolve(this.items.get(this.key(userId, channelId)) ?? null);
   }
 
-  async upsert(membership: ChannelMembershipEntity): Promise<void> {
+  upsert(membership: ChannelMembershipEntity): Promise<void> {
     this.items.set(
       this.key(membership.userId, membership.channelId),
       membership,
     );
+    return Promise.resolve();
   }
 
   private key(userId: string, channelId: string): string {
@@ -242,6 +245,37 @@ describe('HandleMembershipPaymentSuccessUseCase', () => {
     expect(
       compensationPublisher.publishCompensationRequest,
     ).not.toHaveBeenCalled();
+  });
+
+  it('deduplicates sync and async handling by ledger reference id', async () => {
+    cacheService.setIfNotExists.mockResolvedValue(false);
+    const repository = new FakeChannelMembershipRepository();
+    const useCase = new HandleMembershipPaymentSuccessUseCase(
+      repository as never,
+      channelRepository as never,
+      membershipTierRepository as never,
+      cacheService as never,
+      compensationPublisher as never,
+    );
+
+    await useCase.execute({
+      eventId: 'event-after-sync',
+      data: {
+        userId: 'user-4',
+        channelId: 'channel-1',
+        membershipTierId: 'tier-1',
+        paymentType: 'new',
+        chargedCoinAmount: 50,
+        ledgerReferenceId: 'tx-1',
+      },
+    });
+
+    expect(cacheService.setIfNotExists).toHaveBeenCalledWith(
+      'media:membership-payment:tx-1',
+      '1',
+      60 * 60 * 24,
+    );
+    expect(repository.items.size).toBe(0);
   });
 });
 

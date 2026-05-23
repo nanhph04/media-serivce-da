@@ -47,7 +47,7 @@ export class HandleMembershipPaymentSuccessUseCase extends BaseUseCase<
   }
 
   async execute(command: HandleMembershipPaymentSuccessCommand): Promise<void> {
-    if (!(await this.markEventProcessing(command.eventId))) {
+    if (!(await this.markPaymentProcessing(command))) {
       return;
     }
 
@@ -83,9 +83,19 @@ export class HandleMembershipPaymentSuccessUseCase extends BaseUseCase<
     await this.membershipRepository.upsert(membership);
   }
 
-  private async markEventProcessing(eventId: string): Promise<boolean> {
+  private async markPaymentProcessing(
+    command: HandleMembershipPaymentSuccessCommand,
+  ): Promise<boolean> {
+    if (command.data.ledgerReferenceId) {
+      return this.idempotencyStore.setIfNotExists(
+        `media:membership-payment:${command.data.ledgerReferenceId}`,
+        '1',
+        60 * 60 * 24,
+      );
+    }
+
     return this.idempotencyStore.setIfNotExists(
-      `media:event:${eventId}`,
+      `media:event:${command.eventId}`,
       '1',
       60 * 60 * 24,
     );

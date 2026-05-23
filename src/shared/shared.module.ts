@@ -12,7 +12,11 @@ import { LoggerService } from './infrastructure/logger/logger.service';
 import { LoggerInterceptor } from './presentation/interceptors/logger.interceptor';
 import { SuccessResponseInterceptor } from './presentation/interceptors/success-response.interceptor';
 import { InternalGatewayGuard } from './presentation/guards/internal-gateway.guard';
+import { InternalServiceGuard } from './presentation/guards/internal-service.guard';
 import { AdminRoleGuard } from './presentation/guards/admin-role.guard';
+import { InternalHealthController } from './presentation/controllers/internal-health.controller';
+import { FINANCE_PAYMENT_CLIENT } from './application/interfaces/finance-payment-client.interface';
+import { FinancePaymentClientService } from './infrastructure/services/finance-payment-client.service';
 
 @Global()
 @Module({
@@ -26,11 +30,18 @@ import { AdminRoleGuard } from './presentation/guards/admin-role.guard';
     SecurityModule,
     StorageModule,
   ],
+  controllers: [InternalHealthController],
   providers: [
     LoggerInterceptor,
     SuccessResponseInterceptor,
     InternalGatewayGuard,
+    InternalServiceGuard,
     AdminRoleGuard,
+    FinancePaymentClientService,
+    {
+      provide: FINANCE_PAYMENT_CLIENT,
+      useExisting: FinancePaymentClientService,
+    },
     {
       provide: HttpExceptionFilter,
       useFactory: (logger: LoggerService) => new HttpExceptionFilter(logger),
@@ -44,7 +55,9 @@ import { AdminRoleGuard } from './presentation/guards/admin-role.guard';
     ConfigModule,
     HttpExceptionFilter,
     InternalGatewayGuard,
+    InternalServiceGuard,
     AdminRoleGuard,
+    FINANCE_PAYMENT_CLIENT,
     LoggerInterceptor,
     SuccessResponseInterceptor,
     QueueModule,

@@ -39,6 +39,7 @@ import { ListAdminReportsUseCase } from './application/use-cases/list-admin-repo
 import { ListAdminVideosUseCase } from './application/use-cases/list-admin-videos.use-case';
 import { ModerateAdminVideoUseCase } from './application/use-cases/moderate-admin-video.use-case';
 import { PlayVideoUseCase } from './application/use-cases/play-video.use-case';
+import { PurchaseVideoUseCase } from './application/use-cases/purchase-video.use-case';
 import { RefreshPlaybackTokenUseCase } from './application/use-cases/refresh-playback-token.use-case';
 import { SearchPublicVideosUseCase } from './application/use-cases/search-public-videos.use-case';
 import { FlushPendingVideoViewsUseCase } from './application/use-cases/flush-pending-video-views.use-case';
@@ -142,6 +143,7 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
     CleanupExpiredDraftUploadsUseCase,
     CleanupHardDeletedVideosUseCase,
     PlayVideoUseCase,
+    PurchaseVideoUseCase,
     UpdateVideoProgressUseCase,
     RefreshPlaybackTokenUseCase,
     SearchPublicVideosUseCase,

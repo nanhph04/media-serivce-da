@@ -12,6 +12,7 @@ import {
 import { ApiHeader, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ApiCreatedSuccessResponse } from '@shared/presentation/decorators/api-success-response.decorator';
 import { ApiSuccessResponse } from '@shared/presentation/decorators/api-success-response.decorator';
+import { CurrentRequestId } from '@shared/presentation/decorators/request-id.decorator';
 import { CurrentUserId } from '@shared/presentation/decorators/user-id.decorator';
 import { SkipInternalGatewayGuard } from '@shared/presentation/decorators/skip-internal-gateway.decorator';
 import {
@@ -39,6 +40,7 @@ import { RecordVideoUploadPartCompletedUseCase } from '../../application/use-cas
 import { GetVideoUploadStatusUseCase } from '../../application/use-cases/get-video-upload-status.use-case';
 import { CompleteVideoUploadUseCase } from '../../application/use-cases/complete-video-upload.use-case';
 import { PlayVideoUseCase } from '../../application/use-cases/play-video.use-case';
+import { PurchaseVideoUseCase } from '../../application/use-cases/purchase-video.use-case';
 import { RefreshPlaybackTokenUseCase } from '../../application/use-cases/refresh-playback-token.use-case';
 import { SearchPublicVideosUseCase } from '../../application/use-cases/search-public-videos.use-case';
 import { UpdateVideoProgressUseCase } from '../../application/use-cases/update-video-progress.use-case';
@@ -65,6 +67,7 @@ import {
 import { CancelVideoUploadResponseDto } from '../dtos/cancel-video-upload.response';
 import { DeleteFailedVideoResponseDto } from '../dtos/delete-failed-video.response';
 import { PlayVideoResponseDto } from '../dtos/play-video.response';
+import { PurchaseVideoResponseDto } from '../dtos/purchase-video.response';
 import { PurchasedVideoResponseDto } from '../dtos/purchased-video.response';
 import { RefreshPlaybackTokenResponseDto } from '../dtos/refresh-playback-token.response';
 import { UpdateVideoMetadataRequestDto } from '../dtos/update-video-metadata.request';
@@ -89,6 +92,7 @@ export class VideosController {
     private readonly cancelVideoUploadUseCase: CancelVideoUploadUseCase,
     private readonly deleteFailedVideoUseCase: DeleteFailedVideoUseCase,
     private readonly playVideoUseCase: PlayVideoUseCase,
+    private readonly purchaseVideoUseCase: PurchaseVideoUseCase,
     private readonly updateVideoProgressUseCase: UpdateVideoProgressUseCase,
     private readonly refreshPlaybackTokenUseCase: RefreshPlaybackTokenUseCase,
     private readonly getContinueWatchingUseCase: GetContinueWatchingUseCase,
@@ -342,6 +346,24 @@ export class VideosController {
         userId,
         videoId,
       }),
+    );
+  }
+
+  @Post('videos/:id/purchase')
+  @ApiCreatedSuccessResponse(PurchaseVideoResponseDto)
+  async purchaseVideo(
+    @CurrentUserId() userId: string,
+    @CurrentRequestId() traceId: string,
+    @Param('id') videoId: string,
+  ): Promise<ApiResponse<PurchaseVideoResponseDto>> {
+    const response = await this.purchaseVideoUseCase.execute({
+      userId,
+      traceId,
+      videoId,
+    });
+
+    return apiResponseContract(
+      PurchaseVideoResponseDto.fromApplicationDto(response),
     );
   }
 

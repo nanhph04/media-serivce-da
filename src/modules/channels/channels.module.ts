@@ -27,10 +27,12 @@ import { ListAdminChannelsUseCase } from './application/use-cases/list-admin-cha
 import { ListMembershipReviewsUseCase } from './application/use-cases/list-membership-reviews.use-case';
 import { ReviewChannelMembershipUseCase } from './application/use-cases/review-channel-membership.use-case';
 import { RequestChannelMembershipReviewUseCase } from './application/use-cases/request-channel-membership-review.use-case';
+import { PurchaseMembershipUseCase } from './application/use-cases/purchase-membership.use-case';
 import { GetAdminChannelSummaryUseCase } from './application/use-cases/get-admin-channel-summary.use-case';
 import { ChannelController } from './presentation/controllers/channel.controller';
 import { AdminChannelController } from './presentation/controllers/admin-channel.controller';
 import { MembershipController } from './presentation/controllers/membership.controller';
+import { MembershipPurchaseController } from './presentation/controllers/membership-purchase.controller';
 import { MembershipTierController } from './presentation/controllers/membership-tier.controller';
 import { CHANNEL_SEARCH_QUERY_SERVICE } from './application/interfaces/channel-search-query.service.interface';
 import { ChannelRepositoryImpl } from './infrastructure/persistence/channel.repository.impl';
@@ -81,6 +83,7 @@ import { CHANNEL_STATUS_EVENT_PUBLISHER } from './application/interfaces/channel
     AdminChannelController,
     ChannelController,
     MembershipController,
+    MembershipPurchaseController,
     MembershipTierController,
   ],
   providers: [
@@ -117,6 +120,7 @@ import { CHANNEL_STATUS_EVENT_PUBLISHER } from './application/interfaces/channel
     ListMembershipReviewsUseCase,
     ReviewChannelMembershipUseCase,
     RequestChannelMembershipReviewUseCase,
+    PurchaseMembershipUseCase,
     GetAdminChannelSummaryUseCase,
     MembershipPaymentConsumer,
     MembershipAutoRenewFailedConsumer,

@@ -1,5 +1,4 @@
-MEDIA SERVICE EVENTS
-====================
+# MEDIA SERVICE EVENTS
 
 All integration events use the shared envelope:
 
@@ -17,8 +16,9 @@ interface IIntegrationEvent<T = unknown> {
 }
 ```
 
-1) membership.auto_renew.reminder_requested
--------------------------------------------
+1. membership.auto_renew.reminder_requested
+
+---
 
 Purpose:
 
@@ -46,8 +46,9 @@ Data:
 }
 ```
 
-2) membership.auto_renew.requested
-----------------------------------
+2. membership.auto_renew.requested
+
+---
 
 Purpose:
 
@@ -76,8 +77,9 @@ Data:
 }
 ```
 
-3) membership.auto_renew.failed
--------------------------------
+3. membership.auto_renew.failed
+
+---
 
 Purpose:
 
@@ -104,13 +106,17 @@ Data:
 }
 ```
 
-4) membership.payment.success
------------------------------
+4. membership.payment.success
+
+---
 
 Purpose:
 
 - Consumed by media-service after finance-service charges a membership payment.
 - For `paymentType = renew`, media-service extends the membership expiry and resets renewal retry/reminder state.
+- For new purchase APIs, media-service also grants membership synchronously after
+  the finance internal charge response. The async event is still consumed for
+  reconciliation and is deduplicated by `ledgerReferenceId`.
 
 Expected data fields:
 
@@ -131,8 +137,34 @@ Expected data fields:
 }
 ```
 
-5) channel.status.changed
--------------------------
+5. video.payment.success
+
+---
+
+Purpose:
+
+- Consumed by media-service after finance-service charges a video purchase.
+- New purchase APIs grant the video unlock synchronously after the finance
+  internal charge response. The async event is still consumed for retry and
+  reconciliation; unlock creation remains idempotent by user/video.
+
+Expected data fields:
+
+```json
+{
+  "userId": "user-id",
+  "videoId": "video-id",
+  "serviceId": "video-id",
+  "channelId": "channel-id",
+  "channelOwnerId": "creator-user-id",
+  "coinAmount": 100,
+  "paymentTransactionId": "txn-id"
+}
+```
+
+6. channel.status.changed
+
+---
 
 Purpose:
 
@@ -167,8 +199,9 @@ Producer rules:
 - Public discovery/search/latest/detail queries only return videos whose channel
   is `active`.
 
-6) user.status.changed
-----------------------
+7. user.status.changed
+
+---
 
 Purpose:
 
@@ -195,8 +228,9 @@ Data fields used:
 }
 ```
 
-7) video.thumbnail.generated
-----------------------------
+8. video.thumbnail.generated
+
+---
 
 Purpose:
 
@@ -224,8 +258,9 @@ Data:
 }
 ```
 
-8) video.thumbnail.failed
--------------------------
+9. video.thumbnail.failed
+
+---
 
 Purpose:
 
