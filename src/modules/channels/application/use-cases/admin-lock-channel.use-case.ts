@@ -1,20 +1,21 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import { NotFoundException } from '@shared/domain/exceptions/domain.exception';
-import {
-  CHANNEL_MEMBERSHIP_REPOSITORY,
-  type IChannelMembershipRepository,
-} from '../../domain/repositories/channel-membership.repository';
+import type { IIntegrationEvent } from '@shared/domain/types/events/base-integration.event';
 import {
   CHANNEL_REPOSITORY,
   type IChannelRepository,
 } from '../../domain/repositories/channel.repository';
 import {
-  CHANNEL_STATUS_EVENT_PUBLISHER,
-  type IChannelStatusEventPublisher,
-} from '../interfaces/channel-status-event.publisher.interface';
+  CHANNEL_STATUS_CHANGE_TRANSACTION,
+  type IChannelStatusChangeTransaction,
+} from '../interfaces/channel-status-change-transaction.interface';
+import type { ChannelStatusChangedEventData } from '../interfaces/channel-status-event.publisher.interface';
 import type { ChannelResponse } from '../dtos/channel.response';
 import type { LockChannelCommand } from '../dtos/lock-channel.command';
+
+const CHANNEL_STATUS_CHANGED_TOPIC = 'channel.status.changed';
 
 @Injectable()
 export class AdminLockChannelUseCase extends BaseUseCase<
@@ -24,10 +25,8 @@ export class AdminLockChannelUseCase extends BaseUseCase<
   constructor(
     @Inject(CHANNEL_REPOSITORY)
     private readonly channelRepository: IChannelRepository,
-    @Inject(CHANNEL_MEMBERSHIP_REPOSITORY)
-    private readonly membershipRepository: IChannelMembershipRepository,
-    @Inject(CHANNEL_STATUS_EVENT_PUBLISHER)
-    private readonly channelStatusEventPublisher: IChannelStatusEventPublisher,
+    @Inject(CHANNEL_STATUS_CHANGE_TRANSACTION)
+    private readonly channelStatusChangeTransaction: IChannelStatusChangeTransaction,
   ) {
     super();
   }
@@ -40,25 +39,34 @@ export class AdminLockChannelUseCase extends BaseUseCase<
     }
 
     const previousStatus = channel.status;
+    const isLockAction = command.action === 'lock';
     if (command.action === 'lock') {
       channel.suspend();
-      await this.membershipRepository.disableAutoRenewByChannelId(channel.id);
     } else if (command.action === 'unlock') {
       channel.restore();
     }
 
-    await this.channelRepository.update(channel);
-    if (previousStatus !== channel.status) {
-      await this.channelStatusEventPublisher.publishStatusChanged({
-        channelId: channel.id,
-        channelOwnerId: channel.userId,
-        previousStatus,
-        currentStatus: channel.status,
-        changedByAdminId: command.adminId,
-        reason: command.reason ?? null,
-        changedAt: new Date().toISOString(),
-      });
-    }
+    const statusChangedOutboxMessage =
+      previousStatus !== channel.status
+        ? {
+            messageKey: channel.id,
+            payload: this.createStatusChangedEvent({
+              channelId: channel.id,
+              channelOwnerId: channel.userId,
+              previousStatus,
+              currentStatus: channel.status,
+              changedByAdminId: command.adminId,
+              reason: command.reason ?? null,
+              changedAt: new Date().toISOString(),
+            }),
+          }
+        : undefined;
+
+    await this.channelStatusChangeTransaction.persistStatusChange({
+      channel,
+      disableAutoRenewByChannelId: isLockAction,
+      statusChangedOutboxMessage,
+    });
 
     return {
       id: channel.id,
@@ -76,6 +84,21 @@ export class AdminLockChannelUseCase extends BaseUseCase<
       status: channel.status,
       createdAt: channel.createdAt,
       updatedAt: channel.updatedAt,
+    };
+  }
+
+  private createStatusChangedEvent(
+    data: ChannelStatusChangedEventData,
+  ): IIntegrationEvent<ChannelStatusChangedEventData> {
+    return {
+      eventId: randomUUID(),
+      eventType: CHANNEL_STATUS_CHANGED_TOPIC,
+      aggregateId: data.channelId,
+      timestamp: data.changedAt,
+      version: 1,
+      traceId: randomUUID(),
+      sourceService: 'media-service',
+      data,
     };
   }
 }

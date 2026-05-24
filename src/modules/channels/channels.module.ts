@@ -50,6 +50,7 @@ import { ChannelStatusEventPublisher } from './infrastructure/messaging/channel-
 import { MembershipCoinCompensationPublisher } from './infrastructure/messaging/membership-coin-compensation.publisher';
 import { MembershipAutoRenewScheduler } from './infrastructure/services/membership-auto-renew.scheduler';
 import { ChannelCreationTransactionService } from './infrastructure/persistence/channel-creation-transaction.service';
+import { ChannelStatusChangeTransactionService } from './infrastructure/persistence/channel-status-change-transaction.service';
 import { ChannelSearchQueryService } from './infrastructure/query/channel-search-query.service';
 import { UserMembershipQueryService } from './infrastructure/query/user-membership-query.service';
 import { ConfigModule } from '@shared/infrastructure/config/config.module';
@@ -67,6 +68,7 @@ import { MEMBERSHIP_AUTO_RENEW_PUBLISHER } from './application/interfaces/member
 import { USER_MEMBERSHIP_QUERY_SERVICE } from './application/interfaces/user-membership-query.service.interface';
 import { CHANNEL_CREATION_TRANSACTION } from './application/interfaces/channel-creation-transaction.interface';
 import { CHANNEL_STATUS_EVENT_PUBLISHER } from './application/interfaces/channel-status-event.publisher.interface';
+import { CHANNEL_STATUS_CHANGE_TRANSACTION } from './application/interfaces/channel-status-change-transaction.interface';
 
 @Module({
   imports: [
@@ -96,6 +98,7 @@ import { CHANNEL_STATUS_EVENT_PUBLISHER } from './application/interfaces/channel
     ChannelMembershipEligibilityService,
     ChannelMembershipMapper,
     ChannelCreationTransactionService,
+    ChannelStatusChangeTransactionService,
     CreateChannelUseCase,
     GetCurrentChannelUseCase,
     UpdateChannelUseCase,
@@ -136,6 +139,10 @@ import { CHANNEL_STATUS_EVENT_PUBLISHER } from './application/interfaces/channel
     {
       provide: CHANNEL_CREATION_TRANSACTION,
       useExisting: ChannelCreationTransactionService,
+    },
+    {
+      provide: CHANNEL_STATUS_CHANGE_TRANSACTION,
+      useExisting: ChannelStatusChangeTransactionService,
     },
     {
       provide: CHANNEL_MEMBERSHIP_REPOSITORY,
