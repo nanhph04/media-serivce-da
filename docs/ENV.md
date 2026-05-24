@@ -29,14 +29,13 @@ Finance internal payment charge:
 
 ```text
 FINANCE_SERVICE_URL=http://localhost:4004
-FINANCE_INTERNAL_SERVICE_NAME=media-service
-MEDIA_FINANCE_INTERNAL_SECRET=change-me
+FINANCE_INTERNAL_GATEWAY_SECRET=finance-gateway-secret
 ```
 
 - `FINANCE_SERVICE_URL`: direct finance-service base URL without `/api`.
-- `FINANCE_INTERNAL_SERVICE_NAME`: caller name sent to finance-service.
-- `MEDIA_FINANCE_INTERNAL_SECRET`: shared secret matching finance-service
-  `MEDIA_FINANCE_INTERNAL_SECRET`.
+- `FINANCE_INTERNAL_GATEWAY_SECRET`: finance-service internal gateway secret
+  sent as `x-internal-secret` when media-service calls internal finance-service
+  APIs. This value must match finance-service `INTERNAL_GATEWAY_SECRET`.
 
 Inbound internal APIs exposed by media-service:
 

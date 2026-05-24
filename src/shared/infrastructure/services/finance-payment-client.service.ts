@@ -34,13 +34,7 @@ export class FinancePaymentClientService implements IFinancePaymentClient {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        'x-internal-service': this.configService.get<string>(
-          'FINANCE_INTERNAL_SERVICE_NAME',
-          'media-service',
-        ),
-        'x-internal-service-secret': this.configService.getOrThrow<string>(
-          'MEDIA_FINANCE_INTERNAL_SECRET',
-        ),
+        'x-internal-secret': this.getFinanceInternalGatewaySecret(),
         'idempotency-key': input.idempotencyKey,
         ...(input.traceId ? { 'x-request-id': input.traceId } : {}),
       },
@@ -70,6 +64,20 @@ export class FinancePaymentClientService implements IFinancePaymentClient {
       .replace(/\/+$/, '');
 
     return `${baseUrl}/api/internal/payments/charge`;
+  }
+
+  private getFinanceInternalGatewaySecret(): string {
+    const financeSecret = this.configService.getOrThrow<string>(
+      'FINANCE_INTERNAL_GATEWAY_SECRET',
+    );
+
+    if (financeSecret.length === 0) {
+      throw new Error(
+        'Config key "FINANCE_INTERNAL_GATEWAY_SECRET" must not be empty',
+      );
+    }
+
+    return financeSecret;
   }
 
   private async readPayload<T>(
