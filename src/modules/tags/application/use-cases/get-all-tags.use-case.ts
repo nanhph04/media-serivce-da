@@ -1,4 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
+import {
+  createPagination,
+  type PaginatedResponse,
+} from '@shared/application/dtos/paginated.response';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import {
   TAG_REPOSITORY,
@@ -9,8 +13,8 @@ import { toTagResponse } from '../mappers/tag-response.mapper';
 
 @Injectable()
 export class GetAllTagsUseCase extends BaseUseCase<
-  { q?: string },
-  TagResponse[]
+  { q?: string; page: number; limit: number },
+  PaginatedResponse<TagResponse>
 > {
   constructor(
     @Inject(TAG_REPOSITORY)
@@ -19,11 +23,22 @@ export class GetAllTagsUseCase extends BaseUseCase<
     super();
   }
 
-  async execute(input: { q?: string }): Promise<TagResponse[]> {
-    const tags = input.q
-      ? await this.tagRepository.searchAll(input.q)
-      : await this.tagRepository.findAll();
+  async execute(input: {
+    q?: string;
+    page: number;
+    limit: number;
+  }): Promise<PaginatedResponse<TagResponse>> {
+    const result = input.q
+      ? await this.tagRepository.searchAllPaged(
+          input.q,
+          input.page,
+          input.limit,
+        )
+      : await this.tagRepository.findAllPaged(input.page, input.limit);
 
-    return tags.map(toTagResponse);
+    return {
+      items: result.items.map(toTagResponse),
+      pagination: createPagination(input.page, input.limit, result.total),
+    };
   }
 }

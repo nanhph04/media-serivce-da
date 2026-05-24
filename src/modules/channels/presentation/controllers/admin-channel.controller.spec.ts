@@ -99,24 +99,27 @@ describe('AdminChannelController', () => {
   });
 
   it('lists pending membership reviews by default', async () => {
-    listMembershipReviewsUseCase.execute.mockResolvedValue([
-      {
-        channelId: 'channel-1',
-        userId: 'owner-1',
-        name: 'Channel',
-        status: 'active',
-        isEligibleForMembership: true,
-        isMembershipClosedByAdmin: false,
-        membershipReviewStatus: MembershipReviewStatus.PENDING,
-        membershipRejectionReason: null,
-        membershipRequestedAt: new Date('2026-01-01T00:00:00.000Z'),
-        membershipReviewedAt: null,
-        readyVideoCount: 5,
-        minReadyVideoCount: 5,
-        totalVideoViews: 1000,
-        minTotalVideoViews: 1000,
-      },
-    ]);
+    listMembershipReviewsUseCase.execute.mockResolvedValue({
+      items: [
+        {
+          channelId: 'channel-1',
+          userId: 'owner-1',
+          name: 'Channel',
+          status: 'active',
+          isEligibleForMembership: true,
+          isMembershipClosedByAdmin: false,
+          membershipReviewStatus: MembershipReviewStatus.PENDING,
+          membershipRejectionReason: null,
+          membershipRequestedAt: new Date('2026-01-01T00:00:00.000Z'),
+          membershipReviewedAt: null,
+          readyVideoCount: 5,
+          minReadyVideoCount: 5,
+          totalVideoViews: 1000,
+          minTotalVideoViews: 1000,
+        },
+      ],
+      pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+    });
 
     await controller.listMembershipReviews('admin-1', 'admin', {});
 
@@ -124,20 +127,29 @@ describe('AdminChannelController', () => {
       adminId: 'admin-1',
       role: 'admin',
       status: MembershipReviewStatus.PENDING,
+      page: 1,
+      limit: 20,
     });
   });
 
   it('passes selected review status filter', async () => {
-    listMembershipReviewsUseCase.execute.mockResolvedValue([]);
+    listMembershipReviewsUseCase.execute.mockResolvedValue({
+      items: [],
+      pagination: { page: 2, limit: 10, total: 0, totalPages: 0 },
+    });
 
     await controller.listMembershipReviews('admin-1', 'admin', {
       status: MembershipReviewStatus.REJECTED,
+      page: 2,
+      limit: 10,
     });
 
     expect(listMembershipReviewsUseCase.execute).toHaveBeenCalledWith({
       adminId: 'admin-1',
       role: 'admin',
       status: MembershipReviewStatus.REJECTED,
+      page: 2,
+      limit: 10,
     });
   });
 

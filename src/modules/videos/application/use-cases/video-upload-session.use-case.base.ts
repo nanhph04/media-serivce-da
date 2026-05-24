@@ -47,11 +47,10 @@ export abstract class VideoUploadSessionUseCaseBase {
       throw new ConflictException('Video is not in draft status');
     }
 
-    const session =
-      await this.uploadSessionRepository.findByVideoAndUploadId(
-        input.videoId,
-        input.uploadId,
-      );
+    const session = await this.uploadSessionRepository.findByVideoAndUploadId(
+      input.videoId,
+      input.uploadId,
+    );
     if (!session) {
       throw new NotFoundException('Upload session not found');
     }

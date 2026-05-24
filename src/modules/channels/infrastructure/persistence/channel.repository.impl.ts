@@ -90,6 +90,24 @@ export class ChannelRepositoryImpl implements IChannelRepository {
     return ormEntities.map((ormEntity) => this.toDomain(ormEntity));
   }
 
+  async findByMembershipReviewStatusPaged(
+    status: MembershipReviewStatus,
+    page: number,
+    limit: number,
+  ): Promise<{ items: ChannelEntity[]; total: number }> {
+    const [ormEntities, total] = await this.ormRepository.findAndCount({
+      where: { membershipReviewStatus: status },
+      order: { membershipRequestedAt: 'ASC', createdAt: 'ASC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return {
+      items: ormEntities.map((ormEntity) => this.toDomain(ormEntity)),
+      total,
+    };
+  }
+
   async findAdminChannels(
     filters: AdminChannelFilters,
   ): Promise<AdminChannelsPage> {

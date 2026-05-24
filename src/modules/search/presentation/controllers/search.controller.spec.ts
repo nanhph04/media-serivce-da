@@ -50,61 +50,69 @@ describe('SearchController', () => {
       query: {
         q: 'piano',
         category: null,
+        page: 1,
         limit: 20,
       },
+      pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
     });
 
     const result = await controller.search({
       q: 'piano',
+      page: 1,
       limit: 20,
     });
 
     expect(searchContentUseCase.execute).toHaveBeenCalledWith({
       q: 'piano',
       category: undefined,
+      page: 1,
       limit: 20,
     });
-    expect(result).toEqual({
-      videos: [
-        {
-          id: 'video-1',
-          channelId: 'channel-1',
-          title: 'Piano lesson',
-          description: 'Basics',
-          category: 'music',
-          tags: ['lesson'],
-          status: 'ready',
-          price: 0,
-          requiredTierLevel: null,
-          thumbnailUrl: null,
-          durationSeconds: 120,
-          resolutions: ['720p'],
-          errorMessage: null,
-          viewCount: 10,
-          publishedAt: '2026-01-01T00:00:00.000Z',
-          createdAt: '2026-01-01T00:00:00.000Z',
-          updatedAt: '2026-01-02T00:00:00.000Z',
+    expect(result).toMatchObject({
+      data: {
+        videos: [
+          {
+            id: 'video-1',
+            channelId: 'channel-1',
+            title: 'Piano lesson',
+            description: 'Basics',
+            category: 'music',
+            tags: ['lesson'],
+            status: 'ready',
+            price: 0,
+            requiredTierLevel: null,
+            thumbnailUrl: null,
+            durationSeconds: 120,
+            resolutions: ['720p'],
+            errorMessage: null,
+            viewCount: 10,
+            publishedAt: '2026-01-01T00:00:00.000Z',
+            createdAt: '2026-01-01T00:00:00.000Z',
+            updatedAt: '2026-01-02T00:00:00.000Z',
+          },
+        ],
+        channels: [
+          {
+            id: 'channel-1',
+            userId: 'user-1',
+            name: 'Piano Hub',
+            bio: 'All about piano',
+            avatarUrl: '',
+            bannerUrl: '',
+            status: 'active',
+            isEligibleForMembership: false,
+            createdAt: '2026-01-01T00:00:00.000Z',
+            updatedAt: '2026-01-02T00:00:00.000Z',
+          },
+        ],
+        query: {
+          q: 'piano',
+          category: null,
+          page: 1,
+          limit: 20,
         },
-      ],
-      channels: [
-        {
-          id: 'channel-1',
-          userId: 'user-1',
-          name: 'Piano Hub',
-          bio: 'All about piano',
-          avatarUrl: '',
-          bannerUrl: '',
-          status: 'active',
-          isEligibleForMembership: false,
-          createdAt: '2026-01-01T00:00:00.000Z',
-          updatedAt: '2026-01-02T00:00:00.000Z',
-        },
-      ],
-      query: {
-        q: 'piano',
-        category: null,
-        limit: 20,
       },
+      pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
     });
   });
 
@@ -115,18 +123,22 @@ describe('SearchController', () => {
       query: {
         q: null,
         category: 'music',
+        page: 2,
         limit: 15,
       },
+      pagination: { page: 2, limit: 15, total: 0, totalPages: 0 },
     });
 
     await controller.search({
       category: 'music',
+      page: 2,
       limit: 15,
     });
 
     expect(searchContentUseCase.execute).toHaveBeenCalledWith({
       q: undefined,
       category: 'music',
+      page: 2,
       limit: 15,
     });
   });

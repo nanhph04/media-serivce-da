@@ -2,10 +2,7 @@ import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ApiSuccessResponse } from '@shared/presentation/decorators/api-success-response.decorator';
 import { SkipInternalGatewayGuard } from '@shared/presentation/decorators/skip-internal-gateway.decorator';
-import {
-  ApiResponse,
-  apiResponseContract,
-} from '@shared/presentation/dto/api-response.dto';
+import { ApiResponse } from '@shared/presentation/dto/api-response.dto';
 import { InternalGatewayGuard } from '@shared/presentation/guards/internal-gateway.guard';
 import type { ChannelSearchItemResponse } from '../../application/dtos/channel-search-item.response';
 import type { SearchContentResponse } from '../../application/dtos/search-content.response';
@@ -26,6 +23,7 @@ export class SearchController {
   @SkipInternalGatewayGuard()
   @ApiQuery({ name: 'q', required: false, type: String })
   @ApiQuery({ name: 'category', required: false, type: String })
+  @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiSuccessResponse(SearchContentResponseDto)
   async search(
@@ -34,10 +32,15 @@ export class SearchController {
     const result = await this.searchContentUseCase.execute({
       q: query.q,
       category: query.category,
+      page: query.page,
       limit: query.limit,
     });
 
-    return apiResponseContract(this.toSearchContentResponseDto(result));
+    return ApiResponse.success(
+      this.toSearchContentResponseDto(result),
+      undefined,
+      result.pagination,
+    );
   }
 
   private toSearchContentResponseDto(

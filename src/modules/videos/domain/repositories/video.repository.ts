@@ -9,6 +9,7 @@ export interface ChannelVideoMembershipEligibilityMetrics {
 }
 
 export interface StudioVideoFilters {
+  page: number;
   limit: number;
   statuses?: string[];
   visibilities?: string[];
@@ -18,7 +19,13 @@ export interface PublicVideoSearchFilters {
   q?: string;
   category?: string;
   tags?: string[];
+  page: number;
   limit: number;
+}
+
+export interface VideoPageResult {
+  items: VideoEntity[];
+  total: number;
 }
 
 export interface PublicVideosByCategoryPageFilters {
@@ -93,15 +100,19 @@ export interface IVideoRepository {
   findStudioByOwnerId(
     ownerId: string,
     filters: StudioVideoFilters,
-  ): Promise<VideoEntity[]>;
+  ): Promise<VideoPageResult>;
   findPublicByChannelId(channelId: string): Promise<VideoEntity[]>;
-  findLatestPublic(limit: number): Promise<VideoEntity[]>;
+  findLatestPublic(page: number, limit: number): Promise<VideoPageResult>;
   findByCategory(category: string, limit: number): Promise<VideoEntity[]>;
   findByCategoryPaged(
     filters: PublicVideosByCategoryPageFilters,
   ): Promise<PublicVideosByCategoryPageResult>;
-  searchPublic(filters: PublicVideoSearchFilters): Promise<VideoEntity[]>;
-  findByChannelIds(channelIds: string[], limit: number): Promise<VideoEntity[]>;
+  searchPublic(filters: PublicVideoSearchFilters): Promise<VideoPageResult>;
+  findByChannelIds(
+    channelIds: string[],
+    page: number,
+    limit: number,
+  ): Promise<VideoPageResult>;
   getAdminChannelVideoMetrics(now: Date): Promise<AdminChannelVideoMetrics>;
   getAdminReportsSummary(now: Date): Promise<AdminReportsSummary>;
   findAdminReports(filters: AdminReportsFilters): Promise<AdminReportsPage>;

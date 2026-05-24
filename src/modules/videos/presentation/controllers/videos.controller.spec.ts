@@ -337,11 +337,15 @@ describe('VideosController', () => {
   });
 
   it('keeps latest discovery routed through latest use case', async () => {
-    getLatestVideosUseCase.execute.mockResolvedValue([]);
+    getLatestVideosUseCase.execute.mockResolvedValue({
+      items: [],
+      pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
+    });
 
-    await controller.latest('20');
+    await controller.latest(undefined, '20');
 
     expect(getLatestVideosUseCase.execute).toHaveBeenCalledWith({
+      page: 1,
       limit: 20,
     });
   });
@@ -485,55 +489,62 @@ describe('VideosController', () => {
   });
 
   it('returns subscribed discovery videos for the current user', async () => {
-    getSubscribedVideosUseCase.execute.mockResolvedValue([
-      {
-        id: 'video-1',
-        channelId: 'channel-1',
-        title: 'Member Feed Video',
-        description: 'Description',
-        category: 'music',
-        tags: ['action'],
-        status: VideoStatus.READY,
-        price: 0,
-        requiredTierLevel: null,
-        thumbnailUrl: null,
-        durationSeconds: 120,
-        resolutions: ['720p'],
-        errorMessage: null,
-        viewCount: 10,
-        publishedAt: new Date('2026-01-01T00:00:00.000Z'),
-        createdAt: new Date('2026-01-01T00:00:00.000Z'),
-        updatedAt: new Date('2026-01-02T00:00:00.000Z'),
-      },
-    ]);
+    getSubscribedVideosUseCase.execute.mockResolvedValue({
+      items: [
+        {
+          id: 'video-1',
+          channelId: 'channel-1',
+          title: 'Member Feed Video',
+          description: 'Description',
+          category: 'music',
+          tags: ['action'],
+          status: VideoStatus.READY,
+          price: 0,
+          requiredTierLevel: null,
+          thumbnailUrl: null,
+          durationSeconds: 120,
+          resolutions: ['720p'],
+          errorMessage: null,
+          viewCount: 10,
+          publishedAt: new Date('2026-01-01T00:00:00.000Z'),
+          createdAt: new Date('2026-01-01T00:00:00.000Z'),
+          updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+        },
+      ],
+      pagination: { page: 1, limit: 50, total: 1, totalPages: 1 },
+    });
 
-    const result = await controller.subscribed('viewer-1', '999');
+    const result = await controller.subscribed('viewer-1', undefined, '999');
 
     expect(getSubscribedVideosUseCase.execute).toHaveBeenCalledWith({
       userId: 'viewer-1',
+      page: 1,
       limit: 50,
     });
-    expect(result).toEqual([
-      {
-        id: 'video-1',
-        channelId: 'channel-1',
-        title: 'Member Feed Video',
-        description: 'Description',
-        category: 'music',
-        tags: ['action'],
-        status: VideoStatus.READY,
-        price: 0,
-        requiredTierLevel: null,
-        thumbnailUrl: null,
-        durationSeconds: 120,
-        resolutions: ['720p'],
-        errorMessage: null,
-        viewCount: 10,
-        publishedAt: '2026-01-01T00:00:00.000Z',
-        createdAt: '2026-01-01T00:00:00.000Z',
-        updatedAt: '2026-01-02T00:00:00.000Z',
-      },
-    ]);
+    expect(result).toMatchObject({
+      data: [
+        {
+          id: 'video-1',
+          channelId: 'channel-1',
+          title: 'Member Feed Video',
+          description: 'Description',
+          category: 'music',
+          tags: ['action'],
+          status: VideoStatus.READY,
+          price: 0,
+          requiredTierLevel: null,
+          thumbnailUrl: null,
+          durationSeconds: 120,
+          resolutions: ['720p'],
+          errorMessage: null,
+          viewCount: 10,
+          publishedAt: '2026-01-01T00:00:00.000Z',
+          createdAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-02T00:00:00.000Z',
+        },
+      ],
+      pagination: { page: 1, limit: 50, total: 1, totalPages: 1 },
+    });
   });
 
   it('uses default page and clamps limit for purchased videos', async () => {
@@ -557,41 +568,45 @@ describe('VideosController', () => {
   });
 
   it('returns studio videos for the current owner with filters', async () => {
-    getStudioVideosUseCase.execute.mockResolvedValue([
-      {
-        id: 'video-1',
-        channelId: 'channel-1',
-        title: 'Draft Video',
-        description: 'Description',
-        category: 'music',
-        tags: ['action'],
-        status: VideoStatus.DRAFT,
-        visibility: VideoVisibility.PRIVATE,
-        price: 100,
-        requiredTierLevel: 2,
-        thumbnailUrl: null,
-        thumbnailSource: 'auto',
-        thumbnailStatus: 'pending',
-        durationSeconds: null,
-        resolutions: [],
-        errorMessage: null,
-        jobStatus: 'waiting',
-        jobStatusMessage: 'Upload initialized',
-        failureReason: null,
-        moderationDetails: null,
-        viewCount: 0,
-        publishedAt: null,
-        isDeleted: false,
-        deletedAt: null,
-        deletedBy: null,
-        deleteReason: null,
-        createdAt: new Date('2026-01-01T00:00:00.000Z'),
-        updatedAt: new Date('2026-01-02T00:00:00.000Z'),
-      },
-    ]);
+    getStudioVideosUseCase.execute.mockResolvedValue({
+      items: [
+        {
+          id: 'video-1',
+          channelId: 'channel-1',
+          title: 'Draft Video',
+          description: 'Description',
+          category: 'music',
+          tags: ['action'],
+          status: VideoStatus.DRAFT,
+          visibility: VideoVisibility.PRIVATE,
+          price: 100,
+          requiredTierLevel: 2,
+          thumbnailUrl: null,
+          thumbnailSource: 'auto',
+          thumbnailStatus: 'pending',
+          durationSeconds: null,
+          resolutions: [],
+          errorMessage: null,
+          jobStatus: 'waiting',
+          jobStatusMessage: 'Upload initialized',
+          failureReason: null,
+          moderationDetails: null,
+          viewCount: 0,
+          publishedAt: null,
+          isDeleted: false,
+          deletedAt: null,
+          deletedBy: null,
+          deleteReason: null,
+          createdAt: new Date('2026-01-01T00:00:00.000Z'),
+          updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+        },
+      ],
+      pagination: { page: 1, limit: 10, total: 1, totalPages: 1 },
+    });
 
     const result = await controller.studioVideos(
       'owner-1',
+      undefined,
       '10',
       'draft,processing',
       'private',
@@ -599,42 +614,46 @@ describe('VideosController', () => {
 
     expect(getStudioVideosUseCase.execute).toHaveBeenCalledWith({
       userId: 'owner-1',
+      page: 1,
       limit: 10,
       statuses: [VideoStatus.DRAFT, VideoStatus.PROCESSING],
       visibilities: [VideoVisibility.PRIVATE],
     });
-    expect(result).toEqual([
-      {
-        id: 'video-1',
-        channelId: 'channel-1',
-        title: 'Draft Video',
-        description: 'Description',
-        category: 'music',
-        tags: ['action'],
-        status: VideoStatus.DRAFT,
-        visibility: VideoVisibility.PRIVATE,
-        price: 100,
-        requiredTierLevel: 2,
-        thumbnailUrl: null,
-        thumbnailSource: 'auto',
-        thumbnailStatus: 'pending',
-        durationSeconds: null,
-        resolutions: [],
-        errorMessage: null,
-        jobStatus: 'waiting',
-        jobStatusMessage: 'Upload initialized',
-        failureReason: null,
-        moderationDetails: null,
-        viewCount: 0,
-        publishedAt: null,
-        isDeleted: false,
-        deletedAt: null,
-        deletedBy: null,
-        deleteReason: null,
-        createdAt: '2026-01-01T00:00:00.000Z',
-        updatedAt: '2026-01-02T00:00:00.000Z',
-      },
-    ]);
+    expect(result).toMatchObject({
+      data: [
+        {
+          id: 'video-1',
+          channelId: 'channel-1',
+          title: 'Draft Video',
+          description: 'Description',
+          category: 'music',
+          tags: ['action'],
+          status: VideoStatus.DRAFT,
+          visibility: VideoVisibility.PRIVATE,
+          price: 100,
+          requiredTierLevel: 2,
+          thumbnailUrl: null,
+          thumbnailSource: 'auto',
+          thumbnailStatus: 'pending',
+          durationSeconds: null,
+          resolutions: [],
+          errorMessage: null,
+          jobStatus: 'waiting',
+          jobStatusMessage: 'Upload initialized',
+          failureReason: null,
+          moderationDetails: null,
+          viewCount: 0,
+          publishedAt: null,
+          isDeleted: false,
+          deletedAt: null,
+          deletedBy: null,
+          deleteReason: null,
+          createdAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-02T00:00:00.000Z',
+        },
+      ],
+      pagination: { page: 1, limit: 10, total: 1, totalPages: 1 },
+    });
   });
 
   it('returns studio video detail for a draft owned by current user', async () => {
@@ -685,39 +704,50 @@ describe('VideosController', () => {
   });
 
   it('maps continue watching rows to DTO shape', async () => {
-    getContinueWatchingUseCase.execute.mockResolvedValue([
-      {
-        videoId: 'video-1',
-        channelId: 'channel-1',
-        title: 'Video',
-        thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
-        durationSeconds: 120,
-        resumePositionSeconds: 45,
-        remainingSeconds: 75,
-        lastWatchedAt: new Date('2026-01-03T00:00:00.000Z'),
-        viewCount: 10,
-      },
-    ]);
+    getContinueWatchingUseCase.execute.mockResolvedValue({
+      items: [
+        {
+          videoId: 'video-1',
+          channelId: 'channel-1',
+          title: 'Video',
+          thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
+          durationSeconds: 120,
+          resumePositionSeconds: 45,
+          remainingSeconds: 75,
+          lastWatchedAt: new Date('2026-01-03T00:00:00.000Z'),
+          viewCount: 10,
+        },
+      ],
+      pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+    });
 
-    const result = await controller.continueWatching('viewer-1', '20');
+    const result = await controller.continueWatching(
+      'viewer-1',
+      undefined,
+      '20',
+    );
 
     expect(getContinueWatchingUseCase.execute).toHaveBeenCalledWith({
       userId: 'viewer-1',
+      page: 1,
       limit: 20,
     });
-    expect(result).toEqual([
-      {
-        videoId: 'video-1',
-        channelId: 'channel-1',
-        title: 'Video',
-        thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
-        durationSeconds: 120,
-        resumePositionSeconds: 45,
-        remainingSeconds: 75,
-        lastWatchedAt: '2026-01-03T00:00:00.000Z',
-        viewCount: 10,
-      },
-    ]);
+    expect(result).toMatchObject({
+      data: [
+        {
+          videoId: 'video-1',
+          channelId: 'channel-1',
+          title: 'Video',
+          thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
+          durationSeconds: 120,
+          resumePositionSeconds: 45,
+          remainingSeconds: 75,
+          lastWatchedAt: '2026-01-03T00:00:00.000Z',
+          viewCount: 10,
+        },
+      ],
+      pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+    });
   });
 });
 

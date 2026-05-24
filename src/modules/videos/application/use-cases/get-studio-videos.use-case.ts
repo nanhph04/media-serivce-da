@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
+import type { PaginatedResponse } from '@shared/application/dtos/paginated.response';
 import type { StudioVideoListItemResponse } from '../dtos/studio-video-list-item.response';
 import type { GetStudioVideosQuery } from '../dtos/studio-videos.query';
 import {
@@ -10,7 +11,7 @@ import {
 @Injectable()
 export class GetStudioVideosUseCase extends BaseUseCase<
   GetStudioVideosQuery,
-  StudioVideoListItemResponse[]
+  PaginatedResponse<StudioVideoListItemResponse>
 > {
   constructor(
     @Inject(VIDEO_QUERY_SERVICE)
@@ -21,8 +22,9 @@ export class GetStudioVideosUseCase extends BaseUseCase<
 
   async execute(
     query: GetStudioVideosQuery,
-  ): Promise<StudioVideoListItemResponse[]> {
+  ): Promise<PaginatedResponse<StudioVideoListItemResponse>> {
     return this.videoQueryService.getStudioVideos(query.userId, {
+      page: query.page,
       limit: query.limit,
       statuses: query.statuses,
       visibilities: query.visibilities,

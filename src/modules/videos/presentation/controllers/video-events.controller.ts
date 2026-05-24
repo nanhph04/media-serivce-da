@@ -16,9 +16,7 @@ export class VideoEventsController {
   @ApiOperation({
     summary: 'Stream current user video processing status changes using SSE',
   })
-  streamVideoEvents(
-    @CurrentUserId() userId: string,
-  ): Observable<MessageEvent> {
+  streamVideoEvents(@CurrentUserId() userId: string): Observable<MessageEvent> {
     return this.videoStatusSseService.streamForUser(userId);
   }
 }

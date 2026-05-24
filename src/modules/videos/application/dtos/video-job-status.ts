@@ -1,4 +1,7 @@
-import { VideoStatus, type VideoModerationDetails } from '../../domain/entities/video.entity';
+import {
+  VideoStatus,
+  type VideoModerationDetails,
+} from '../../domain/entities/video.entity';
 
 export type VideoJobStatus =
   | 'waiting'

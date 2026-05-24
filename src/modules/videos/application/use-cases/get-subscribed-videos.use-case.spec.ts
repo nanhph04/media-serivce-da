@@ -29,19 +29,23 @@ describe('GetSubscribedVideosUseCase', () => {
 
   it('returns an empty list when the user has no active membership channels', async () => {
     channelAccessService.getActiveMembershipChannelIds.mockResolvedValue([]);
-    videoRepository.findByChannelIds.mockResolvedValue([]);
+    videoRepository.findByChannelIds.mockResolvedValue({ items: [], total: 0 });
 
     await expect(
       useCase.execute({
         userId: 'user-1',
+        page: 1,
         limit: 20,
       }),
-    ).resolves.toEqual([]);
+    ).resolves.toEqual({
+      items: [],
+      pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
+    });
 
     expect(
       channelAccessService.getActiveMembershipChannelIds,
     ).toHaveBeenCalledWith('user-1');
-    expect(videoRepository.findByChannelIds).toHaveBeenCalledWith([], 20);
+    expect(videoRepository.findByChannelIds).toHaveBeenCalledWith([], 1, 20);
   });
 
   it('loads recent videos from active membership-backed channels only', async () => {
@@ -49,26 +53,34 @@ describe('GetSubscribedVideosUseCase', () => {
       'channel-1',
       'channel-2',
     ]);
-    videoRepository.findByChannelIds.mockResolvedValue([
-      buildVideoEntity({ id: 'video-1', channelId: 'channel-1' }),
-      buildVideoEntity({ id: 'video-2', channelId: 'channel-2' }),
-    ]);
+    videoRepository.findByChannelIds.mockResolvedValue({
+      items: [
+        buildVideoEntity({ id: 'video-1', channelId: 'channel-1' }),
+        buildVideoEntity({ id: 'video-2', channelId: 'channel-2' }),
+      ],
+      total: 2,
+    });
 
     await expect(
       useCase.execute({
         userId: 'user-1',
+        page: 2,
         limit: 10,
       }),
-    ).resolves.toEqual([
-      buildVideoListItem({ id: 'video-1', channelId: 'channel-1' }),
-      buildVideoListItem({ id: 'video-2', channelId: 'channel-2' }),
-    ]);
+    ).resolves.toEqual({
+      items: [
+        buildVideoListItem({ id: 'video-1', channelId: 'channel-1' }),
+        buildVideoListItem({ id: 'video-2', channelId: 'channel-2' }),
+      ],
+      pagination: { page: 2, limit: 10, total: 2, totalPages: 1 },
+    });
 
     expect(
       channelAccessService.getActiveMembershipChannelIds,
     ).toHaveBeenCalledWith('user-1');
     expect(videoRepository.findByChannelIds).toHaveBeenCalledWith(
       ['channel-1', 'channel-2'],
+      2,
       10,
     );
   });

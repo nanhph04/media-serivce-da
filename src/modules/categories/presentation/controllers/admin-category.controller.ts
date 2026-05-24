@@ -16,10 +16,8 @@ import {
 } from '@shared/presentation/decorators/api-success-response.decorator';
 import { CurrentUserId } from '@shared/presentation/decorators/user-id.decorator';
 import { CurrentUserRole } from '@shared/presentation/decorators/user-role.decorator';
-import {
-  ApiResponse,
-  apiResponseContract,
-} from '@shared/presentation/dto/api-response.dto';
+import { ApiResponse } from '@shared/presentation/dto/api-response.dto';
+import { apiResponseContract } from '@shared/presentation/dto/api-response.dto';
 import { AdminRoleGuard } from '@shared/presentation/guards/admin-role.guard';
 import { InternalGatewayGuard } from '@shared/presentation/guards/internal-gateway.guard';
 import { CreateCategoryUseCase } from '../../application/use-cases/create-category.use-case';
@@ -45,14 +43,26 @@ export class AdminCategoryController {
   @ApiHeader({ name: 'x-user-role', required: true })
   @ApiHeader({ name: 'x-internal-secret', required: true })
   @ApiQuery({ name: 'q', required: false, type: String })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiSuccessResponse(CategoryResponseDto, { isArray: true })
   async getAllCategories(
     @CurrentUserId() _userId: string,
     @CurrentUserRole() _role: string | undefined,
     @Query('q') q?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ): Promise<ApiResponse<CategoryResponseDto[]>> {
-    const categories = await this.getAllCategoriesUseCase.execute({ q });
-    return apiResponseContract(categories.map(toCategoryResponseDto));
+    const categories = await this.getAllCategoriesUseCase.execute({
+      q,
+      page: parsePage(page),
+      limit: parseLimit(limit),
+    });
+    return ApiResponse.success(
+      categories.items.map(toCategoryResponseDto),
+      undefined,
+      categories.pagination,
+    );
   }
 
   @Post()
@@ -115,4 +125,14 @@ export class AdminCategoryController {
 
     return apiResponseContract(toCategoryResponseDto(category));
   }
+}
+
+function parseLimit(limit?: string): number {
+  const parsed = Number(limit) || 20;
+  return Math.min(Math.max(parsed, 1), 50);
+}
+
+function parsePage(page?: string): number {
+  const parsed = Number(page) || 1;
+  return Math.max(parsed, 1);
 }

@@ -237,24 +237,35 @@ describe('VideoQueryService', () => {
   it('returns latest videos from cache without querying database', async () => {
     cacheService.get
       .mockResolvedValueOnce(0)
-      .mockResolvedValueOnce([buildCachedListItem()]);
+      .mockResolvedValueOnce({ items: [buildCachedListItem()], total: 1 });
 
-    const result = await service.getLatestVideos(20);
+    const result = await service.getLatestVideos(1, 20);
 
-    expect(result[0].createdAt).toEqual(new Date('2026-01-01T00:00:00.000Z'));
+    expect(result.items[0].createdAt).toEqual(
+      new Date('2026-01-01T00:00:00.000Z'),
+    );
+    expect(result.pagination).toEqual({
+      page: 1,
+      limit: 20,
+      total: 1,
+      totalPages: 1,
+    });
     expect(videoRepository.findLatestPublic).not.toHaveBeenCalled();
     expect(cacheService.getKeys).not.toHaveBeenCalled();
   });
 
   it('caches latest videos on cache miss', async () => {
     cacheService.get.mockResolvedValueOnce(0).mockResolvedValueOnce(null);
-    videoRepository.findLatestPublic.mockResolvedValue([buildVideo()]);
+    videoRepository.findLatestPublic.mockResolvedValue({
+      items: [buildVideo()],
+      total: 1,
+    });
 
-    await service.getLatestVideos(20);
+    await service.getLatestVideos(1, 20);
 
     expect(cacheService.set).toHaveBeenCalledWith(
-      VIDEO_CACHE_KEYS.latest(0, 20),
-      [buildCachedListItem()],
+      VIDEO_CACHE_KEYS.latest(0, 1, 20),
+      { items: [buildCachedListItem()], total: 1 },
       VIDEO_CACHE_TTL_SECONDS.discoveryList,
     );
   });
@@ -334,46 +345,32 @@ describe('VideoQueryService', () => {
 
   it('searches public videos by keyword and category with short-lived cache', async () => {
     cacheService.get.mockResolvedValueOnce(4).mockResolvedValueOnce(null);
-    videoRepository.searchPublic.mockResolvedValue([buildVideo()]);
+    videoRepository.searchPublic.mockResolvedValue({
+      items: [buildVideo()],
+      total: 1,
+    });
 
     await expect(
       service.searchPublicVideos({
         q: 'piano',
         category: 'music',
+        page: 1,
         limit: 5,
       }),
-    ).resolves.toEqual([
-      {
-        id: 'video-1',
-        channelId: 'channel-1',
-        title: 'Video',
-        description: 'Description',
-        category: 'music',
-        tags: ['action'],
-        status: VideoStatus.READY,
-        price: 0,
-        requiredTierLevel: null,
-        thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
-        thumbnailSource: VideoThumbnailSource.AUTO,
-        thumbnailStatus: VideoThumbnailStatus.READY,
-        durationSeconds: 120,
-        resolutions: ['720p'],
-        errorMessage: null,
-        viewCount: 10,
-        publishedAt: new Date('2026-01-01T00:00:00.000Z'),
-        createdAt: new Date('2026-01-01T00:00:00.000Z'),
-        updatedAt: new Date('2026-01-02T00:00:00.000Z'),
-      },
-    ]);
+    ).resolves.toMatchObject({
+      items: [{ id: 'video-1' }],
+      pagination: { page: 1, limit: 5, total: 1, totalPages: 1 },
+    });
 
     expect(videoRepository.searchPublic).toHaveBeenCalledWith({
       q: 'piano',
       category: 'music',
+      page: 1,
       limit: 5,
     });
     expect(cacheService.set).toHaveBeenCalledWith(
-      VIDEO_CACHE_KEYS.publicSearch(4, 'piano', 'music', undefined, 5),
-      [buildCachedListItem()],
+      VIDEO_CACHE_KEYS.publicSearch(4, 'piano', 'music', undefined, 1, 5),
+      { items: [buildCachedListItem()], total: 1 },
       VIDEO_CACHE_TTL_SECONDS.publicSearch,
     );
   });
@@ -381,14 +378,17 @@ describe('VideoQueryService', () => {
   it('returns search results from cache without querying repository', async () => {
     cacheService.get
       .mockResolvedValueOnce(2)
-      .mockResolvedValueOnce([buildCachedListItem()]);
+      .mockResolvedValueOnce({ items: [buildCachedListItem()], total: 1 });
 
     const result = await service.searchPublicVideos({
       q: 'piano',
+      page: 1,
       limit: 3,
     });
 
-    expect(result[0].updatedAt).toEqual(new Date('2026-01-02T00:00:00.000Z'));
+    expect(result.items[0].updatedAt).toEqual(
+      new Date('2026-01-02T00:00:00.000Z'),
+    );
     expect(videoRepository.searchPublic).not.toHaveBeenCalled();
     expect(cacheService.get).toHaveBeenNthCalledWith(
       1,
@@ -396,59 +396,36 @@ describe('VideoQueryService', () => {
     );
     expect(cacheService.get).toHaveBeenNthCalledWith(
       2,
-      VIDEO_CACHE_KEYS.publicSearch(2, 'piano', undefined, undefined, 3),
+      VIDEO_CACHE_KEYS.publicSearch(2, 'piano', undefined, undefined, 1, 3),
     );
   });
 
   it('returns studio videos directly from repository without discovery cache', async () => {
-    videoRepository.findStudioByOwnerId.mockResolvedValue([
-      buildVideo({
-        status: VideoStatus.DRAFT,
-        visibility: VideoVisibility.PRIVATE,
-      }),
-    ]);
+    videoRepository.findStudioByOwnerId.mockResolvedValue({
+      items: [
+        buildVideo({
+          status: VideoStatus.DRAFT,
+          visibility: VideoVisibility.PRIVATE,
+        }),
+      ],
+      total: 1,
+    });
 
     await expect(
       service.getStudioVideos('owner-1', {
+        page: 1,
         limit: 20,
         statuses: [VideoStatus.DRAFT],
         visibilities: [VideoVisibility.PRIVATE],
       }),
-    ).resolves.toEqual([
-      {
-        id: 'video-1',
-        channelId: 'channel-1',
-        title: 'Video',
-        description: 'Description',
-        category: 'music',
-        tags: ['action'],
-        status: VideoStatus.DRAFT,
-        jobStatus: 'waiting',
-        jobStatusMessage: 'Upload initialized',
-        failureReason: null,
-        moderationDetails: null,
-        visibility: VideoVisibility.PRIVATE,
-        price: 0,
-        requiredTierLevel: null,
-        thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
-        thumbnailSource: VideoThumbnailSource.AUTO,
-        thumbnailStatus: VideoThumbnailStatus.READY,
-        durationSeconds: 120,
-        resolutions: ['720p'],
-        errorMessage: null,
-        viewCount: 10,
-        publishedAt: new Date('2026-01-01T00:00:00.000Z'),
-        isDeleted: false,
-        deletedAt: null,
-        deletedBy: null,
-        deleteReason: null,
-        createdAt: new Date('2026-01-01T00:00:00.000Z'),
-        updatedAt: new Date('2026-01-02T00:00:00.000Z'),
-      },
-    ]);
+    ).resolves.toMatchObject({
+      items: [{ id: 'video-1', status: VideoStatus.DRAFT }],
+      pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+    });
     expect(videoRepository.findStudioByOwnerId).toHaveBeenCalledWith(
       'owner-1',
       {
+        page: 1,
         limit: 20,
         statuses: [VideoStatus.DRAFT],
         visibilities: [VideoVisibility.PRIVATE],
@@ -458,13 +435,16 @@ describe('VideoQueryService', () => {
 
   it('switches to a versioned latest cache key when the version changes', async () => {
     cacheService.get.mockResolvedValueOnce(3).mockResolvedValueOnce(null);
-    videoRepository.findLatestPublic.mockResolvedValue([buildVideo()]);
+    videoRepository.findLatestPublic.mockResolvedValue({
+      items: [buildVideo()],
+      total: 1,
+    });
 
-    await service.getLatestVideos(20);
+    await service.getLatestVideos(1, 20);
 
     expect(cacheService.set).toHaveBeenCalledWith(
-      VIDEO_CACHE_KEYS.latest(3, 20),
-      [buildCachedListItem()],
+      VIDEO_CACHE_KEYS.latest(3, 1, 20),
+      { items: [buildCachedListItem()], total: 1 },
       VIDEO_CACHE_TTL_SECONDS.discoveryList,
     );
   });
@@ -490,31 +470,39 @@ describe('VideoQueryService', () => {
       where: jest.fn(),
       andWhere: jest.fn(),
       orderBy: jest.fn(),
-      take: jest.fn(),
+      offset: jest.fn(),
+      limit: jest.fn(),
       select: jest.fn(),
+      getCount: jest.fn().mockResolvedValue(1),
       getRawMany,
     };
     queryBuilder.innerJoin.mockReturnValue(queryBuilder);
     queryBuilder.where.mockReturnValue(queryBuilder);
     queryBuilder.andWhere.mockReturnValue(queryBuilder);
     queryBuilder.orderBy.mockReturnValue(queryBuilder);
-    queryBuilder.take.mockReturnValue(queryBuilder);
+    queryBuilder.offset.mockReturnValue(queryBuilder);
+    queryBuilder.limit.mockReturnValue(queryBuilder);
     queryBuilder.select.mockReturnValue(queryBuilder);
     createQueryBuilder.mockReturnValue(queryBuilder);
 
-    await expect(service.getContinueWatching('viewer-1', 20)).resolves.toEqual([
-      {
-        videoId: 'video-1',
-        channelId: 'channel-1',
-        title: 'Video',
-        thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
-        durationSeconds: 120,
-        resumePositionSeconds: 45,
-        remainingSeconds: 75,
-        lastWatchedAt: new Date('2026-01-03T00:00:00.000Z'),
-        viewCount: 10,
-      },
-    ]);
+    await expect(
+      service.getContinueWatching('viewer-1', 1, 20),
+    ).resolves.toEqual({
+      items: [
+        {
+          videoId: 'video-1',
+          channelId: 'channel-1',
+          title: 'Video',
+          thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
+          durationSeconds: 120,
+          resumePositionSeconds: 45,
+          remainingSeconds: 75,
+          lastWatchedAt: new Date('2026-01-03T00:00:00.000Z'),
+          viewCount: 10,
+        },
+      ],
+      pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+    });
   });
 
   it('returns channel membership eligibility metrics from repository', async () => {

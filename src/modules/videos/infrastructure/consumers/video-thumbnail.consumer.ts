@@ -33,7 +33,9 @@ export class VideoThumbnailConsumer implements OnModuleInit {
       },
     );
 
-    await this.kafkaService.on<IIntegrationEvent<VideoThumbnailFailedEventData>>(
+    await this.kafkaService.on<
+      IIntegrationEvent<VideoThumbnailFailedEventData>
+    >(
       this.configService.get<string>(
         'KAFKA_VIDEO_THUMBNAIL_FAILED_TOPIC',
         'video.thumbnail.failed',

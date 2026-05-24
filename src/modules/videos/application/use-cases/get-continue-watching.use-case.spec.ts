@@ -16,11 +16,13 @@ describe('GetContinueWatchingUseCase', () => {
 
     await useCase.execute({
       userId: 'viewer-1',
+      page: 1,
       limit: 20,
     });
 
     expect(videoQueryService.getContinueWatching).toHaveBeenCalledWith(
       'viewer-1',
+      1,
       20,
     );
   });

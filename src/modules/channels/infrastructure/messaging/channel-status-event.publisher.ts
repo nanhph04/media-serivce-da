@@ -11,9 +11,7 @@ import type {
 } from '../../application/interfaces/channel-status-event.publisher.interface';
 
 @Injectable()
-export class ChannelStatusEventPublisher
-  implements IChannelStatusEventPublisher
-{
+export class ChannelStatusEventPublisher implements IChannelStatusEventPublisher {
   constructor(
     @Inject(EVENT_PUBLISHER)
     private readonly eventPublisher: IEventPublisher,

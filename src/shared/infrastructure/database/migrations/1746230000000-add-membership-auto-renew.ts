@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddMembershipAutoRenew1746230000000
-  implements MigrationInterface
-{
+export class AddMembershipAutoRenew1746230000000 implements MigrationInterface {
   public readonly name = 'AddMembershipAutoRenew1746230000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

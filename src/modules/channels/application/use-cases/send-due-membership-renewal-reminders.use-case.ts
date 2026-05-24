@@ -53,12 +53,13 @@ export class SendDueMembershipRenewalRemindersUseCase extends BaseUseCase<
     const reminderBefore = new Date(
       input.now.getTime() + input.reminderHours * 60 * 60 * 1000,
     );
-    const memberships =
-      await this.membershipRepository.findDueRenewalReminders({
+    const memberships = await this.membershipRepository.findDueRenewalReminders(
+      {
         now: input.now,
         reminderBefore,
         limit: input.limit,
-      });
+      },
+    );
     let sent = 0;
     let skipped = 0;
 

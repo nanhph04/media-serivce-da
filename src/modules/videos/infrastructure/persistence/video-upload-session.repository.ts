@@ -11,9 +11,7 @@ import { VideoUploadPartOrmEntity } from './video-upload-part.orm-entity';
 import { VideoUploadSessionOrmEntity } from './video-upload-session.orm-entity';
 
 @Injectable()
-export class VideoUploadSessionRepository
-  implements IVideoUploadSessionRepository
-{
+export class VideoUploadSessionRepository implements IVideoUploadSessionRepository {
   constructor(
     @InjectRepository(VideoUploadSessionOrmEntity)
     private readonly sessionRepository: Repository<VideoUploadSessionOrmEntity>,

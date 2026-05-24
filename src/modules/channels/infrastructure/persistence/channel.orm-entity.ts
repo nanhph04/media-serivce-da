@@ -63,7 +63,11 @@ export class ChannelOrmEntity {
   @Column({ type: 'timestamp', name: 'membership_reviewed_at', nullable: true })
   membershipReviewedAt!: Date | null;
 
-  @Column({ type: 'timestamp', name: 'membership_requested_at', nullable: true })
+  @Column({
+    type: 'timestamp',
+    name: 'membership_requested_at',
+    nullable: true,
+  })
   membershipRequestedAt!: Date | null;
 
   @CreateDateColumn({ name: 'created_at' })

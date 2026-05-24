@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CacheService } from '@shared/infrastructure/cache/cache.service';
-import { In, Repository } from 'typeorm';
+import { In, Repository, SelectQueryBuilder } from 'typeorm';
 import {
   Category,
   CategoryStatus,
@@ -81,6 +81,33 @@ export class CategoryRepositoryImpl implements ICategoryRepository {
     return rows.map((row) => this.toDomain(row));
   }
 
+  async findAllPaged(
+    page: number,
+    limit: number,
+  ): Promise<{ items: Category[]; total: number }> {
+    const [rows, total] = await this.ormRepository.findAndCount({
+      order: { displayOrder: 'ASC', name: 'ASC', createdAt: 'ASC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return { items: rows.map((row) => this.toDomain(row)), total };
+  }
+
+  async findActivePaged(
+    page: number,
+    limit: number,
+  ): Promise<{ items: Category[]; total: number }> {
+    const [rows, total] = await this.ormRepository.findAndCount({
+      where: { status: CategoryStatus.ACTIVE },
+      order: { displayOrder: 'ASC', name: 'ASC', createdAt: 'ASC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return { items: rows.map((row) => this.toDomain(row)), total };
+  }
+
   async searchAll(keyword: string): Promise<Category[]> {
     const normalizedKeyword = keyword.trim().toLowerCase();
 
@@ -90,6 +117,20 @@ export class CategoryRepositoryImpl implements ICategoryRepository {
 
     const rows = await this.searchByKeyword(normalizedKeyword);
     return rows.map((row) => this.toDomain(row));
+  }
+
+  async searchAllPaged(
+    keyword: string,
+    page: number,
+    limit: number,
+  ): Promise<{ items: Category[]; total: number }> {
+    const normalizedKeyword = keyword.trim().toLowerCase();
+
+    if (!normalizedKeyword) {
+      return this.findAllPaged(page, limit);
+    }
+
+    return this.searchByKeywordPaged(normalizedKeyword, page, limit);
   }
 
   async searchActive(keyword: string): Promise<Category[]> {
@@ -105,6 +146,25 @@ export class CategoryRepositoryImpl implements ICategoryRepository {
     );
 
     return rows.map((row) => this.toDomain(row));
+  }
+
+  async searchActivePaged(
+    keyword: string,
+    page: number,
+    limit: number,
+  ): Promise<{ items: Category[]; total: number }> {
+    const normalizedKeyword = keyword.trim().toLowerCase();
+
+    if (!normalizedKeyword) {
+      return this.findActivePaged(page, limit);
+    }
+
+    return this.searchByKeywordPaged(
+      normalizedKeyword,
+      page,
+      limit,
+      CategoryStatus.ACTIVE,
+    );
   }
 
   async findBySlugs(slugs: string[]): Promise<Category[]> {
@@ -158,6 +218,47 @@ export class CategoryRepositoryImpl implements ICategoryRepository {
       .orderBy('category.name', 'ASC')
       .addOrderBy('category.createdAt', 'ASC')
       .getMany();
+  }
+
+  private async searchByKeywordPaged(
+    normalizedKeyword: string,
+    page: number,
+    limit: number,
+    status?: CategoryStatus,
+  ): Promise<{ items: Category[]; total: number }> {
+    const [rows, total] = await this.buildSearchByKeywordQuery(
+      normalizedKeyword,
+      status,
+    )
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    return { items: rows.map((row) => this.toDomain(row)), total };
+  }
+
+  private buildSearchByKeywordQuery(
+    normalizedKeyword: string,
+    status?: CategoryStatus,
+  ): SelectQueryBuilder<CategoryOrmEntity> {
+    const partial = `%${escapeLikePattern(normalizedKeyword)}%`;
+    const queryBuilder = this.ormRepository
+      .createQueryBuilder('category')
+      .where(
+        `(
+          LOWER(category.name) LIKE :partial ESCAPE '\\'
+          OR LOWER(category.slug) LIKE :partial ESCAPE '\\'
+        )`,
+        { partial },
+      );
+
+    if (status) {
+      queryBuilder.andWhere('category.status = :status', { status });
+    }
+
+    return queryBuilder
+      .orderBy('category.name', 'ASC')
+      .addOrderBy('category.createdAt', 'ASC');
   }
 
   private toDomain(row: CategoryOrmEntity): Category {

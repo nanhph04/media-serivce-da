@@ -88,7 +88,9 @@ describe('HandleVideoProcessedSuccessUseCase', () => {
       'raw',
       'raw/video.mp4',
     );
-    expect(videoStatusEventPublisher.publishVideoStatusChanged).toHaveBeenCalledWith(
+    expect(
+      videoStatusEventPublisher.publishVideoStatusChanged,
+    ).toHaveBeenCalledWith(
       expect.objectContaining({
         videoId: 'video-1',
         userId: 'owner-1',
@@ -124,7 +126,9 @@ describe('HandleVideoProcessedSuccessUseCase', () => {
   });
 
   it('keeps the video ready when raw deletion fails', async () => {
-    objectStorageService.deleteObject.mockRejectedValue(new Error('MinIO down'));
+    objectStorageService.deleteObject.mockRejectedValue(
+      new Error('MinIO down'),
+    );
     videoRepository.findById.mockResolvedValue(
       buildVideo({ status: VideoStatus.PROCESSING }),
     );

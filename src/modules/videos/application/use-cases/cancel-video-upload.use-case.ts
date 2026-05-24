@@ -50,11 +50,10 @@ export class CancelVideoUploadUseCase extends BaseUseCase<
 
     video.assertDraftUploadMutable();
     if (command.uploadId) {
-      const session =
-        await this.uploadSessionRepository.findByVideoAndUploadId(
-          video.id,
-          command.uploadId,
-        );
+      const session = await this.uploadSessionRepository.findByVideoAndUploadId(
+        video.id,
+        command.uploadId,
+      );
       if (session && session.status === VideoUploadSessionStatus.ACTIVE) {
         await this.objectStorageService.abortMultipartUpload({
           bucket: 'raw',

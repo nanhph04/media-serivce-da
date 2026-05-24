@@ -80,4 +80,34 @@ export class MembershipTierRepositoryImpl implements IMembershipTierRepository {
         }),
     );
   }
+
+  async findByChannelIdPaged(
+    channelId: string,
+    page: number,
+    limit: number,
+  ): Promise<{ items: MembershipTierEntity[]; total: number }> {
+    const [ormEntities, total] = await this.ormRepository.findAndCount({
+      where: { channelId },
+      order: { level: 'ASC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return {
+      items: ormEntities.map(
+        (ormEntity) =>
+          new MembershipTierEntity({
+            id: ormEntity.id,
+            channelId: ormEntity.channelId,
+            name: ormEntity.name,
+            level: ormEntity.level,
+            priceCoin: ormEntity.priceCoin,
+            isAcceptingNew: ormEntity.isAcceptingNew,
+            createdAt: ormEntity.createdAt,
+            updatedAt: ormEntity.updatedAt,
+          }),
+      ),
+      total,
+    };
+  }
 }

@@ -6,9 +6,10 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiHeader, ApiTags } from '@nestjs/swagger';
+import { ApiHeader, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ApiCreatedSuccessResponse } from '@shared/presentation/decorators/api-success-response.decorator';
 import { ApiSuccessResponse } from '@shared/presentation/decorators/api-success-response.decorator';
 import { CurrentUserId } from '@shared/presentation/decorators/user-id.decorator';
@@ -41,14 +42,24 @@ export class MembershipTierController {
   ) {}
 
   @Get()
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiSuccessResponse(MembershipTierResponseDto, { isArray: true })
   async getMembershipTiers(
     @Param('channelId') channelId: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ): Promise<ApiResponse<MembershipTierResponseDto[]>> {
     const appResult = await this.getMembershipTiersUseCase.execute({
       channelId,
+      page: this.parsePage(page),
+      limit: this.parseLimit(limit),
     });
-    return apiResponseContract(appResult.map(toMembershipTierResponseDto));
+    return ApiResponse.success(
+      appResult.items.map(toMembershipTierResponseDto),
+      undefined,
+      appResult.pagination,
+    );
   }
 
   @Get(':tierId')
@@ -113,5 +124,15 @@ export class MembershipTierController {
       userId,
     });
     return apiResponseContract(toMembershipTierResponseDto(appResult));
+  }
+
+  private parseLimit(limit?: string): number {
+    const parsed = Number(limit) || 20;
+    return Math.min(Math.max(parsed, 1), 50);
+  }
+
+  private parsePage(page?: string): number {
+    const parsed = Number(page) || 1;
+    return Math.max(parsed, 1);
   }
 }

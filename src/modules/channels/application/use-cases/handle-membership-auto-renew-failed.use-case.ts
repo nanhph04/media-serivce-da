@@ -38,10 +38,7 @@ export class HandleMembershipAutoRenewFailedUseCase extends BaseUseCase<
         3,
       ),
       retryDelayHours: command.data.retryable
-        ? this.configService.getNumber(
-            'MEMBERSHIP_RENEW_RETRY_DELAY_HOURS',
-            12,
-          )
+        ? this.configService.getNumber('MEMBERSHIP_RENEW_RETRY_DELAY_HOURS', 12)
         : 0,
     });
 

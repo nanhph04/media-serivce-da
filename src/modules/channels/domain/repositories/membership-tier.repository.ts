@@ -8,4 +8,9 @@ export interface IMembershipTierRepository {
   delete(id: string): Promise<void>;
   findById(id: string): Promise<MembershipTierEntity | null>;
   findByChannelId(channelId: string): Promise<MembershipTierEntity[]>;
+  findByChannelIdPaged(
+    channelId: string,
+    page: number,
+    limit: number,
+  ): Promise<{ items: MembershipTierEntity[]; total: number }>;
 }

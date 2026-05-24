@@ -65,9 +65,13 @@ export class StartVideoUploadUseCase extends BaseUseCase<
     super();
   }
 
-  async execute(command: StartVideoUploadCommand): Promise<StartVideoUploadResponse> {
+  async execute(
+    command: StartVideoUploadCommand,
+  ): Promise<StartVideoUploadResponse> {
     if (command.fileSize <= 0) {
-      throw new BadRequestException('Video file size must be greater than zero');
+      throw new BadRequestException(
+        'Video file size must be greater than zero',
+      );
     }
 
     const maxVideoUploadSizeBytes =
@@ -158,7 +162,8 @@ export class StartVideoUploadUseCase extends BaseUseCase<
       throw new BadRequestException('Exactly one category is required');
     }
 
-    const category = await this.categoryRepository.findById(normalizedCategoryId);
+    const category =
+      await this.categoryRepository.findById(normalizedCategoryId);
     if (!category || category.status !== CategoryStatus.ACTIVE) {
       throw new BadRequestException('Category is invalid');
     }

@@ -1,6 +1,6 @@
 # Media Service API
 
-**Last updated:** 17/05/2026
+**Last updated:** 24/05/2026
 
 **Base URL:** `/api/media`
 
@@ -345,13 +345,16 @@
 
 ## 3. MEMBERSHIP TIER APIs
 
-### 3.1 GET `/api/media/channels/:channelId/membership-tiers`
+### 3.1 GET `/api/media/channels/:channelId/membership-tiers?page=1&limit=20`
 
 - Muc dich: lay danh sach tier cua channel.
 - Header:
   - `x-internal-secret`: He thong tu set
 - Path param:
   - `channelId` (string)
+- Query:
+  - `page` (number, optional, default 1, min 1)
+  - `limit` (number, optional, default 20, min 1, max 50)
 - Response HTTP 200:
   - Envelope `data`: array, moi object gom:
     - `id` (string)
@@ -362,6 +365,7 @@
     - `isAcceptingNew` (boolean)
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
+  - Envelope `pagination`: `page`, `limit`, `total`, `totalPages`
 
 ### 3.2 GET `/api/media/channels/:channelId/membership-tiers/:tierId`
 
@@ -572,13 +576,14 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
 }
 ```
 
-### 4.0 GET `/api/media/studio/videos?limit=20&status=draft,processing&visibility=private`
+### 4.0 GET `/api/media/studio/videos?page=1&limit=20&status=draft,processing&visibility=private`
 
 - Muc dich: lay danh sach video Studio cua chinh creator hien tai, gom ca draft/private/trang thai xu ly.
 - Header:
   - `x-user-id`: He thong tu set
   - `x-internal-secret`: He thong tu set
 - Query:
+  - `page` (number, optional, default 1, min 1)
   - `limit` (number, optional, default 20, min 1, max 50)
   - `status` (string, optional): danh sach status phan tach bang dau phay. Gia tri hop le: `draft`, `pending_moderation`, `processing`, `pending_manual_review`, `rejected`, `ready`, `failed`
   - `visibility` (string, optional): danh sach visibility phan tach bang dau phay. Gia tri hop le: `public`, `private`
@@ -586,7 +591,7 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
   - `userId`: lay tu header `x-user-id`
 - Ghi chu:
   - Endpoint nay chi tra video owner hien tai.
-  - Hien tai chua ho tro cursor pagination; dung `limit` + filter don gian.
+  - Ho tro offset pagination bang `page` + `limit`.
   - Gia tri `status`/`visibility` khong hop le se bi bo qua khi parse.
 - Response HTTP 200:
   - Envelope `data`: array, moi object gom:
@@ -618,6 +623,7 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
     - `deleteReason` (string | null)
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
+  - Envelope `pagination`: `page`, `limit`, `total`, `totalPages`
 
 ### 4.0B GET `/api/media/studio/videos/:id`
 
@@ -638,7 +644,7 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
 - Response HTTP 200:
   - Envelope `data`: object cung shape voi item cua `GET /api/media/studio/videos`, gom `status`, `jobStatus`, `jobStatusMessage`, `failureReason`, `moderationDetails`, thumbnail fields, delete fields va timestamps.
 
-### 4.0A GET `/api/media/videos?q=...&category=...&tags=tag1,tag2&limit=20`
+### 4.0A GET `/api/media/videos?q=...&category=...&tags=tag1,tag2&page=1&limit=20`
 
 - Muc dich: tim kiem/list public videos truc tiep tu video controller.
 - Public API: khong can `x-internal-secret`.
@@ -646,6 +652,7 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
   - `q` (string, optional): keyword search.
   - `category` (string, optional): category slug.
   - `tags` (string, optional): danh sach tag slug/name phan tach bang dau phay; backend trim, bo rong, va unique.
+  - `page` (number, optional, default 1, min 1)
   - `limit` (number, optional, default 20, min 1, max 50)
 - Ghi chu:
   - Endpoint nay chi tra public videos co the expose cho discovery.
@@ -671,6 +678,7 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
     - `publishedAt` (string ISO | null)
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
+  - Envelope `pagination`: `page`, `limit`, `total`, `totalPages`
 
 ### 4.1 POST `/api/media/studio/videos/uploads`
 
@@ -1060,13 +1068,15 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
     - `deleteReason` (string | null)
     - `updatedAt` (string ISO)
 
-### 4.12 GET `/api/media/videos/latest?limit=20`
+### 4.12 GET `/api/media/videos/latest?page=1&limit=20`
 
 - Muc dich: lay danh sach video moi nhat.
 - Public API: khong can `x-internal-secret`.
 - Query:
+  - `page` (number, optional, default 1, min 1)
   - `limit` (number, optional, default 20, min 1, max 50)
 - He thong tu set them khi xu ly:
+  - Neu thieu `page` thi he thong dung `1`
   - Neu thieu `limit` thi he thong dung `20`
 - Response HTTP 200:
   - Envelope `data`: array, moi object gom:
@@ -1089,6 +1099,7 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
     - `publishedAt` (string ISO | null)
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
+  - Envelope `pagination`: `page`, `limit`, `total`, `totalPages`
 
 ### 4.13 GET `/api/media/me/videos/purchased?page=1&limit=20`
 
@@ -1222,16 +1233,18 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
     - `total` (number)
     - `totalPages` (number)
 
-### 4.16 GET `/api/media/me/videos/subscribed?limit=20`
+### 4.16 GET `/api/media/me/videos/subscribed?page=1&limit=20`
 
 - Muc dich: lay video public moi tu cac channel ma user dang co membership active.
 - Header:
   - `x-user-id`: He thong tu set
   - `x-internal-secret`: He thong tu set
 - Query:
+  - `page` (number, optional, default 1, min 1)
   - `limit` (number, optional, default 20, min 1, max 50)
 - He thong tu set them khi xu ly:
   - `userId`: lay tu header `x-user-id`
+  - Neu thieu `page` thi he thong dung `1`
   - Neu thieu `limit` thi he thong dung `20`
 - Ghi chu:
   - Endpoint nay phuc vu discovery/feed, co the dung cho section "Video moi tu kenh ban theo doi".
@@ -1259,17 +1272,20 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
     - `publishedAt` (string ISO | null)
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
+  - Envelope `pagination`: `page`, `limit`, `total`, `totalPages`
 
-### 4.17 GET `/api/media/me/videos/continue-watching?limit=20`
+### 4.17 GET `/api/media/me/videos/continue-watching?page=1&limit=20`
 
 - Muc dich: lay danh sach video user dang xem do de hien thi muc xem tiep.
 - Header:
   - `x-user-id`: He thong tu set
   - `x-internal-secret`: He thong tu set
 - Query:
+  - `page` (number, optional, default 1, min 1)
   - `limit` (number, optional, default 20, min 1, max 50)
 - He thong tu set them khi xu ly:
   - `userId`: lay tu header `x-user-id`
+  - Neu thieu `page` thi he thong dung `1`
   - Neu thieu `limit` thi he thong dung `20`
 - Ghi chu:
   - Chi lay cac ban ghi co progress chua hoan tat.
@@ -1284,6 +1300,7 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
     - `remainingSeconds` (number | null)
     - `lastWatchedAt` (string ISO)
     - `viewCount` (number)
+  - Envelope `pagination`: `page`, `limit`, `total`, `totalPages`
 
 ### 4.18 POST `/api/media/videos/:id/reports`
 
@@ -1340,7 +1357,7 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
 
 ## 5. SEARCH APIs
 
-### 5.1 GET `/api/media/search?q=...&category=...&limit=20`
+### 5.1 GET `/api/media/search?q=...&category=...&page=1&limit=20`
 
 - Muc dich: tim kiem tong hop public videos va channels.
 - Public API: khong can `x-internal-secret`.
@@ -1349,6 +1366,7 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
     - video: `title`, `description`
     - channel: `name`, `bio`
   - `category` (string, optional, max 100): category slug. Input duoc normalize ve slug.
+  - `page` (number, optional, default 1, min 1): ap dung cho danh sach `videos`.
   - `limit` (number, optional, default 20, min 1, max 50)
 - Quy tac:
   - Bat buoc phai co it nhat mot trong `q` hoac `category`, neu khong tra `BAD_REQUEST` / HTTP 400.
@@ -1375,7 +1393,9 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
     - `query` (object)
       - `q` (string | null)
       - `category` (string | null)
+      - `page` (number)
       - `limit` (number)
+  - Envelope `pagination`: pagination cua danh sach `videos` (`page`, `limit`, `total`, `totalPages`). `channels` van lay toi da `limit` item theo keyword, khong co total rieng.
 
 ## 6. STREAMING APIs
 
@@ -1410,12 +1430,14 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
 
 ## 7. CATEGORY APIs
 
-### 7.1 GET `/api/media/categories?q=...`
+### 7.1 GET `/api/media/categories?q=...&page=1&limit=20`
 
 - Muc dich: lay danh sach category public dang ACTIVE, co ho tro search.
 - Public API: khong can `x-internal-secret`.
 - Query:
   - `q` (string, optional): keyword search theo `name` hoac `slug`.
+  - `page` (number, optional, default 1, min 1)
+  - `limit` (number, optional, default 20, min 1, max 50)
 - Ghi chu:
   - Endpoint nay chi tra category co `status = active`.
   - Neu khong truyen `q` thi tra tat ca category active.
@@ -1432,8 +1454,9 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
     - `displayOrder` (number)
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
+  - Envelope `pagination`: `page`, `limit`, `total`, `totalPages`
 
-### 7.2 GET `/api/media/admin/categories?q=...`
+### 7.2 GET `/api/media/admin/categories?q=...&page=1&limit=20`
 
 - Muc dich: admin lay tat ca category hoac search category, gom ACTIVE, INACTIVE, DELETED.
 - Header:
@@ -1442,6 +1465,8 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
   - `x-internal-secret`: He thong tu set
 - Query:
   - `q` (string, optional): keyword search theo `name` hoac `slug`.
+  - `page` (number, optional, default 1, min 1)
+  - `limit` (number, optional, default 20, min 1, max 50)
 - Ghi chu:
   - Neu thieu role hoac role khac `admin` thi tra `FORBIDDEN` / HTTP 403 voi message `Admin role is required`.
   - Neu khong truyen `q` thi tra tat ca category moi status.
@@ -1459,6 +1484,7 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
     - `displayOrder` (number)
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
+  - Envelope `pagination`: `page`, `limit`, `total`, `totalPages`
 
 ### 7.3 POST `/api/media/admin/categories`
 
@@ -1525,12 +1551,14 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
 
 ## 8. TAG APIs
 
-### 8.1 GET `/api/media/tags?q=...`
+### 8.1 GET `/api/media/tags?q=...&page=1&limit=20`
 
 - Muc dich: lay danh sach tag public dang ACTIVE, co ho tro search.
 - Public API: khong can `x-internal-secret`.
 - Query:
   - `q` (string, optional): keyword search theo `name` hoac `slug`.
+  - `page` (number, optional, default 1, min 1)
+  - `limit` (number, optional, default 20, min 1, max 50)
 - Response HTTP 200:
   - Envelope `data`: array, moi object gom:
     - `id` (string)
@@ -1539,16 +1567,22 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
     - `status` (`active`)
     - `createdAt` (string ISO)
     - `updatedAt` (string ISO)
+  - Envelope `pagination`: `page`, `limit`, `total`, `totalPages`
 
-### 8.2 GET `/api/media/admin/tags?q=...`
+### 8.2 GET `/api/media/admin/tags?q=...&page=1&limit=20`
 
 - Muc dich: admin lay tat ca tag hoac search tag, gom `active`, `inactive`, `pending`, `deleted`.
 - Header:
   - `x-user-id`: He thong tu set
   - `x-user-role`: Bat buoc la `admin`
   - `x-internal-secret`: He thong tu set
+- Query:
+  - `q` (string, optional): keyword search theo `name` hoac `slug`.
+  - `page` (number, optional, default 1, min 1)
+  - `limit` (number, optional, default 20, min 1, max 50)
 - Response HTTP 200:
   - Envelope `data`: array tag.
+  - Envelope `pagination`: `page`, `limit`, `total`, `totalPages`
 
 ### 8.3 POST `/api/media/admin/tags`
 
@@ -1611,7 +1645,7 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
     - `items` (array), moi object gom channel summary fields: `id`, `userId`, `name`, `bio`, `status`, membership review fields, avatar/banner, timestamps.
     - `pagination`: `page`, `limit`, `total`, `totalPages`
 
-### 9.3 GET `/api/media/admin/channels/membership-reviews?status=pending`
+### 9.3 GET `/api/media/admin/channels/membership-reviews?status=pending&page=1&limit=20`
 
 - Muc dich: admin lay danh sach channel theo trang thai duyet membership.
 - Header:
@@ -1620,6 +1654,8 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
   - `x-internal-secret`: He thong tu set
 - Query:
   - `status` (`pending` | `approved` | `rejected`, optional, default `pending`)
+  - `page` (number, optional, default 1, min 1)
+  - `limit` (number, optional, default 20, min 1, max 50)
 - Ghi chu:
   - Channel vao danh sach `pending` khi creator goi `POST /api/media/channels/:id/membership-review-requests` va channel du dieu kien.
   - Neu thieu role hoac role khac `admin` thi tra `FORBIDDEN` / HTTP 403 voi message `Admin role is required`.
@@ -1639,6 +1675,7 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
     - `minReadyVideoCount` (number)
     - `totalVideoViews` (number)
     - `minTotalVideoViews` (number)
+  - Envelope `pagination`: `page`, `limit`, `total`, `totalPages`
 
 ### 9.4 PATCH `/api/media/admin/channels/:id/membership-review`
 

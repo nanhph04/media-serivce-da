@@ -29,7 +29,7 @@ export class GetPurchasedVideosUseCase extends BaseUseCase<
         userId: query.userId,
         page: query.page,
         limit: query.limit,
-    });
+      });
 
     return {
       items: result.items.map((item) => this.toPurchasedVideoItem(item)),

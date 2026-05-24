@@ -1,6 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { NotFoundException } from '@shared/domain/exceptions/domain.exception';
+import {
+  createPagination,
+  type PaginatedResponse,
+} from '@shared/application/dtos/paginated.response';
 import { CacheService } from '@shared/infrastructure/cache/cache.service';
 import { Repository } from 'typeorm';
 import type { ContinueWatchingItemResponse } from '../../application/dtos/continue-watching-item.response';
@@ -176,44 +180,64 @@ export class VideoQueryService implements IVideoQueryService {
     return response;
   }
 
-  async getLatestVideos(limit: number): Promise<VideoListItemResponse[]> {
+  async getLatestVideos(
+    page: number,
+    limit: number,
+  ): Promise<PaginatedResponse<VideoListItemResponse>> {
     const version = await this.getCacheVersion(
       VIDEO_CACHE_KEYS.latestVersion(),
     );
-    const cacheKey = VIDEO_CACHE_KEYS.latest(version, limit);
-    const cached = await this.getCachedValue<CachedVideoListItem[]>(cacheKey);
+    const cacheKey = VIDEO_CACHE_KEYS.latest(version, page, limit);
+    const cached = await this.getCachedValue<{
+      items: CachedVideoListItem[];
+      total: number;
+    }>(cacheKey);
 
     if (cached) {
-      return cached.map((item) => this.cachedListItemToResponse(item));
+      return {
+        items: cached.items.map((item) => this.cachedListItemToResponse(item)),
+        pagination: createPagination(page, limit, cached.total),
+      };
     }
 
-    const videos = await this.videoRepository.findLatestPublic(limit);
-    const response = videos.map(mapVideoEntityToListItem);
+    const result = await this.videoRepository.findLatestPublic(page, limit);
+    const items = result.items.map(mapVideoEntityToListItem);
 
     await this.setCachedValue(
       cacheKey,
-      response.map((item) => this.listItemToCached(item)),
+      {
+        items: items.map((item) => this.listItemToCached(item)),
+        total: result.total,
+      },
       VIDEO_CACHE_TTL_SECONDS.discoveryList,
     );
 
-    return response;
+    return {
+      items,
+      pagination: createPagination(page, limit, result.total),
+    };
   }
 
   async getStudioVideos(
     userId: string,
     filters: {
+      page: number;
       limit: number;
       statuses?: VideoStatus[];
       visibilities?: VideoVisibility[];
     },
-  ): Promise<StudioVideoListItemResponse[]> {
-    const videos = await this.videoRepository.findStudioByOwnerId(userId, {
+  ): Promise<PaginatedResponse<StudioVideoListItemResponse>> {
+    const result = await this.videoRepository.findStudioByOwnerId(userId, {
+      page: filters.page,
       limit: filters.limit,
       statuses: filters.statuses,
       visibilities: filters.visibilities,
     });
 
-    return videos.map(mapVideoEntityToStudioListItem);
+    return {
+      items: result.items.map(mapVideoEntityToStudioListItem),
+      pagination: createPagination(filters.page, filters.limit, result.total),
+    };
   }
 
   async getVideosByCategory(
@@ -266,7 +290,7 @@ export class VideoQueryService implements IVideoQueryService {
 
   async searchPublicVideos(
     query: SearchPublicVideosQuery,
-  ): Promise<VideoListItemResponse[]> {
+  ): Promise<PaginatedResponse<VideoListItemResponse>> {
     const version = await this.getCacheVersion(
       VIDEO_CACHE_KEYS.publicSearchVersion(),
     );
@@ -275,31 +299,45 @@ export class VideoQueryService implements IVideoQueryService {
       query.q,
       query.category,
       query.tags?.join(','),
+      query.page,
       query.limit,
     );
-    const cached = await this.getCachedValue<CachedVideoListItem[]>(cacheKey);
+    const cached = await this.getCachedValue<{
+      items: CachedVideoListItem[];
+      total: number;
+    }>(cacheKey);
 
     if (cached) {
-      return cached.map((item) => this.cachedListItemToResponse(item));
+      return {
+        items: cached.items.map((item) => this.cachedListItemToResponse(item)),
+        pagination: createPagination(query.page, query.limit, cached.total),
+      };
     }
 
-    const videos = await this.videoRepository.searchPublic(query);
-    const response = videos.map(mapVideoEntityToListItem);
+    const result = await this.videoRepository.searchPublic(query);
+    const items = result.items.map(mapVideoEntityToListItem);
 
     await this.setCachedValue(
       cacheKey,
-      response.map((item) => this.listItemToCached(item)),
+      {
+        items: items.map((item) => this.listItemToCached(item)),
+        total: result.total,
+      },
       VIDEO_CACHE_TTL_SECONDS.publicSearch,
     );
 
-    return response;
+    return {
+      items,
+      pagination: createPagination(query.page, query.limit, result.total),
+    };
   }
 
   async getContinueWatching(
     userId: string,
+    page: number,
     limit: number,
-  ): Promise<ContinueWatchingItemResponse[]> {
-    const rows = await this.watchProgressOrmRepository
+  ): Promise<PaginatedResponse<ContinueWatchingItemResponse>> {
+    const queryBuilder = this.watchProgressOrmRepository
       .createQueryBuilder('progress')
       .innerJoin(VideoOrmEntity, 'video', 'video.id = progress.video_id')
       .innerJoin(ChannelOrmEntity, 'channel', 'channel.id = video.channel_id')
@@ -315,9 +353,14 @@ export class VideoQueryService implements IVideoQueryService {
       })
       .andWhere('channel.status = :channelStatus', {
         channelStatus: ChannelStatus.ACTIVE,
-      })
+      });
+
+    const total = await queryBuilder.getCount();
+
+    const rows = await queryBuilder
       .orderBy('progress.last_watched_at', 'DESC')
-      .take(limit)
+      .offset((page - 1) * limit)
+      .limit(limit)
       .select([
         'progress.videoId AS "videoId"',
         'progress.channelId AS "channelId"',
@@ -345,7 +388,7 @@ export class VideoQueryService implements IVideoQueryService {
         viewCount: number | string;
       }>();
 
-    return rows.map((row) => {
+    const items = rows.map((row) => {
       const durationSeconds =
         row.videoDurationSeconds !== null
           ? Number(row.videoDurationSeconds)
@@ -374,6 +417,11 @@ export class VideoQueryService implements IVideoQueryService {
         viewCount: Number(row.viewCount),
       };
     });
+
+    return {
+      items,
+      pagination: createPagination(page, limit, total),
+    };
   }
 
   private async getCachedValue<T>(key: string): Promise<T | null> {

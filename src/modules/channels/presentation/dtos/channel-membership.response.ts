@@ -58,12 +58,9 @@ export class ChannelMembershipResponseDto {
       status: dto.status,
       autoRenewEnabled: dto.autoRenewEnabled,
       renewalStatus: dto.renewalStatus,
-      renewalReminderSentAt:
-        dto.renewalReminderSentAt?.toISOString() ?? null,
-      lastRenewalAttemptAt:
-        dto.lastRenewalAttemptAt?.toISOString() ?? null,
-      nextRenewalAttemptAt:
-        dto.nextRenewalAttemptAt?.toISOString() ?? null,
+      renewalReminderSentAt: dto.renewalReminderSentAt?.toISOString() ?? null,
+      lastRenewalAttemptAt: dto.lastRenewalAttemptAt?.toISOString() ?? null,
+      nextRenewalAttemptAt: dto.nextRenewalAttemptAt?.toISOString() ?? null,
       createdAt: dto.createdAt.toISOString(),
       updatedAt: dto.updatedAt.toISOString(),
     };

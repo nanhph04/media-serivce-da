@@ -46,12 +46,24 @@ export class TagController {
   @Get('tags')
   @SkipInternalGatewayGuard()
   @ApiQuery({ name: 'q', required: false, type: String })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiSuccessResponse(TagResponseDto, { isArray: true })
   async getTags(
     @Query('q') q?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ): Promise<ApiResponse<TagResponseDto[]>> {
-    const tags = await this.getTagsUseCase.execute({ q });
-    return apiResponseContract(tags.map(toTagResponseDto));
+    const tags = await this.getTagsUseCase.execute({
+      q,
+      page: this.parsePage(page),
+      limit: this.parseLimit(limit),
+    });
+    return ApiResponse.success(
+      tags.items.map(toTagResponseDto),
+      undefined,
+      tags.pagination,
+    );
   }
 
   @Get('admin/tags')
@@ -60,14 +72,26 @@ export class TagController {
   @ApiHeader({ name: 'x-user-role', required: true })
   @ApiHeader({ name: 'x-internal-secret', required: true })
   @ApiQuery({ name: 'q', required: false, type: String })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiSuccessResponse(TagResponseDto, { isArray: true })
   async getAllTagsForAdmin(
     @CurrentUserId() _userId: string,
     @CurrentUserRole() _role: string | undefined,
     @Query('q') q?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ): Promise<ApiResponse<TagResponseDto[]>> {
-    const tags = await this.getAllTagsUseCase.execute({ q });
-    return apiResponseContract(tags.map(toTagResponseDto));
+    const tags = await this.getAllTagsUseCase.execute({
+      q,
+      page: this.parsePage(page),
+      limit: this.parseLimit(limit),
+    });
+    return ApiResponse.success(
+      tags.items.map(toTagResponseDto),
+      undefined,
+      tags.pagination,
+    );
   }
 
   @Post('admin/tags')
@@ -123,5 +147,15 @@ export class TagController {
     });
 
     return apiResponseContract(toTagResponseDto(tag));
+  }
+
+  private parseLimit(limit?: string): number {
+    const parsed = Number(limit) || 20;
+    return Math.min(Math.max(parsed, 1), 50);
+  }
+
+  private parsePage(page?: string): number {
+    const parsed = Number(page) || 1;
+    return Math.max(parsed, 1);
   }
 }

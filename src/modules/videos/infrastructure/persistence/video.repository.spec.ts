@@ -140,39 +140,43 @@ describe('VideoRepository', () => {
   it('loads studio videos by owner with optional visibility and status filters', async () => {
     const createdAt = new Date('2026-01-01T00:00:00.000Z');
     const updatedAt = new Date('2026-01-02T00:00:00.000Z');
-    find.mockResolvedValue([
-      {
-        id: 'video-1',
-        channelId: 'channel-1',
-        ownerId: 'owner-1',
-        title: 'Video',
-        description: 'Description',
-        visibility: 'private',
-        status: 'draft',
-        price: 0,
-        requiredTierLevel: null,
-        rawFileKey: 'raw/video.mp4',
-        masterPlaylistKey: null,
-        thumbnailUrl: null,
-        durationSeconds: null,
-        resolutions: [],
-        errorMessage: null,
-        viewCount: 0,
-        publishedAt: null,
-        createdAt,
-        updatedAt,
-        category: buildCategoryRow(),
-        videoTags: [],
-      },
+    findAndCount.mockResolvedValue([
+      [
+        {
+          id: 'video-1',
+          channelId: 'channel-1',
+          ownerId: 'owner-1',
+          title: 'Video',
+          description: 'Description',
+          visibility: 'private',
+          status: 'draft',
+          price: 0,
+          requiredTierLevel: null,
+          rawFileKey: 'raw/video.mp4',
+          masterPlaylistKey: null,
+          thumbnailUrl: null,
+          durationSeconds: null,
+          resolutions: [],
+          errorMessage: null,
+          viewCount: 0,
+          publishedAt: null,
+          createdAt,
+          updatedAt,
+          category: buildCategoryRow(),
+          videoTags: [],
+        },
+      ],
+      1,
     ]);
 
-    const videos = await repository.findStudioByOwnerId('owner-1', {
+    const result = await repository.findStudioByOwnerId('owner-1', {
+      page: 2,
       limit: 10,
       statuses: ['draft'],
       visibilities: ['private'],
     });
 
-    expect(find).toHaveBeenCalledWith({
+    expect(findAndCount).toHaveBeenCalledWith({
       where: {
         ownerId: 'owner-1',
         deletionStatus: 'active',
@@ -184,9 +188,11 @@ describe('VideoRepository', () => {
         updatedAt: 'DESC',
         createdAt: 'DESC',
       },
+      skip: 10,
       take: 10,
     });
-    expect(videos[0]?.ownerId).toBe('owner-1');
+    expect(result.items[0]?.ownerId).toBe('owner-1');
+    expect(result.total).toBe(1);
   });
 
   it('deletes only draft videos by id', async () => {

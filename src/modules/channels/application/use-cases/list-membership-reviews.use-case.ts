@@ -1,4 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
+import {
+  createPagination,
+  type PaginatedResponse,
+} from '@shared/application/dtos/paginated.response';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import {
   BadRequestException,
@@ -18,7 +22,7 @@ import {
 @Injectable()
 export class ListMembershipReviewsUseCase extends BaseUseCase<
   ListMembershipReviewsQuery,
-  MembershipReviewResponse[]
+  PaginatedResponse<MembershipReviewResponse>
 > {
   constructor(
     @Inject(CHANNEL_REPOSITORY)
@@ -31,16 +35,19 @@ export class ListMembershipReviewsUseCase extends BaseUseCase<
 
   async execute(
     query: ListMembershipReviewsQuery,
-  ): Promise<MembershipReviewResponse[]> {
+  ): Promise<PaginatedResponse<MembershipReviewResponse>> {
     this.ensureNonEmpty(query.adminId, 'Admin id is required');
     this.ensureAdminRole(query.role);
 
-    const channels = await this.channelRepository.findByMembershipReviewStatus(
-      query.status,
-    );
+    const result =
+      await this.channelRepository.findByMembershipReviewStatusPaged(
+        query.status,
+        query.page,
+        query.limit,
+      );
 
-    return Promise.all(
-      channels.map(async (channel) => {
+    const items = await Promise.all(
+      result.items.map(async (channel) => {
         const eligibility =
           await this.channelMembershipEligibilityService.getChannelEligibility(
             channel.id,
@@ -64,6 +71,11 @@ export class ListMembershipReviewsUseCase extends BaseUseCase<
         };
       }),
     );
+
+    return {
+      items,
+      pagination: createPagination(query.page, query.limit, result.total),
+    };
   }
 
   private ensureNonEmpty(value: string, message: string): void {

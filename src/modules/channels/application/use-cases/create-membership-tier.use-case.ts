@@ -104,9 +104,7 @@ export class CreateMembershipTierUseCase extends BaseUseCase<
         channel.membershipReviewStatus === MembershipReviewStatus.REJECTED
           ? 'Channel membership registration was rejected by admin'
           : 'Channel membership registration is pending admin approval';
-      throw new ForbiddenException(
-        message,
-      );
+      throw new ForbiddenException(message);
     }
 
     const minPrice = this.membershipConfig.getMinPriceForLevel(command.level);

@@ -8,8 +8,32 @@ export interface ICategoryRepository {
   findByIds(ids: string[]): Promise<Category[]>;
   findBySlug(slug: string): Promise<Category | null>;
   findAll(): Promise<Category[]>;
+  findAllPaged(
+    page: number,
+    limit: number,
+  ): Promise<{
+    items: Category[];
+    total: number;
+  }>;
   findActive(): Promise<Category[]>;
+  findActivePaged(
+    page: number,
+    limit: number,
+  ): Promise<{
+    items: Category[];
+    total: number;
+  }>;
   searchAll(keyword: string): Promise<Category[]>;
+  searchAllPaged(
+    keyword: string,
+    page: number,
+    limit: number,
+  ): Promise<{ items: Category[]; total: number }>;
   searchActive(keyword: string): Promise<Category[]>;
+  searchActivePaged(
+    keyword: string,
+    page: number,
+    limit: number,
+  ): Promise<{ items: Category[]; total: number }>;
   findBySlugs(slugs: string[]): Promise<Category[]>;
 }

@@ -4,4 +4,6 @@ export interface ListMembershipReviewsQuery {
   adminId: string;
   role: string | undefined;
   status: MembershipReviewStatus;
+  page: number;
+  limit: number;
 }

@@ -114,25 +114,30 @@ export class VideosController {
   ) {}
 
   @Get('studio/videos')
+  @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'status', required: false, type: String })
   @ApiQuery({ name: 'visibility', required: false, type: String })
   @ApiSuccessResponse(StudioVideoListItemResponseDto, { isArray: true })
   async studioVideos(
     @CurrentUserId() userId: string,
+    @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('status') status?: string,
     @Query('visibility') visibility?: string,
   ): Promise<ApiResponse<StudioVideoListItemResponseDto[]>> {
     const rows = await this.getStudioVideosUseCase.execute({
       userId,
+      page: this.parsePage(page),
       limit: this.parseLimit(limit),
       statuses: this.parseStatuses(status),
       visibilities: this.parseVisibilities(visibility),
     });
 
-    return apiResponseContract(
-      rows.map((row) => this.toStudioVideoListItemDto(row)),
+    return ApiResponse.success(
+      rows.items.map((row) => this.toStudioVideoListItemDto(row)),
+      undefined,
+      rows.pagination,
     );
   }
 
@@ -256,22 +261,29 @@ export class VideosController {
   @ApiQuery({ name: 'q', required: false, type: String })
   @ApiQuery({ name: 'category', required: false, type: String })
   @ApiQuery({ name: 'tags', required: false, type: String })
+  @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiSuccessResponse(VideoListItemResponseDto, { isArray: true })
   async searchVideos(
     @Query('q') q?: string,
     @Query('category') category?: string,
     @Query('tags') tags?: string,
+    @Query('page') page?: string,
     @Query('limit') limit?: string,
   ): Promise<ApiResponse<VideoListItemResponseDto[]>> {
     const rows = await this.searchPublicVideosUseCase.execute({
       q,
       category,
       tags: this.parseTags(tags),
+      page: this.parsePage(page),
       limit: this.parseLimit(limit),
     });
 
-    return apiResponseContract(rows.map((row) => this.toVideoListItemDto(row)));
+    return ApiResponse.success(
+      rows.items.map((row) => this.toVideoListItemDto(row)),
+      undefined,
+      rows.pagination,
+    );
   }
 
   @Post('studio/videos/:videoId/uploads/:uploadId/submit')
@@ -435,15 +447,22 @@ export class VideosController {
 
   @Get('videos/latest')
   @SkipInternalGatewayGuard()
+  @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiSuccessResponse(VideoListItemResponseDto, { isArray: true })
   async latest(
+    @Query('page') page?: string,
     @Query('limit') limit?: string,
   ): Promise<ApiResponse<VideoListItemResponseDto[]>> {
     const rows = await this.getLatestVideosUseCase.execute({
+      page: this.parsePage(page),
       limit: this.parseLimit(limit),
     });
-    return apiResponseContract(rows.map((row) => this.toVideoListItemDto(row)));
+    return ApiResponse.success(
+      rows.items.map((row) => this.toVideoListItemDto(row)),
+      undefined,
+      rows.pagination,
+    );
   }
 
   @Get('me/videos/purchased')
@@ -498,32 +517,44 @@ export class VideosController {
     description:
       'This discovery feed is membership-backed and does not replace the memberships list API. It returns videos only and does not include tier, expiry, renewal, or upgrade metadata.',
   })
+  @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiSuccessResponse(VideoListItemResponseDto, { isArray: true })
   async subscribed(
     @CurrentUserId() userId: string,
+    @Query('page') page?: string,
     @Query('limit') limit?: string,
   ): Promise<ApiResponse<VideoListItemResponseDto[]>> {
     const rows = await this.getSubscribedVideosUseCase.execute({
       userId,
+      page: this.parsePage(page),
       limit: this.parseLimit(limit),
     });
-    return apiResponseContract(rows.map((row) => this.toVideoListItemDto(row)));
+    return ApiResponse.success(
+      rows.items.map((row) => this.toVideoListItemDto(row)),
+      undefined,
+      rows.pagination,
+    );
   }
 
   @Get('me/videos/continue-watching')
+  @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiSuccessResponse(ContinueWatchingItemResponseDto, { isArray: true })
   async continueWatching(
     @CurrentUserId() userId: string,
+    @Query('page') page?: string,
     @Query('limit') limit?: string,
   ): Promise<ApiResponse<ContinueWatchingItemResponseDto[]>> {
     const rows = await this.getContinueWatchingUseCase.execute({
       userId,
+      page: this.parsePage(page),
       limit: this.parseLimit(limit),
     });
-    return apiResponseContract(
-      rows.map((row) => this.toContinueWatchingItemDto(row)),
+    return ApiResponse.success(
+      rows.items.map((row) => this.toContinueWatchingItemDto(row)),
+      undefined,
+      rows.pagination,
     );
   }
 

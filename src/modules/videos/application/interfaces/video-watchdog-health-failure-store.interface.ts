@@ -5,9 +5,6 @@ export const VIDEO_WATCHDOG_HEALTH_FAILURE_STORE = Symbol(
 );
 
 export interface IVideoWatchdogHealthFailureStore {
-  increment(
-    pipeline: VideoWorkerPipeline,
-    ttlSeconds: number,
-  ): Promise<number>;
+  increment(pipeline: VideoWorkerPipeline, ttlSeconds: number): Promise<number>;
   reset(pipeline: VideoWorkerPipeline): Promise<void>;
 }

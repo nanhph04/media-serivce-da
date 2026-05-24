@@ -54,7 +54,11 @@ export class CleanupExpiredDraftUploadsUseCase extends BaseUseCase<void, void> {
         new Date(),
       );
     for (const session of expiredSessions) {
-      await this.abortExpiredSession(session.id, session.rawFileKey, session.uploadId);
+      await this.abortExpiredSession(
+        session.id,
+        session.rawFileKey,
+        session.uploadId,
+      );
     }
   }
 

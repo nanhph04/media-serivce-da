@@ -27,16 +27,20 @@ export class MembershipAutoRenewScheduler
   }
 
   onApplicationBootstrap(): void {
-    if (
-      !this.configService.getBoolean('MEMBERSHIP_AUTO_RENEW_ENABLED', true)
-    ) {
+    if (!this.configService.getBoolean('MEMBERSHIP_AUTO_RENEW_ENABLED', true)) {
       this.logger.logInfo('Membership auto-renew scheduler disabled');
       return;
     }
 
-    this.intervalId = setInterval(() => {
-      void this.runOnce();
-    }, this.configService.getNumber('MEMBERSHIP_RENEW_INTERVAL_MS', DEFAULT_INTERVAL_MS));
+    this.intervalId = setInterval(
+      () => {
+        void this.runOnce();
+      },
+      this.configService.getNumber(
+        'MEMBERSHIP_RENEW_INTERVAL_MS',
+        DEFAULT_INTERVAL_MS,
+      ),
+    );
   }
 
   onModuleDestroy(): void {
@@ -47,7 +51,9 @@ export class MembershipAutoRenewScheduler
 
   async runOnce(): Promise<void> {
     if (this.running) {
-      this.logger.logWarn('Skipped auto-renew run because previous run is active');
+      this.logger.logWarn(
+        'Skipped auto-renew run because previous run is active',
+      );
       return;
     }
 

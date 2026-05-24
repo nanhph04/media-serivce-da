@@ -32,6 +32,7 @@ import type {
   PublicVideosByCategoryPageResult,
   IVideoRepository,
   StudioVideoFilters,
+  VideoPageResult,
 } from '../../domain/repositories/video.repository';
 import { VideoPurchaseUnlockOrmEntity } from './video-purchase-unlock.orm-entity';
 import { VideoTagOrmEntity } from './video-tag.orm-entity';
@@ -252,7 +253,7 @@ export class VideoRepository implements IVideoRepository {
   async findStudioByOwnerId(
     ownerId: string,
     filters: StudioVideoFilters,
-  ): Promise<VideoEntity[]> {
+  ): Promise<VideoPageResult> {
     const where: FindOptionsWhere<VideoOrmEntity> = {
       ownerId,
       deletionStatus: VideoDeletionStatus.ACTIVE,
@@ -266,17 +267,21 @@ export class VideoRepository implements IVideoRepository {
       where.visibility = In(filters.visibilities as VideoVisibility[]);
     }
 
-    const rows = await this.ormRepository.find({
+    const [rows, total] = await this.ormRepository.findAndCount({
       where,
       relations: { category: true, videoTags: { tag: true } },
       order: {
         updatedAt: 'DESC',
         createdAt: 'DESC',
       },
+      skip: (filters.page - 1) * filters.limit,
       take: filters.limit,
     });
 
-    return rows.map((row) => this.toDomain(row));
+    return {
+      items: rows.map((row) => this.toDomain(row)),
+      total,
+    };
   }
 
   async findPublicByChannelId(channelId: string): Promise<VideoEntity[]> {
@@ -302,8 +307,11 @@ export class VideoRepository implements IVideoRepository {
     return rows.map((row) => this.toDomain(row));
   }
 
-  async findLatestPublic(limit: number): Promise<VideoEntity[]> {
-    const rows = await this.ormRepository
+  async findLatestPublic(
+    page: number,
+    limit: number,
+  ): Promise<VideoPageResult> {
+    const [rows, total] = await this.ormRepository
       .createQueryBuilder('video')
       .leftJoinAndSelect('video.category', 'category')
       .leftJoinAndSelect('video.videoTags', 'videoTag')
@@ -319,17 +327,22 @@ export class VideoRepository implements IVideoRepository {
       })
       .orderBy('video.publishedAt', 'DESC')
       .addOrderBy('video.createdAt', 'DESC')
+      .skip((page - 1) * limit)
       .take(limit)
-      .getMany();
+      .getManyAndCount();
 
-    return rows.map((row) => this.toDomain(row));
+    return {
+      items: rows.map((row) => this.toDomain(row)),
+      total,
+    };
   }
 
   async findByCategory(
     category: string,
     limit: number,
   ): Promise<VideoEntity[]> {
-    return this.searchPublic({ category, limit });
+    const result = await this.searchPublic({ category, page: 1, limit });
+    return result.items;
   }
 
   async findByCategoryPaged(
@@ -368,7 +381,7 @@ export class VideoRepository implements IVideoRepository {
 
   async searchPublic(
     filters: PublicVideoSearchFilters,
-  ): Promise<VideoEntity[]> {
+  ): Promise<VideoPageResult> {
     const queryBuilder = this.ormRepository
       .createQueryBuilder('video')
       .leftJoinAndSelect('video.category', 'category')
@@ -440,23 +453,28 @@ export class VideoRepository implements IVideoRepository {
       queryBuilder.orderBy('video.publishedAt', 'DESC');
     }
 
-    const searchRows = await queryBuilder
+    const [searchRows, total] = await queryBuilder
       .addOrderBy('video.createdAt', 'DESC')
+      .skip((filters.page - 1) * filters.limit)
       .take(filters.limit)
-      .getMany();
+      .getManyAndCount();
 
-    return searchRows.map((row) => this.toDomain(row));
+    return {
+      items: searchRows.map((row) => this.toDomain(row)),
+      total,
+    };
   }
 
   async findByChannelIds(
     channelIds: string[],
+    page: number,
     limit: number,
-  ): Promise<VideoEntity[]> {
+  ): Promise<VideoPageResult> {
     if (channelIds.length === 0) {
-      return [];
+      return { items: [], total: 0 };
     }
 
-    const rows = await this.ormRepository
+    const [rows, total] = await this.ormRepository
       .createQueryBuilder('video')
       .leftJoinAndSelect('video.category', 'category')
       .leftJoinAndSelect('video.videoTags', 'videoTag')
@@ -473,9 +491,13 @@ export class VideoRepository implements IVideoRepository {
       })
       .orderBy('video.publishedAt', 'DESC')
       .addOrderBy('video.createdAt', 'DESC')
+      .skip((page - 1) * limit)
       .take(limit)
-      .getMany();
-    return rows.map((row) => this.toDomain(row));
+      .getManyAndCount();
+    return {
+      items: rows.map((row) => this.toDomain(row)),
+      total,
+    };
   }
 
   async getAdminChannelVideoMetrics(

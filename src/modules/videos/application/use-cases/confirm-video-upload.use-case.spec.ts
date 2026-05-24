@@ -136,7 +136,9 @@ describe('ConfirmVideoUploadUseCase', () => {
     ).not.toHaveBeenCalled();
     expect(result.status).toBe(VideoStatus.PENDING_MODERATION);
     expect(result.message).toBe('Video is waiting for moderation');
-    expect(videoStatusEventPublisher.publishVideoStatusChanged).toHaveBeenCalledWith(
+    expect(
+      videoStatusEventPublisher.publishVideoStatusChanged,
+    ).toHaveBeenCalledWith(
       expect.objectContaining({
         videoId: 'video-1',
         userId: 'owner-1',

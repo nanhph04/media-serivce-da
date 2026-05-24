@@ -10,6 +10,9 @@ export class SearchContentQueryResponseDto {
   category!: string | null;
 
   @ApiProperty()
+  page!: number;
+
+  @ApiProperty()
   limit!: number;
 }
 

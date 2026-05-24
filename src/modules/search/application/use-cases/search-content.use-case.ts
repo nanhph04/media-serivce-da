@@ -39,6 +39,7 @@ export class SearchContentUseCase extends BaseUseCase<
     const videos = await this.videoSearchQueryService.searchPublicVideos({
       q,
       category,
+      page: input.page,
       limit: input.limit,
     });
 
@@ -50,13 +51,15 @@ export class SearchContentUseCase extends BaseUseCase<
       : [];
 
     return {
-      videos,
+      videos: videos.items,
       channels,
       query: {
         q: q ?? null,
         category: category ?? null,
+        page: input.page,
         limit: input.limit,
       },
+      pagination: videos.pagination,
     };
   }
 }

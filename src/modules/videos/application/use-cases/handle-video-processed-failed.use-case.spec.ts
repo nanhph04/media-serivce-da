@@ -50,7 +50,9 @@ describe('HandleVideoProcessedFailedUseCase', () => {
     expect(video.status).toBe(VideoStatus.FAILED);
     expect(video.errorMessage).toBe('FFmpeg failed');
     expect(videoRepository.save).toHaveBeenCalledWith(video);
-    expect(videoStatusEventPublisher.publishVideoStatusChanged).toHaveBeenCalledWith(
+    expect(
+      videoStatusEventPublisher.publishVideoStatusChanged,
+    ).toHaveBeenCalledWith(
       expect.objectContaining({
         videoId: 'video-1',
         userId: 'owner-1',

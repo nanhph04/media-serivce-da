@@ -1,4 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
+import {
+  createPagination,
+  type PaginatedResponse,
+} from '@shared/application/dtos/paginated.response';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import {
   CHANNEL_ACCESS_SERVICE,
@@ -17,7 +21,7 @@ import {
 @Injectable()
 export class GetSubscribedVideosUseCase extends BaseUseCase<
   GetSubscribedVideosQuery,
-  VideoListItemResponse[]
+  PaginatedResponse<VideoListItemResponse>
 > {
   constructor(
     @Inject(VIDEO_REPOSITORY)
@@ -30,7 +34,7 @@ export class GetSubscribedVideosUseCase extends BaseUseCase<
 
   async execute(
     query: GetSubscribedVideosQuery,
-  ): Promise<VideoListItemResponse[]> {
+  ): Promise<PaginatedResponse<VideoListItemResponse>> {
     // "Subscribed" discovery is currently backed by active memberships only.
     // It is a feed of fresh public videos, not a source of membership details.
     const channelIds =
@@ -38,11 +42,15 @@ export class GetSubscribedVideosUseCase extends BaseUseCase<
         query.userId,
       );
 
-    const videos = await this.videoRepository.findByChannelIds(
+    const result = await this.videoRepository.findByChannelIds(
       channelIds,
+      query.page,
       query.limit,
     );
 
-    return videos.map(mapVideoEntityToListItem);
+    return {
+      items: result.items.map(mapVideoEntityToListItem),
+      pagination: createPagination(query.page, query.limit, result.total),
+    };
   }
 }

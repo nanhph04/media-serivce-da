@@ -1,4 +1,5 @@
 import type { VideoListItemResponse } from '../dtos/video-list-item.response';
+import type { PaginatedResponse } from '@shared/application/dtos/paginated.response';
 import type { VideoMetadataResponse } from '../dtos/video-metadata.response';
 import type { ContinueWatchingItemResponse } from '../dtos/continue-watching-item.response';
 import type { StudioVideoListItemResponse } from '../dtos/studio-video-list-item.response';
@@ -30,15 +31,19 @@ export interface IVideoQueryService {
     channelId: string,
   ): Promise<ChannelVideoMembershipEligibilityMetrics>;
   getVideoMetadata(videoId: string): Promise<VideoMetadataResponse>;
-  getLatestVideos(limit: number): Promise<VideoListItemResponse[]>;
+  getLatestVideos(
+    page: number,
+    limit: number,
+  ): Promise<PaginatedResponse<VideoListItemResponse>>;
   getStudioVideos(
     userId: string,
     filters: {
+      page: number;
       limit: number;
       statuses?: VideoStatus[];
       visibilities?: VideoVisibility[];
     },
-  ): Promise<StudioVideoListItemResponse[]>;
+  ): Promise<PaginatedResponse<StudioVideoListItemResponse>>;
   getVideosByCategory(
     category: string,
     page: number,
@@ -46,9 +51,10 @@ export interface IVideoQueryService {
   ): Promise<VideosByCategoryResponse>;
   searchPublicVideos(
     query: SearchPublicVideosQuery,
-  ): Promise<VideoListItemResponse[]>;
+  ): Promise<PaginatedResponse<VideoListItemResponse>>;
   getContinueWatching(
     userId: string,
+    page: number,
     limit: number,
-  ): Promise<ContinueWatchingItemResponse[]>;
+  ): Promise<PaginatedResponse<ContinueWatchingItemResponse>>;
 }

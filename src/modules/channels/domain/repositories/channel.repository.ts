@@ -37,6 +37,11 @@ export interface IChannelRepository {
   findByMembershipReviewStatus(
     status: MembershipReviewStatus,
   ): Promise<ChannelEntity[]>;
+  findByMembershipReviewStatusPaged(
+    status: MembershipReviewStatus,
+    page: number,
+    limit: number,
+  ): Promise<{ items: ChannelEntity[]; total: number }>;
   findAdminChannels(filters: AdminChannelFilters): Promise<AdminChannelsPage>;
   getAdminChannelCounts(): Promise<AdminChannelCounts>;
 }

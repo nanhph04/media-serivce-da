@@ -23,6 +23,17 @@ function normalizeLimit(value: unknown): number {
   return Math.min(Math.max(parsed, 1), 50);
 }
 
+function normalizePage(value: unknown): number {
+  const parsed =
+    typeof value === 'number' ? value : Number.parseInt(String(value), 10);
+
+  if (!Number.isFinite(parsed)) {
+    return 1;
+  }
+
+  return Math.max(parsed, 1);
+}
+
 export class SearchContentRequestDto {
   @ApiPropertyOptional()
   @Transform(({ value }) => normalizeOptionalString(value))
@@ -47,4 +58,9 @@ export class SearchContentRequestDto {
   @Transform(({ value }) => normalizeLimit(value))
   @IsOptional()
   limit = 20;
+
+  @ApiPropertyOptional({ default: 1, minimum: 1 })
+  @Transform(({ value }) => normalizePage(value))
+  @IsOptional()
+  page = 1;
 }

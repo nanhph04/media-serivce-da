@@ -54,10 +54,13 @@ export class HandleVideoThumbnailGeneratedUseCase extends BaseUseCase<
 
     const video = await this.videoRepository.findById(command.data.videoId);
     if (!video) {
-      this.loggerService.logWarn('Ignoring thumbnail generated for missing video', {
-        eventId: command.eventId,
-        videoId: command.data.videoId,
-      });
+      this.loggerService.logWarn(
+        'Ignoring thumbnail generated for missing video',
+        {
+          eventId: command.eventId,
+          videoId: command.data.videoId,
+        },
+      );
       return;
     }
 

@@ -1,8 +1,6 @@
 import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddVideoDeletionSemantics1745700000000
-  implements MigrationInterface
-{
+export class AddVideoDeletionSemantics1745700000000 implements MigrationInterface {
   public readonly name = 'AddVideoDeletionSemantics1745700000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

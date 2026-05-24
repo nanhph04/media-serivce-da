@@ -11,9 +11,7 @@ import type {
 } from '../../application/interfaces/membership-auto-renew.publisher.interface';
 
 @Injectable()
-export class MembershipAutoRenewPublisher
-  implements IMembershipAutoRenewPublisher
-{
+export class MembershipAutoRenewPublisher implements IMembershipAutoRenewPublisher {
   constructor(
     @Inject(EVENT_PUBLISHER)
     private readonly eventPublisher: IEventPublisher,

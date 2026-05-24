@@ -115,7 +115,9 @@ describe('HandleVideoModerationCompletedUseCase', () => {
     expect(idempotencyStore.delete).toHaveBeenCalledWith(
       'media:event:processing:event-1',
     );
-    expect(videoStatusEventPublisher.publishVideoStatusChanged).toHaveBeenCalledWith(
+    expect(
+      videoStatusEventPublisher.publishVideoStatusChanged,
+    ).toHaveBeenCalledWith(
       expect.objectContaining({
         videoId: 'video-1',
         userId: 'owner-1',

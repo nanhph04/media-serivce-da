@@ -101,6 +101,8 @@ export class AdminChannelController {
   @ApiHeader({ name: 'x-user-id', required: true })
   @ApiHeader({ name: 'x-user-role', required: true })
   @ApiHeader({ name: 'x-internal-secret', required: true })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiSuccessResponse(MembershipReviewResponseDto)
   async listMembershipReviews(
     @CurrentUserId() adminId: string,
@@ -111,12 +113,16 @@ export class AdminChannelController {
       adminId,
       role,
       status: query.status ?? MembershipReviewStatus.PENDING,
+      page: query.page ?? 1,
+      limit: query.limit ?? 20,
     });
 
-    return apiResponseContract(
-      reviews.map((review) =>
+    return ApiResponse.success(
+      reviews.items.map((review) =>
         MembershipReviewResponseDto.fromApplicationDto(review),
       ),
+      undefined,
+      reviews.pagination,
     );
   }
 

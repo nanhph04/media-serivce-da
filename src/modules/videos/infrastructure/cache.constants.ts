@@ -11,8 +11,8 @@ export const VIDEO_CACHE_KEYS = {
     'media_service:videos:category:latest:version',
   publicSearchVersion: (): string =>
     'media_service:videos:public-search:version',
-  latest: (version: number, limit: number): string =>
-    `media_service:videos:latest:v${version}:${limit}`,
+  latest: (version: number, page: number, limit: number): string =>
+    `media_service:videos:latest:v${version}:page:${page}:limit:${limit}`,
   categoryLatest: (version: number, category: string, limit: number): string =>
     `media_service:videos:category:v${version}:${category}:latest:${limit}`,
   categoryPage: (
@@ -27,7 +27,8 @@ export const VIDEO_CACHE_KEYS = {
     q: string | undefined,
     category: string | undefined,
     tags: string | undefined,
+    page: number,
     limit: number,
   ): string =>
-    `media_service:search:global:v${version}:q:${q ?? ''}:category:${category ?? ''}:tags:${tags ?? ''}:limit:${limit}:videos`,
+    `media_service:search:global:v${version}:q:${q ?? ''}:category:${category ?? ''}:tags:${tags ?? ''}:page:${page}:limit:${limit}:videos`,
 } as const;

@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class CreateVideoUploadSessions1746250000000
-  implements MigrationInterface
-{
+export class CreateVideoUploadSessions1746250000000 implements MigrationInterface {
   name = 'CreateVideoUploadSessions1746250000000';
 
   async up(queryRunner: QueryRunner): Promise<void> {
@@ -56,8 +54,12 @@ export class CreateVideoUploadSessions1746250000000
   async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query('DROP INDEX "IDX_video_upload_parts_session_part"');
     await queryRunner.query('DROP TABLE "video_upload_parts"');
-    await queryRunner.query('DROP INDEX "IDX_video_upload_sessions_status_expires"');
-    await queryRunner.query('DROP INDEX "IDX_video_upload_sessions_video_upload"');
+    await queryRunner.query(
+      'DROP INDEX "IDX_video_upload_sessions_status_expires"',
+    );
+    await queryRunner.query(
+      'DROP INDEX "IDX_video_upload_sessions_video_upload"',
+    );
     await queryRunner.query('DROP TABLE "video_upload_sessions"');
   }
 }
