@@ -11,12 +11,16 @@ describe('AdminVideoController', () => {
   const getAdminVideoDetailUseCase = {
     execute: jest.fn(),
   };
+  const getAdminVideoPreviewUseCase = {
+    execute: jest.fn(),
+  };
   const moderateAdminVideoUseCase = {
     execute: jest.fn(),
   };
   const controller = new AdminVideoController(
     listAdminVideosUseCase as never,
     getAdminVideoDetailUseCase as never,
+    getAdminVideoPreviewUseCase as never,
     moderateAdminVideoUseCase as never,
   );
 
@@ -116,6 +120,45 @@ describe('AdminVideoController', () => {
       role: 'admin',
       videoId: 'video-1',
     });
+  });
+
+  it('maps admin video preview request to use case query', async () => {
+    getAdminVideoPreviewUseCase.execute.mockResolvedValue({
+      videoId: 'video-1',
+      previewUrl: 'http://localhost/raw.mp4?signature=abc',
+      expiresAt: new Date('2026-01-01T00:15:00.000Z'),
+      evidenceTimestampSeconds: 12,
+      moderationDetails: {
+        reason: 'NSFW score 0.72 at 00:12 requires manual review',
+        confidence: 0.72,
+        evidenceTimestampSeconds: 12,
+        label: 'sexy',
+        nsfwScore: 0.72,
+        safeScore: 0.28,
+        sampledFrameCount: 4,
+        thresholds: { manual: 0.6, reject: 0.9 },
+      },
+    });
+
+    const result = await controller.getVideoPreview(
+      'admin-1',
+      'admin',
+      'video-1',
+    );
+
+    expect(getAdminVideoPreviewUseCase.execute).toHaveBeenCalledWith({
+      adminId: 'admin-1',
+      role: 'admin',
+      videoId: 'video-1',
+    });
+    expect(result).toEqual(
+      expect.objectContaining({
+        videoId: 'video-1',
+        previewUrl: 'http://localhost/raw.mp4?signature=abc',
+        expiresAt: '2026-01-01T00:15:00.000Z',
+        evidenceTimestampSeconds: 12,
+      }),
+    );
   });
 
   it('maps admin moderation request to use case command', async () => {

@@ -110,6 +110,20 @@ export class MinioService implements OnModuleInit, IObjectStorageService {
     return this.rewritePublicUrlIfNeeded(presignedUrl);
   }
 
+  async createReadUrl(
+    bucket: StorageBucket,
+    objectKey: string,
+    expirySeconds = 900,
+  ): Promise<string> {
+    const presignedUrl = await this.client.presignedGetObject(
+      this.getBucketName(bucket),
+      objectKey,
+      expirySeconds,
+    );
+
+    return this.rewritePublicUrlIfNeeded(presignedUrl);
+  }
+
   createObjectUrl(bucket: StorageBucket, objectKey: string): string {
     const useSSL =
       this.publicUseSSL ??

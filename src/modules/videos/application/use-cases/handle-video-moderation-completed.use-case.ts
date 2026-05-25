@@ -112,7 +112,7 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
     }
 
     if (command.data.status === 'SAFE') {
-      video.markProcessing();
+      video.markProcessing({ resolutions: command.data.resolutions });
       await this.videoRepository.save(video);
       this.publishVideoStatusChanged(video);
       await this.videoProcessingJobDispatcher.enqueueTranscodeJob({
@@ -146,6 +146,7 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
       video.markPendingManualReview(
         command.data.reason,
         this.toModerationDetails(command.data),
+        { resolutions: command.data.resolutions },
       );
       await this.videoRepository.save(video);
       this.publishVideoStatusChanged(video);
@@ -203,11 +204,29 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
     reason: string;
     confidence: number;
     evidenceTimestampSeconds: number | null;
+    label?: string | null;
+    safeScore?: number | null;
+    nsfwScore?: number | null;
+    sampledFrameCount?: number | null;
+    thresholds?: {
+      manual: number;
+      reject: number;
+    } | null;
   } {
+    const evidence = data.evidence;
     return {
       reason: data.reason,
       confidence: data.confidence,
       evidenceTimestampSeconds: data.evidenceTimestampSeconds,
+      ...(evidence
+        ? {
+            label: evidence.label,
+            safeScore: evidence.safeScore,
+            nsfwScore: evidence.nsfwScore,
+            sampledFrameCount: evidence.sampledFrameCount,
+            thresholds: evidence.thresholds,
+          }
+        : {}),
     };
   }
 

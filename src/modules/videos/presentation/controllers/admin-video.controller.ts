@@ -23,12 +23,14 @@ import {
 } from '../../domain/entities/video.entity';
 import { ListAdminVideosUseCase } from '../../application/use-cases/list-admin-videos.use-case';
 import { GetAdminVideoDetailUseCase } from '../../application/use-cases/get-admin-video-detail.use-case';
+import { GetAdminVideoPreviewUseCase } from '../../application/use-cases/get-admin-video-preview.use-case';
 import { ModerateAdminVideoUseCase } from '../../application/use-cases/moderate-admin-video.use-case';
 import { AdminVideoQueryDto } from '../dtos/admin-video-query.dto';
 import {
   AdminVideoListItemResponseDto,
   AdminVideosResponseDto,
 } from '../dtos/admin-videos.response';
+import { AdminVideoPreviewResponseDto } from '../dtos/admin-video-preview.response';
 import { ModerateAdminVideoRequestDto } from '../dtos/moderate-admin-video.request';
 
 @ApiTags('admin-videos')
@@ -38,6 +40,7 @@ export class AdminVideoController {
   constructor(
     private readonly listAdminVideosUseCase: ListAdminVideosUseCase,
     private readonly getAdminVideoDetailUseCase: GetAdminVideoDetailUseCase,
+    private readonly getAdminVideoPreviewUseCase: GetAdminVideoPreviewUseCase,
     private readonly moderateAdminVideoUseCase: ModerateAdminVideoUseCase,
   ) {}
 
@@ -93,6 +96,27 @@ export class AdminVideoController {
 
     return apiResponseContract(
       AdminVideoListItemResponseDto.fromApplicationDto(result),
+    );
+  }
+
+  @Get(':id/preview')
+  @ApiHeader({ name: 'x-user-id', required: true })
+  @ApiHeader({ name: 'x-user-role', required: true })
+  @ApiHeader({ name: 'x-internal-secret', required: true })
+  @ApiSuccessResponse(AdminVideoPreviewResponseDto)
+  async getVideoPreview(
+    @CurrentUserId() adminId: string,
+    @CurrentUserRole() role: string | undefined,
+    @Param('id') videoId: string,
+  ): Promise<ApiResponse<AdminVideoPreviewResponseDto>> {
+    const result = await this.getAdminVideoPreviewUseCase.execute({
+      adminId,
+      role,
+      videoId,
+    });
+
+    return apiResponseContract(
+      AdminVideoPreviewResponseDto.fromApplicationDto(result),
     );
   }
 

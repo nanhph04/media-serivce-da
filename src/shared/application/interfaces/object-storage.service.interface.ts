@@ -28,6 +28,11 @@ export interface IObjectStorageService {
     objectKey: string,
     expirySeconds?: number,
   ): Promise<string>;
+  createReadUrl(
+    bucket: StorageBucket,
+    objectKey: string,
+    expirySeconds?: number,
+  ): Promise<string>;
   createMultipartUpload(
     bucket: StorageBucket,
     objectKey: string,

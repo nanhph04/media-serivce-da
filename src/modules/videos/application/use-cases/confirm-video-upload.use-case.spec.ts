@@ -110,6 +110,8 @@ describe('ConfirmVideoUploadUseCase', () => {
       resolutions: ['1080p', '480p', '720p'],
     });
 
+    const savedVideo = videoRepository.save.mock.calls[0][0] as VideoEntity;
+    expect(savedVideo.resolutions).toEqual(['480p', '720p', '1080p']);
     expect(videoRepository.save).toHaveBeenCalledTimes(1);
     expect(
       videoModerationRequestPublisher.publishModerationRequested,

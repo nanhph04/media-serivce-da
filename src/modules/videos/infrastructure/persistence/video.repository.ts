@@ -768,6 +768,7 @@ function toModerationDetails(
   const reason = value.reason;
   const confidence = value.confidence;
   const evidenceTimestampSeconds = value.evidenceTimestampSeconds;
+  const thresholds = value.thresholds;
 
   if (typeof reason !== 'string' || typeof confidence !== 'number') {
     return null;
@@ -780,5 +781,24 @@ function toModerationDetails(
       typeof evidenceTimestampSeconds === 'number'
         ? evidenceTimestampSeconds
         : null,
+    label: typeof value.label === 'string' ? value.label : null,
+    safeScore: typeof value.safeScore === 'number' ? value.safeScore : null,
+    nsfwScore: typeof value.nsfwScore === 'number' ? value.nsfwScore : null,
+    sampledFrameCount:
+      typeof value.sampledFrameCount === 'number'
+        ? value.sampledFrameCount
+        : null,
+    thresholds: isModerationThresholds(thresholds) ? thresholds : null,
   };
+}
+
+function isModerationThresholds(
+  value: unknown,
+): value is { manual: number; reject: number } {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as { manual?: unknown }).manual === 'number' &&
+    typeof (value as { reject?: unknown }).reject === 'number'
+  );
 }

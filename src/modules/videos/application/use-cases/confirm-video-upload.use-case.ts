@@ -14,6 +14,7 @@ import {
   ForbiddenException,
   NotFoundException,
 } from '@shared/domain/exceptions/domain.exception';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import {
   type IVideoRepository,
   VIDEO_REPOSITORY,
@@ -64,10 +65,10 @@ export class ConfirmVideoUploadUseCase extends BaseUseCase<
   ): Promise<ConfirmVideoUploadResponse> {
     const video = await this.videoRepository.findById(command.videoId);
     if (!video) {
-      throw new NotFoundException('Video not found');
+      throw new NotFoundException(ERROR_MESSAGES.VIDEO_NOT_FOUND);
     }
     if (video.ownerId !== command.userId) {
-      throw new ForbiddenException('You do not own this video');
+      throw new ForbiddenException(ERROR_MESSAGES.VIDEO_NOT_OWNED);
     }
     video.assertDraftUploadMutable();
 
@@ -76,7 +77,7 @@ export class ConfirmVideoUploadUseCase extends BaseUseCase<
       video.rawFileKey,
     );
     if (!exists) {
-      throw new NotFoundException('Raw upload file not found');
+      throw new NotFoundException(ERROR_MESSAGES.RAW_UPLOAD_FILE_NOT_FOUND);
     }
 
     const rawVideoMetadata = await this.objectStorageService.getObjectMetadata(
@@ -84,14 +85,16 @@ export class ConfirmVideoUploadUseCase extends BaseUseCase<
       video.rawFileKey,
     );
     if (rawVideoMetadata.sizeBytes <= 0) {
-      throw new BadRequestException('Uploaded video file is empty or invalid');
+      throw new BadRequestException(
+        ERROR_MESSAGES.UPLOADED_VIDEO_EMPTY_OR_INVALID,
+      );
     }
 
     const maxVideoUploadSizeBytes =
       this.videoUploadConfig.getMaxVideoUploadSizeBytes();
     if (rawVideoMetadata.sizeBytes > maxVideoUploadSizeBytes) {
       throw new BadRequestException(
-        `Video file exceeds maximum upload size of ${this.formatBytes(maxVideoUploadSizeBytes)}`,
+        `${ERROR_MESSAGES.VIDEO_FILE_EXCEEDS_MAX_UPLOAD_SIZE} of ${this.formatBytes(maxVideoUploadSizeBytes)}`,
       );
     }
 
@@ -118,7 +121,7 @@ export class ConfirmVideoUploadUseCase extends BaseUseCase<
       },
     );
 
-    video.markPendingModeration();
+    video.markPendingModeration({ resolutions: normalizedResolutions });
     await this.videoRepository.save(video);
     this.publishVideoStatusChanged(video);
     await this.videoModerationRequestPublisher.publishModerationRequested({
@@ -151,12 +154,16 @@ export class ConfirmVideoUploadUseCase extends BaseUseCase<
   ): Promise<void> {
     const expectedPrefix = `videos/${video.id}/thumbnails/custom.`;
     if (!thumbnailObjectKey.startsWith(expectedPrefix)) {
-      throw new BadRequestException('Thumbnail object key is invalid');
+      throw new BadRequestException(
+        ERROR_MESSAGES.THUMBNAIL_OBJECT_KEY_INVALID,
+      );
     }
 
     const extension = thumbnailObjectKey.slice(expectedPrefix.length);
     if (!['jpg', 'jpeg', 'png', 'webp'].includes(extension)) {
-      throw new BadRequestException('Thumbnail file type is invalid');
+      throw new BadRequestException(
+        ERROR_MESSAGES.THUMBNAIL_FILE_TYPE_INVALID,
+      );
     }
 
     const exists = await this.objectStorageService.objectExists(
@@ -164,7 +171,9 @@ export class ConfirmVideoUploadUseCase extends BaseUseCase<
       thumbnailObjectKey,
     );
     if (!exists) {
-      throw new NotFoundException('Thumbnail upload file not found');
+      throw new NotFoundException(
+        ERROR_MESSAGES.THUMBNAIL_UPLOAD_FILE_NOT_FOUND,
+      );
     }
 
     const thumbnailMetadata = await this.objectStorageService.getObjectMetadata(
@@ -175,7 +184,9 @@ export class ConfirmVideoUploadUseCase extends BaseUseCase<
       thumbnailMetadata.sizeBytes <= 0 ||
       thumbnailMetadata.sizeBytes > MAX_THUMBNAIL_SIZE_BYTES
     ) {
-      throw new BadRequestException('Thumbnail file is empty or exceeds 5MB');
+      throw new BadRequestException(
+        ERROR_MESSAGES.THUMBNAIL_EMPTY_OR_EXCEEDS_LIMIT,
+      );
     }
 
     video.markCustomThumbnailReady({

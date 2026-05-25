@@ -13,6 +13,21 @@ class VideoModerationDetailsDto {
 
   @ApiProperty({ nullable: true })
   evidenceTimestampSeconds!: number | null;
+
+  @ApiProperty({ nullable: true, required: false })
+  label?: string | null;
+
+  @ApiProperty({ nullable: true, required: false })
+  safeScore?: number | null;
+
+  @ApiProperty({ nullable: true, required: false })
+  nsfwScore?: number | null;
+
+  @ApiProperty({ nullable: true, required: false })
+  sampledFrameCount?: number | null;
+
+  @ApiProperty({ nullable: true, required: false })
+  thresholds?: { manual: number; reject: number } | null;
 }
 
 export class AdminVideoListItemResponseDto {

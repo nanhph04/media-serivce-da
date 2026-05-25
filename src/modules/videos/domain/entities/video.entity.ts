@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
 } from '@shared/domain/exceptions/domain.exception';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import { Category } from '../../../categories/domain/entities/category.entity';
 import { Tag } from '../../../tags/domain/entities/tag.entity';
 
@@ -43,6 +44,14 @@ export interface VideoModerationDetails {
   reason: string;
   confidence: number;
   evidenceTimestampSeconds: number | null;
+  label?: string | null;
+  safeScore?: number | null;
+  nsfwScore?: number | null;
+  sampledFrameCount?: number | null;
+  thresholds?: {
+    manual: number;
+    reject: number;
+  } | null;
 }
 
 export interface VideoProps {
@@ -300,18 +309,22 @@ export class VideoEntity {
     });
   }
 
-  markProcessing(): void {
+  markProcessing(input?: { resolutions?: string[] }): void {
     if (
       this.props.status !== VideoStatus.DRAFT &&
       this.props.status !== VideoStatus.PENDING_MODERATION
     ) {
-      throw new ConflictException('Video cannot be marked as processing');
+      throw new ConflictException(ERROR_MESSAGES.VIDEO_CANNOT_MARK_PROCESSING);
+    }
+    if (input?.resolutions !== undefined) {
+      this.setRequestedResolutions(input.resolutions);
     }
     this.changeStatus(VideoStatus.PROCESSING);
   }
 
-  markPendingModeration(): void {
+  markPendingModeration(input: { resolutions: string[] }): void {
     this.assertDraftUploadMutable();
+    this.setRequestedResolutions(input.resolutions);
     this.changeStatus(VideoStatus.PENDING_MODERATION);
     this.props.errorMessage = null;
   }
@@ -380,7 +393,7 @@ export class VideoEntity {
 
   assertDraftUploadMutable(): void {
     if (this.props.status !== VideoStatus.DRAFT) {
-      throw new ConflictException('Video is not in draft status');
+      throw new ConflictException(ERROR_MESSAGES.VIDEO_NOT_DRAFT);
     }
   }
 
@@ -391,7 +404,11 @@ export class VideoEntity {
   markPendingManualReview(
     reason: string,
     moderationDetails: VideoModerationDetails | null = null,
+    input?: { resolutions?: string[] },
   ): void {
+    if (input?.resolutions !== undefined) {
+      this.setRequestedResolutions(input.resolutions);
+    }
     this.changeStatus(VideoStatus.PENDING_MANUAL_REVIEW);
     this.props.errorMessage = reason;
     this.props.moderationDetails = moderationDetails;
@@ -408,7 +425,9 @@ export class VideoEntity {
 
   approveManualReview(): void {
     if (this.props.status !== VideoStatus.PENDING_MANUAL_REVIEW) {
-      throw new ConflictException('Video is not pending manual review');
+      throw new ConflictException(
+        ERROR_MESSAGES.VIDEO_NOT_PENDING_MANUAL_REVIEW,
+      );
     }
 
     this.changeStatus(VideoStatus.READY);
@@ -417,15 +436,35 @@ export class VideoEntity {
     this.props.publishedAt = new Date();
   }
 
+  approveManualReviewForProcessing(): void {
+    if (this.props.status !== VideoStatus.PENDING_MANUAL_REVIEW) {
+      throw new ConflictException(
+        ERROR_MESSAGES.VIDEO_NOT_PENDING_MANUAL_REVIEW,
+      );
+    }
+    if (this.props.resolutions.length === 0) {
+      throw new ConflictException(
+        ERROR_MESSAGES.VIDEO_NO_REQUESTED_RESOLUTIONS,
+      );
+    }
+
+    this.changeStatus(VideoStatus.PROCESSING);
+    this.props.errorMessage = null;
+  }
+
   rejectManualReview(reason: string): void {
     const normalizedReason = reason.trim();
 
     if (!normalizedReason) {
-      throw new BadRequestException('Rejection reason is required');
+      throw new BadRequestException(
+        ERROR_MESSAGES.VIDEO_REJECTION_REASON_REQUIRED,
+      );
     }
 
     if (this.props.status !== VideoStatus.PENDING_MANUAL_REVIEW) {
-      throw new ConflictException('Video is not pending manual review');
+      throw new ConflictException(
+        ERROR_MESSAGES.VIDEO_NOT_PENDING_MANUAL_REVIEW,
+      );
     }
 
     this.markRejected(normalizedReason, {
@@ -511,10 +550,12 @@ export class VideoEntity {
 
   unpublish(input: { deletedBy: string; reason: string }): void {
     if (this.props.status !== VideoStatus.READY) {
-      throw new ConflictException('Only ready videos can be unpublished');
+      throw new ConflictException(
+        ERROR_MESSAGES.VIDEO_READY_REQUIRED_FOR_UNPUBLISH,
+      );
     }
     if (this.deletionStatus !== VideoDeletionStatus.ACTIVE) {
-      throw new ConflictException('Video delete has already been requested');
+      throw new ConflictException(ERROR_MESSAGES.VIDEO_DELETE_ALREADY_REQUESTED);
     }
     this.props.isDeleted = true;
     this.props.deletedAt = new Date();
@@ -534,7 +575,7 @@ export class VideoEntity {
     }
 
     if (this.deletionStatus !== VideoDeletionStatus.PENDING_DELETE) {
-      throw new ConflictException('Video is not pending delete');
+      throw new ConflictException(ERROR_MESSAGES.VIDEO_NOT_PENDING_DELETE);
     }
 
     this.props.deletionStatus = VideoDeletionStatus.READY_FOR_HARD_DELETE;
@@ -558,6 +599,19 @@ export class VideoEntity {
     this.props.updatedAt = new Date();
   }
 
+  private setRequestedResolutions(resolutions: string[]): void {
+    const normalizedResolutions = resolutions
+      .map((resolution) => resolution.trim())
+      .filter((resolution) => resolution.length > 0);
+
+    if (normalizedResolutions.length === 0) {
+      throw new BadRequestException(ERROR_MESSAGES.VIDEO_RESOLUTION_REQUIRED);
+    }
+
+    this.props.resolutions = normalizedResolutions;
+    this.touch();
+  }
+
   private changeStatus(status: VideoStatus): void {
     const now = new Date();
     this.props.status = status;
@@ -573,10 +627,10 @@ export class VideoEntity {
     VideoEntity.validateTitle(title);
 
     if (price < 0) {
-      throw new BadRequestException('Video price cannot be negative');
+      throw new BadRequestException(ERROR_MESSAGES.VIDEO_PRICE_NEGATIVE);
     }
     if (price > 0 && price % 10 !== 0) {
-      throw new BadRequestException('Video price must be divisible by 10');
+      throw new BadRequestException(ERROR_MESSAGES.VIDEO_PRICE_DIVISIBLE_BY_10);
     }
     if (
       requiredTierLevel !== null &&
@@ -591,7 +645,7 @@ export class VideoEntity {
   private static validateTitle(title: string): void {
     if (!title || title.length > 200) {
       throw new BadRequestException(
-        'Video title is required and must be <= 200 characters',
+        ERROR_MESSAGES.VIDEO_TITLE_REQUIRED_MAX_LENGTH,
       );
     }
   }

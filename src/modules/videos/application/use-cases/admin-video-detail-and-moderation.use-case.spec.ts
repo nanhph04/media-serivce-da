@@ -12,22 +12,43 @@ import { Tag, TagStatus } from '../../../tags/domain/entities/tag.entity';
 import {
   VideoEntity,
   VideoStatus,
+  VideoThumbnailSource,
+  VideoThumbnailStatus,
   VideoVisibility,
 } from '../../domain/entities/video.entity';
 import type { IVideoRepository } from '../../domain/repositories/video.repository';
 import { GetAdminVideoDetailUseCase } from './get-admin-video-detail.use-case';
 import { ModerateAdminVideoUseCase } from './moderate-admin-video.use-case';
 
-describe('Admin video detail and moderation use cases', () => {
-  const cacheInvalidator = {
-    invalidateMetadata: jest.fn(),
-    invalidateDiscoveryLists: jest.fn(),
-  };
+const cacheInvalidator = {
+  invalidateMetadata: jest.fn(),
+  invalidateDiscoveryLists: jest.fn(),
+};
+const videoProcessingJobDispatcher = {
+  enqueueTranscodeJob: jest.fn(),
+};
+const objectStorageService = {
+  getBucketName: jest.fn(),
+};
+const moderationOutcomePublisher = {
+  publishModerationOutcome: jest.fn(),
+};
+const videoStatusEventPublisher = {
+  publishVideoStatusChanged: jest.fn(),
+};
 
+describe('Admin video detail and moderation use cases', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     cacheInvalidator.invalidateMetadata.mockResolvedValue(undefined);
     cacheInvalidator.invalidateDiscoveryLists.mockResolvedValue(undefined);
+    videoProcessingJobDispatcher.enqueueTranscodeJob.mockResolvedValue(
+      undefined,
+    );
+    objectStorageService.getBucketName.mockReturnValue('media-public');
+    moderationOutcomePublisher.publishModerationOutcome.mockResolvedValue(
+      undefined,
+    );
   });
 
   it('rejects admin video detail for non-admin callers', async () => {
@@ -73,13 +94,10 @@ describe('Admin video detail and moderation use cases', () => {
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('approves pending manual review video', async () => {
+  it('approves pending manual review video by queueing processing', async () => {
     const video = buildVideo(VideoStatus.PENDING_MANUAL_REVIEW);
     const save = jest.fn().mockResolvedValue(undefined);
-    const useCase = new ModerateAdminVideoUseCase(
-      createVideoRepository({ video, save }),
-      cacheInvalidator,
-    );
+    const useCase = createModerateAdminVideoUseCase({ video, save });
 
     const result = await useCase.execute({
       adminId: 'admin-1',
@@ -88,18 +106,84 @@ describe('Admin video detail and moderation use cases', () => {
       action: 'approve',
     });
 
-    expect(result.status).toBe(VideoStatus.READY);
+    expect(result.status).toBe(VideoStatus.PROCESSING);
+    expect(result.errorMessage).toBeNull();
+    expect(result.publishedAt).toBeNull();
+    expect(result.moderationDetails).toEqual({
+      reason: 'Needs review',
+      confidence: 0.8,
+      evidenceTimestampSeconds: null,
+    });
     expect(save).toHaveBeenCalledWith(video);
+    expect(
+      videoProcessingJobDispatcher.enqueueTranscodeJob,
+    ).toHaveBeenCalledWith({
+      videoId: 'video-1',
+      rawFileKey: 'raw.mp4',
+      resolution: ['720p'],
+      userId: 'owner-1',
+      thumbnailTargetObjectKey: 'videos/video-1/thumbnails/default.jpg',
+      thumbnailTargetBucket: 'media-public',
+    });
+    expect(
+      videoStatusEventPublisher.publishVideoStatusChanged,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        videoId: 'video-1',
+        userId: 'owner-1',
+        status: VideoStatus.PROCESSING,
+        jobStatus: 'processing',
+        moderationDetails: {
+          reason: 'Needs review',
+          confidence: 0.8,
+          evidenceTimestampSeconds: null,
+        },
+      }),
+    );
+    expect(
+      moderationOutcomePublisher.publishModerationOutcome,
+    ).toHaveBeenCalledWith({
+      videoId: 'video-1',
+      moderationStatus: 'PENDING_MANUAL_REVIEW',
+      videoStatus: VideoStatus.PROCESSING,
+      outcome: 'QUEUED_FOR_PROCESSING',
+      reason: 'Needs review',
+      confidence: 0.8,
+      evidenceTimestampSeconds: null,
+      transcodeQueued: true,
+    });
     expect(cacheInvalidator.invalidateMetadata).toHaveBeenCalledWith('video-1');
     expect(cacheInvalidator.invalidateDiscoveryLists).toHaveBeenCalled();
   });
 
+  it('approves custom-thumbnail manual review video without auto thumbnail target', async () => {
+    const video = buildVideo(VideoStatus.PENDING_MANUAL_REVIEW, {
+      thumbnailSource: VideoThumbnailSource.CUSTOM,
+    });
+    const useCase = createModerateAdminVideoUseCase({ video });
+
+    await useCase.execute({
+      adminId: 'admin-1',
+      role: 'admin',
+      videoId: 'video-1',
+      action: 'approve',
+    });
+
+    expect(
+      videoProcessingJobDispatcher.enqueueTranscodeJob,
+    ).toHaveBeenCalledWith({
+      videoId: 'video-1',
+      rawFileKey: 'raw.mp4',
+      resolution: ['720p'],
+      userId: 'owner-1',
+      thumbnailTargetObjectKey: undefined,
+      thumbnailTargetBucket: undefined,
+    });
+  });
+
   it('rejects pending manual review video with reason', async () => {
     const video = buildVideo(VideoStatus.PENDING_MANUAL_REVIEW);
-    const useCase = new ModerateAdminVideoUseCase(
-      createVideoRepository({ video }),
-      cacheInvalidator,
-    );
+    const useCase = createModerateAdminVideoUseCase({ video });
 
     const result = await useCase.execute({
       adminId: 'admin-1',
@@ -111,15 +195,21 @@ describe('Admin video detail and moderation use cases', () => {
 
     expect(result.status).toBe(VideoStatus.REJECTED);
     expect(result.errorMessage).toBe('Policy issue');
+    expect(
+      videoProcessingJobDispatcher.enqueueTranscodeJob,
+    ).not.toHaveBeenCalled();
+    expect(
+      videoStatusEventPublisher.publishVideoStatusChanged,
+    ).not.toHaveBeenCalled();
+    expect(
+      moderationOutcomePublisher.publishModerationOutcome,
+    ).not.toHaveBeenCalled();
   });
 
   it('rejects moderation without rejection reason', async () => {
-    const useCase = new ModerateAdminVideoUseCase(
-      createVideoRepository({
-        video: buildVideo(VideoStatus.PENDING_MANUAL_REVIEW),
-      }),
-      cacheInvalidator,
-    );
+    const useCase = createModerateAdminVideoUseCase({
+      video: buildVideo(VideoStatus.PENDING_MANUAL_REVIEW),
+    });
 
     await expect(
       useCase.execute({
@@ -132,10 +222,9 @@ describe('Admin video detail and moderation use cases', () => {
   });
 
   it('rejects moderation for videos outside manual review', async () => {
-    const useCase = new ModerateAdminVideoUseCase(
-      createVideoRepository({ video: buildVideo(VideoStatus.READY) }),
-      cacheInvalidator,
-    );
+    const useCase = createModerateAdminVideoUseCase({
+      video: buildVideo(VideoStatus.READY),
+    });
 
     await expect(
       useCase.execute({
@@ -158,7 +247,24 @@ function createVideoRepository(input?: {
   } as unknown as IVideoRepository;
 }
 
-function buildVideo(status: VideoStatus): VideoEntity {
+function createModerateAdminVideoUseCase(input?: {
+  video?: VideoEntity;
+  save?: jest.Mock;
+}): ModerateAdminVideoUseCase {
+  return new ModerateAdminVideoUseCase(
+    createVideoRepository(input),
+    cacheInvalidator,
+    videoProcessingJobDispatcher,
+    objectStorageService as never,
+    moderationOutcomePublisher,
+    videoStatusEventPublisher,
+  );
+}
+
+function buildVideo(
+  status: VideoStatus,
+  input: { thumbnailSource?: VideoThumbnailSource } = {},
+): VideoEntity {
   return new VideoEntity({
     id: 'video-1',
     channelId: 'channel-1',
@@ -192,9 +298,14 @@ function buildVideo(status: VideoStatus): VideoEntity {
     requiredTierLevel: null,
     rawFileKey: 'raw.mp4',
     masterPlaylistKey: null,
+    thumbnailObjectKey: null,
     thumbnailUrl: null,
+    thumbnailSource: input.thumbnailSource ?? VideoThumbnailSource.AUTO,
+    thumbnailStatus: VideoThumbnailStatus.PROCESSING,
+    thumbnailGeneratedAt: null,
+    thumbnailError: null,
     durationSeconds: null,
-    resolutions: [],
+    resolutions: ['720p'],
     errorMessage:
       status === VideoStatus.PENDING_MANUAL_REVIEW ? 'Needs review' : null,
     moderationDetails:

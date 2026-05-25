@@ -78,6 +78,7 @@ describe('HandleVideoModerationCompletedUseCase', () => {
 
     const savedVideo = videoRepository.save.mock.calls[0][0] as VideoEntity;
     expect(savedVideo.status).toBe(VideoStatus.PROCESSING);
+    expect(savedVideo.resolutions).toEqual(['480p', '720p']);
     expect(
       videoProcessingJobDispatcher.enqueueTranscodeJob,
     ).toHaveBeenCalledWith({
@@ -139,6 +140,14 @@ describe('HandleVideoModerationCompletedUseCase', () => {
         reason: 'NSFW score 0.72 at 00:12',
         confidence: 0.72,
         evidenceTimestampSeconds: 12,
+        evidence: {
+          label: 'sexy',
+          safeScore: 0.28,
+          nsfwScore: 0.72,
+          timestampSeconds: 12,
+          sampledFrameCount: 4,
+          thresholds: { manual: 0.6, reject: 0.9 },
+        },
         rawFileKey: 'uploads/raw/channel-1/video.mp4',
         resolutions: ['720p'],
         userId: 'owner-1',
@@ -147,11 +156,17 @@ describe('HandleVideoModerationCompletedUseCase', () => {
 
     const savedVideo = videoRepository.save.mock.calls[0][0] as VideoEntity;
     expect(savedVideo.status).toBe(VideoStatus.PENDING_MANUAL_REVIEW);
+    expect(savedVideo.resolutions).toEqual(['720p']);
     expect(savedVideo.errorMessage).toBe('NSFW score 0.72 at 00:12');
     expect(savedVideo.moderationDetails).toEqual({
       reason: 'NSFW score 0.72 at 00:12',
       confidence: 0.72,
       evidenceTimestampSeconds: 12,
+      label: 'sexy',
+      safeScore: 0.28,
+      nsfwScore: 0.72,
+      sampledFrameCount: 4,
+      thresholds: { manual: 0.6, reject: 0.9 },
     });
     expect(
       videoProcessingJobDispatcher.enqueueTranscodeJob,
