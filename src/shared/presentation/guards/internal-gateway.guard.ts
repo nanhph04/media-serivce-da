@@ -5,6 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import type { Request } from 'express';
 import { ConfigService } from '../../infrastructure/config/config.service';
 import { SKIP_INTERNAL_GATEWAY_GUARD } from '../decorators/skip-internal-gateway.decorator';
@@ -38,7 +39,7 @@ export class InternalGatewayGuard implements CanActivate {
       gatewaySecret !== expectedSecret
     ) {
       throw new UnauthorizedException(
-        'Missing or invalid internal gateway secret',
+        ERROR_MESSAGES.INTERNAL_GATEWAY_SECRET_REQUIRED,
       );
     }
 

@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import {
   BadRequestException,
@@ -276,7 +277,7 @@ export class ListAdminReportsUseCase extends BaseUseCase<
 
   private ensureAdminRole(role: string | undefined): void {
     if (role !== 'admin') {
-      throw new ForbiddenException('Admin role is required');
+      throw new ForbiddenException(ERROR_MESSAGES.ADMIN_ROLE_REQUIRED);
     }
   }
 
@@ -300,7 +301,7 @@ export class ListAdminReportsUseCase extends BaseUseCase<
       return source;
     }
 
-    throw new BadRequestException('Invalid report source');
+    throw new BadRequestException(ERROR_MESSAGES.REPORT_SOURCE_INVALID);
   }
 
   private parseTargetType(
@@ -318,7 +319,7 @@ export class ListAdminReportsUseCase extends BaseUseCase<
       return targetType as ContentReportTargetType;
     }
 
-    throw new BadRequestException('Invalid report target type');
+    throw new BadRequestException(ERROR_MESSAGES.REPORT_TARGET_TYPE_INVALID);
   }
 
   private parseUserReportStatus(
@@ -334,7 +335,7 @@ export class ListAdminReportsUseCase extends BaseUseCase<
       return status as ContentReportStatus;
     }
 
-    throw new BadRequestException('Invalid report status');
+    throw new BadRequestException(ERROR_MESSAGES.REPORT_STATUS_INVALID);
   }
 
   private parseSyntheticStatus(status?: string): VideoStatus {
@@ -346,6 +347,6 @@ export class ListAdminReportsUseCase extends BaseUseCase<
       return VideoStatus.REJECTED;
     }
 
-    throw new BadRequestException('Invalid report status');
+    throw new BadRequestException(ERROR_MESSAGES.REPORT_STATUS_INVALID);
   }
 }

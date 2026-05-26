@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import {
   OBJECT_STORAGE_SERVICE,
   type IObjectStorageService,
@@ -42,10 +43,10 @@ export class CancelVideoUploadUseCase extends BaseUseCase<
   }): Promise<CancelVideoUploadResponse> {
     const video = await this.videoRepository.findById(command.videoId);
     if (!video) {
-      throw new NotFoundException('Video not found');
+      throw new NotFoundException(ERROR_MESSAGES.VIDEO_NOT_FOUND);
     }
     if (video.ownerId !== command.userId) {
-      throw new ForbiddenException('You do not own this video');
+      throw new ForbiddenException(ERROR_MESSAGES.VIDEO_NOT_OWNED);
     }
 
     video.assertDraftUploadMutable();

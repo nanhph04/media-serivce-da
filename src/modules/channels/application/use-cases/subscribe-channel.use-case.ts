@@ -1,3 +1,4 @@
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import type { IChannelMembershipRepository } from '../../domain/repositories/channel-membership.repository';
 import { IChannelRepository } from '../../domain/repositories/channel.repository';
 import { ChannelMembershipEntity } from '../../domain/entities/channel-membership.entity';
@@ -25,11 +26,13 @@ export class SubscribeChannelUseCase extends BaseUseCase<
   ): Promise<ChannelMembershipResponse> {
     const channel = await this.channelRepository.findById(command.channelId);
     if (!channel) {
-      throw new NotFoundException('Channel not found');
+      throw new NotFoundException(ERROR_MESSAGES.CHANNEL_NOT_FOUND);
     }
 
     if (channel.userId === command.userId) {
-      throw new BadRequestException('Cannot subscribe to your own channel');
+      throw new BadRequestException(
+        ERROR_MESSAGES.CANNOT_SUBSCRIBE_OWN_CHANNEL,
+      );
     }
 
     const existingSubscription =
@@ -40,7 +43,9 @@ export class SubscribeChannelUseCase extends BaseUseCase<
 
     if (existingSubscription) {
       if (existingSubscription.isActive()) {
-        throw new BadRequestException('Already subscribed to this channel');
+        throw new BadRequestException(
+          ERROR_MESSAGES.ALREADY_SUBSCRIBED_TO_CHANNEL,
+        );
       }
       existingSubscription.reactivate();
       await this.membershipRepository.update(existingSubscription);

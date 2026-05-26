@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import {
   BadRequestException,
@@ -43,7 +44,7 @@ export class ReportChannelUseCase extends BaseUseCase<
   async execute(command: ReportChannelCommand): Promise<ContentReportResponse> {
     const channel = await this.channelRepository.findById(command.channelId);
     if (!channel) {
-      throw new NotFoundException('Channel not found');
+      throw new NotFoundException(ERROR_MESSAGES.CHANNEL_NOT_FOUND);
     }
 
     const existing =
@@ -78,12 +79,12 @@ export class ReportChannelUseCase extends BaseUseCase<
     if (reportedVideoId) {
       const video = await this.videoRepository.findBasicById(reportedVideoId);
       if (!video) {
-        throw new NotFoundException('Reported video not found');
+        throw new NotFoundException(ERROR_MESSAGES.REPORTED_VIDEO_NOT_FOUND);
       }
 
       if (video.channelId !== channelId) {
         throw new BadRequestException(
-          'Reported video does not belong to this channel',
+          ERROR_MESSAGES.REPORTED_VIDEO_NOT_BELONG_TO_CHANNEL,
         );
       }
 

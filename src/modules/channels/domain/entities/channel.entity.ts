@@ -1,3 +1,4 @@
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import { BadRequestException } from '@shared/domain/exceptions/domain.exception';
 
 export enum ChannelStatus {
@@ -117,14 +118,10 @@ export class ChannelEntity {
     bio: string;
   }): ChannelEntity {
     if (input.name.length > 100) {
-      throw new BadRequestException(
-        'Channel name must be less than 100 characters',
-      );
+      throw new BadRequestException(ERROR_MESSAGES.CHANNEL_NAME_MAX_LENGTH);
     }
     if (input.bio.length > 1000) {
-      throw new BadRequestException(
-        'Channel bio must be less than 1000 characters',
-      );
+      throw new BadRequestException(ERROR_MESSAGES.CHANNEL_BIO_MAX_LENGTH);
     }
 
     return new ChannelEntity({
@@ -154,17 +151,13 @@ export class ChannelEntity {
   ): void {
     if (input.name !== undefined) {
       if (input.name.length > 100) {
-        throw new BadRequestException(
-          'Channel name must be less than 100 characters',
-        );
+        throw new BadRequestException(ERROR_MESSAGES.CHANNEL_NAME_MAX_LENGTH);
       }
       this.props.name = input.name;
     }
     if (input.bio !== undefined) {
       if (input.bio.length > 1000) {
-        throw new BadRequestException(
-          'Channel bio must be less than 1000 characters',
-        );
+        throw new BadRequestException(ERROR_MESSAGES.CHANNEL_BIO_MAX_LENGTH);
       }
       this.props.bio = input.bio;
     }
@@ -229,7 +222,9 @@ export class ChannelEntity {
 
   public requestMembershipReview(): void {
     if (!this.props.isEligibleForMembership) {
-      throw new BadRequestException('Channel is not eligible for membership');
+      throw new BadRequestException(
+        ERROR_MESSAGES.CHANNEL_NOT_ELIGIBLE_FOR_MEMBERSHIP,
+      );
     }
 
     if (
@@ -249,14 +244,18 @@ export class ChannelEntity {
 
   public approveMembership(adminId: string): void {
     if (!this.props.isEligibleForMembership) {
-      throw new BadRequestException('Channel is not eligible for membership');
+      throw new BadRequestException(
+        ERROR_MESSAGES.CHANNEL_NOT_ELIGIBLE_FOR_MEMBERSHIP,
+      );
     }
 
     if (
       this.props.membershipReviewStatus !== MembershipReviewStatus.PENDING &&
       this.props.membershipReviewStatus !== MembershipReviewStatus.REJECTED
     ) {
-      throw new BadRequestException('Membership review is not pending');
+      throw new BadRequestException(
+        ERROR_MESSAGES.MEMBERSHIP_REVIEW_NOT_PENDING,
+      );
     }
 
     this.props.membershipReviewStatus = MembershipReviewStatus.APPROVED;
@@ -270,15 +269,21 @@ export class ChannelEntity {
     const normalizedReason = reason.trim();
 
     if (!normalizedReason) {
-      throw new BadRequestException('Rejection reason is required');
+      throw new BadRequestException(
+        ERROR_MESSAGES.MEMBERSHIP_REJECTION_REASON_REQUIRED,
+      );
     }
 
     if (!this.props.isEligibleForMembership) {
-      throw new BadRequestException('Channel is not eligible for membership');
+      throw new BadRequestException(
+        ERROR_MESSAGES.CHANNEL_NOT_ELIGIBLE_FOR_MEMBERSHIP,
+      );
     }
 
     if (this.props.membershipReviewStatus !== MembershipReviewStatus.PENDING) {
-      throw new BadRequestException('Membership review is not pending');
+      throw new BadRequestException(
+        ERROR_MESSAGES.MEMBERSHIP_REVIEW_NOT_PENDING,
+      );
     }
 
     this.props.membershipReviewStatus = MembershipReviewStatus.REJECTED;

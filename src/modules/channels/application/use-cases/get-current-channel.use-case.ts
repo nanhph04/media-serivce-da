@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import { NotFoundException } from '@shared/domain/exceptions/domain.exception';
 import type { CurrentChannelResponse } from '../dtos/current-channel.response';
@@ -23,7 +24,7 @@ export class GetCurrentChannelUseCase extends BaseUseCase<
     const channel = await this.channelRepository.findByUserId(command.userId);
 
     if (!channel) {
-      throw new NotFoundException('Channel not found');
+      throw new NotFoundException(ERROR_MESSAGES.CHANNEL_NOT_FOUND);
     }
 
     return {

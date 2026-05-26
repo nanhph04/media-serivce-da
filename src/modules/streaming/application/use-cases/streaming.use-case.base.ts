@@ -1,3 +1,4 @@
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import {
   ForbiddenException,
   NotFoundException,
@@ -35,7 +36,9 @@ export abstract class StreamingUseCaseBase {
 
     const video = await this.videoRepository.findBasicById(videoId);
     if (!video || !video.masterPlaylistKey) {
-      throw new NotFoundException('Video master playlist not found');
+      throw new NotFoundException(
+        ERROR_MESSAGES.VIDEO_MASTER_PLAYLIST_NOT_FOUND,
+      );
     }
 
     await this.setCachedString(
@@ -100,7 +103,7 @@ export abstract class StreamingUseCaseBase {
 
         if (trimmed.includes('://')) {
           throw new ForbiddenException(
-            'External playlist URLs are not allowed',
+            ERROR_MESSAGES.EXTERNAL_PLAYLIST_URLS_NOT_ALLOWED,
           );
         }
 
@@ -186,7 +189,9 @@ export abstract class StreamingUseCaseBase {
     reference: string,
   ): string {
     if (reference.startsWith('/')) {
-      throw new ForbiddenException('Absolute playlist paths are not allowed');
+      throw new ForbiddenException(
+        ERROR_MESSAGES.ABSOLUTE_PLAYLIST_PATHS_NOT_ALLOWED,
+      );
     }
 
     const parts = [...basePath.split('/'), ...reference.split('/')];
@@ -200,7 +205,7 @@ export abstract class StreamingUseCaseBase {
       if (part === '..') {
         if (resolvedParts.length === 0) {
           throw new ForbiddenException(
-            'Playlist paths cannot escape the video directory',
+            ERROR_MESSAGES.PLAYLIST_PATHS_CANNOT_ESCAPE_VIDEO_DIRECTORY,
           );
         }
         resolvedParts.pop();
@@ -256,7 +261,7 @@ export abstract class StreamingUseCaseBase {
       !this.isMediaSegmentReference(input.segmentName)
     ) {
       throw new NotFoundException(
-        `Media object not found: ${input.attemptedObjectKey}`,
+        `${ERROR_MESSAGES.MEDIA_OBJECT_NOT_FOUND}: ${input.attemptedObjectKey}`,
       );
     }
 
@@ -281,7 +286,9 @@ export abstract class StreamingUseCaseBase {
       return;
     }
 
-    throw new NotFoundException(`Media object not found: ${objectKey}`);
+    throw new NotFoundException(
+      `${ERROR_MESSAGES.MEDIA_OBJECT_NOT_FOUND}: ${objectKey}`,
+    );
   }
 
   private isMissingObjectError(error: unknown): boolean {

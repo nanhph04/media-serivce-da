@@ -555,7 +555,9 @@ export class VideoEntity {
       );
     }
     if (this.deletionStatus !== VideoDeletionStatus.ACTIVE) {
-      throw new ConflictException(ERROR_MESSAGES.VIDEO_DELETE_ALREADY_REQUESTED);
+      throw new ConflictException(
+        ERROR_MESSAGES.VIDEO_DELETE_ALREADY_REQUESTED,
+      );
     }
     this.props.isDeleted = true;
     this.props.deletedAt = new Date();

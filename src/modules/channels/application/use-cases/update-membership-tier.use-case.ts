@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import {
   BadRequestException,
@@ -43,31 +44,31 @@ export class UpdateMembershipTierUseCase extends BaseUseCase<
     const channel = await this.channelRepository.findById(command.channelId);
 
     if (!channel) {
-      throw new NotFoundException('Channel not found');
+      throw new NotFoundException(ERROR_MESSAGES.CHANNEL_NOT_FOUND);
     }
 
     if (channel.userId !== command.userId) {
-      throw new ForbiddenException('You do not own this channel');
+      throw new ForbiddenException(ERROR_MESSAGES.CHANNEL_NOT_OWNED);
     }
 
     if (channel.status !== ChannelStatus.ACTIVE) {
-      throw new ForbiddenException('Channel is not active');
+      throw new ForbiddenException(ERROR_MESSAGES.CHANNEL_NOT_ACTIVE);
     }
 
     if (channel.isMembershipClosedByAdmin && command.isAcceptingNew === true) {
       throw new ForbiddenException(
-        'Membership registration is temporarily closed by admin',
+        ERROR_MESSAGES.CHANNEL_MEMBERSHIP_REGISTRATION_CLOSED,
       );
     }
 
     const tier = await this.membershipTierRepository.findById(command.tierId);
 
     if (!tier) {
-      throw new NotFoundException('Membership tier not found');
+      throw new NotFoundException(ERROR_MESSAGES.MEMBERSHIP_TIER_NOT_FOUND);
     }
 
     if (tier.channelId !== command.channelId) {
-      throw new NotFoundException('Membership tier not found');
+      throw new NotFoundException(ERROR_MESSAGES.MEMBERSHIP_TIER_NOT_FOUND);
     }
 
     if (
@@ -76,7 +77,7 @@ export class UpdateMembershipTierUseCase extends BaseUseCase<
       !channel.isEligibleForMembership
     ) {
       throw new ForbiddenException(
-        'Channel is not eligible to open membership registration yet',
+        ERROR_MESSAGES.CHANNEL_NOT_ELIGIBLE_TO_OPEN_MEMBERSHIP,
       );
     }
 
@@ -85,7 +86,7 @@ export class UpdateMembershipTierUseCase extends BaseUseCase<
 
       if (command.priceCoin < minPrice) {
         throw new BadRequestException(
-          `Price must be at least ${minPrice} coin for level ${tier.level}`,
+          `${ERROR_MESSAGES.MEMBERSHIP_TIER_PRICE_MIN_PREFIX} ${minPrice} ${ERROR_MESSAGES.MEMBERSHIP_TIER_PRICE_MIN_SUFFIX} ${tier.level}`,
         );
       }
     }

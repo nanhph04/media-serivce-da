@@ -161,9 +161,7 @@ export class ConfirmVideoUploadUseCase extends BaseUseCase<
 
     const extension = thumbnailObjectKey.slice(expectedPrefix.length);
     if (!['jpg', 'jpeg', 'png', 'webp'].includes(extension)) {
-      throw new BadRequestException(
-        ERROR_MESSAGES.THUMBNAIL_FILE_TYPE_INVALID,
-      );
+      throw new BadRequestException(ERROR_MESSAGES.THUMBNAIL_FILE_TYPE_INVALID);
     }
 
     const exists = await this.objectStorageService.objectExists(

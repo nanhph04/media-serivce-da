@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 
 import {
   FINANCE_PAYMENT_CLIENT,
@@ -51,11 +52,11 @@ export class PurchaseVideoUseCase extends BaseUseCase<
     const video = await this.videoRepository.findById(command.videoId);
 
     if (!video) {
-      throw new NotFoundException('Video not found');
+      throw new NotFoundException(ERROR_MESSAGES.VIDEO_NOT_FOUND);
     }
 
     if (video.ownerId === command.userId) {
-      throw new BadRequestException('Cannot purchase your own video');
+      throw new BadRequestException(ERROR_MESSAGES.CANNOT_PURCHASE_OWN_VIDEO);
     }
 
     if (
@@ -63,11 +64,15 @@ export class PurchaseVideoUseCase extends BaseUseCase<
       video.visibility !== VideoVisibility.PUBLIC ||
       !video.isAvailableForPlayback
     ) {
-      throw new ConflictException('Video is not available for purchase');
+      throw new ConflictException(
+        ERROR_MESSAGES.VIDEO_NOT_AVAILABLE_FOR_PURCHASE,
+      );
     }
 
     if (video.price <= 0) {
-      throw new BadRequestException('Video does not require purchase');
+      throw new BadRequestException(
+        ERROR_MESSAGES.VIDEO_DOES_NOT_REQUIRE_PURCHASE,
+      );
     }
 
     if (await this.unlockRepository.exists(video.id, command.userId)) {
@@ -98,7 +103,7 @@ export class PurchaseVideoUseCase extends BaseUseCase<
 
     if (!paymentTransactionId) {
       throw new InternalServerErrorException(
-        'Finance payment response is missing payment transaction',
+        ERROR_MESSAGES.MEMBERSHIP_PAYMENT_TRANSACTION_MISSING,
       );
     }
 

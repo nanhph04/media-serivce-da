@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import {
   PLAYBACK_TOKEN_ISSUER,
   type IPlaybackTokenIssuer,
@@ -33,7 +34,7 @@ export class RefreshPlaybackTokenUseCase extends BaseUseCase<
   ): Promise<RefreshPlaybackTokenResponse> {
     const video = await this.videoRepository.findBasicById(command.videoId);
     if (!video) {
-      throw new NotFoundException('Video not found');
+      throw new NotFoundException(ERROR_MESSAGES.VIDEO_NOT_FOUND);
     }
 
     await this.videoWatchAccessService.assertCanWatch(video, command.userId);

@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import { NotFoundException } from '@shared/domain/exceptions/domain.exception';
 import {
@@ -42,7 +43,7 @@ export class UpdateVideoProgressUseCase extends BaseUseCase<
   ): Promise<UpdateVideoProgressResponse> {
     const video = await this.videoRepository.findBasicById(command.videoId);
     if (!video) {
-      throw new NotFoundException('Video not found');
+      throw new NotFoundException(ERROR_MESSAGES.VIDEO_NOT_FOUND);
     }
 
     await this.videoWatchAccessService.assertCanWatch(video, command.userId);

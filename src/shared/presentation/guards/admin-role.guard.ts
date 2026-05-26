@@ -1,4 +1,5 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import { ForbiddenException } from '@shared/domain/exceptions/domain.exception';
 import type { Request } from 'express';
 
@@ -9,7 +10,7 @@ export class AdminRoleGuard implements CanActivate {
     const role = request.headers['x-user-role'];
 
     if (role !== 'admin') {
-      throw new ForbiddenException('Admin role is required');
+      throw new ForbiddenException(ERROR_MESSAGES.ADMIN_ROLE_REQUIRED);
     }
 
     return true;

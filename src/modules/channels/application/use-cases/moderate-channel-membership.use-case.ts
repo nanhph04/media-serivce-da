@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import { NotFoundException } from '@shared/domain/exceptions/domain.exception';
 import type { ChannelResponse } from '../dtos/channel.response';
@@ -26,7 +27,7 @@ export class ModerateChannelMembershipUseCase extends BaseUseCase<
     const channel = await this.channelRepository.findById(command.channelId);
 
     if (!channel) {
-      throw new NotFoundException('Channel not found');
+      throw new NotFoundException(ERROR_MESSAGES.CHANNEL_NOT_FOUND);
     }
 
     if (command.action === 'close') {

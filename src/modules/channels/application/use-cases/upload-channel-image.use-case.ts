@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import {
   OBJECT_STORAGE_SERVICE,
   type IObjectStorageService,
@@ -44,7 +45,7 @@ export class UploadChannelImageUseCase extends BaseUseCase<
 
   async execute(command: UploadChannelImageCommand): Promise<ChannelResponse> {
     if (!command.file) {
-      throw new BadRequestException('Image file is required');
+      throw new BadRequestException(ERROR_MESSAGES.IMAGE_FILE_REQUIRED);
     }
 
     this.validateFileSize(command.file, command.imageType);
@@ -52,11 +53,11 @@ export class UploadChannelImageUseCase extends BaseUseCase<
     const channel = await this.channelRepository.findByUserId(command.userId);
 
     if (!channel) {
-      throw new NotFoundException('Channel not found');
+      throw new NotFoundException(ERROR_MESSAGES.CHANNEL_NOT_FOUND);
     }
 
     if (channel.status !== ChannelStatus.ACTIVE) {
-      throw new ForbiddenException('Channel is not active');
+      throw new ForbiddenException(ERROR_MESSAGES.CHANNEL_NOT_ACTIVE);
     }
 
     const objectKey = `channels/${channel.id}/${command.imageType}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
@@ -103,11 +104,11 @@ export class UploadChannelImageUseCase extends BaseUseCase<
       imageType === 'avatar' ? MAX_AVATAR_SIZE_BYTES : MAX_BANNER_SIZE_BYTES;
 
     if (file.sizeBytes <= 0) {
-      throw new BadRequestException('Image file must not be empty');
+      throw new BadRequestException(ERROR_MESSAGES.IMAGE_FILE_EMPTY);
     }
 
     if (file.sizeBytes > maxSizeBytes) {
-      throw new BadRequestException('Image file exceeds maximum size');
+      throw new BadRequestException(ERROR_MESSAGES.IMAGE_FILE_EXCEEDS_MAX_SIZE);
     }
   }
 

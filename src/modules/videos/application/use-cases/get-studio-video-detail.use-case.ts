@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import {
   ForbiddenException,
@@ -31,10 +32,10 @@ export class GetStudioVideoDetailUseCase extends BaseUseCase<
   }): Promise<StudioVideoListItemResponse> {
     const video = await this.videoRepository.findById(command.videoId);
     if (!video) {
-      throw new NotFoundException('Video not found');
+      throw new NotFoundException(ERROR_MESSAGES.VIDEO_NOT_FOUND);
     }
     if (video.ownerId !== command.userId) {
-      throw new ForbiddenException('You do not own this video');
+      throw new ForbiddenException(ERROR_MESSAGES.VIDEO_NOT_OWNED);
     }
 
     return mapVideoEntityToStudioListItem(video);

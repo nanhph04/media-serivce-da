@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import {
   OBJECT_STORAGE_SERVICE,
   type IObjectStorageService,
@@ -52,14 +53,16 @@ export class GetAdminVideoPreviewUseCase extends BaseUseCase<
 
     const video = await this.videoRepository.findAdminVideoById(query.videoId);
     if (!video) {
-      throw new NotFoundException('Video not found');
+      throw new NotFoundException(ERROR_MESSAGES.VIDEO_NOT_FOUND);
     }
 
     this.ensurePreviewable(video);
     if (
       !(await this.objectStorageService.objectExists('raw', video.rawFileKey))
     ) {
-      throw new NotFoundException('Raw video preview file not found');
+      throw new NotFoundException(
+        ERROR_MESSAGES.VIDEO_RAW_PREVIEW_FILE_NOT_FOUND,
+      );
     }
 
     const previewUrl = await this.objectStorageService.createReadUrl(
@@ -81,7 +84,9 @@ export class GetAdminVideoPreviewUseCase extends BaseUseCase<
 
   private ensurePreviewable(video: VideoEntity): void {
     if (!PREVIEWABLE_STATUSES.has(video.status)) {
-      throw new ConflictException('Video raw preview is not available');
+      throw new ConflictException(
+        ERROR_MESSAGES.VIDEO_RAW_PREVIEW_NOT_AVAILABLE,
+      );
     }
   }
 
@@ -93,7 +98,7 @@ export class GetAdminVideoPreviewUseCase extends BaseUseCase<
 
   private ensureAdminRole(role: string | undefined): void {
     if (role !== 'admin') {
-      throw new ForbiddenException('Admin role is required');
+      throw new ForbiddenException(ERROR_MESSAGES.ADMIN_ROLE_REQUIRED);
     }
   }
 }

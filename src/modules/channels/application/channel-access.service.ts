@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import {
   ForbiddenException,
   NotFoundException,
@@ -39,10 +40,10 @@ export class ChannelAccessService implements IChannelAccessService {
   ): Promise<void> {
     const channel = await this.loadChannelOrThrow(channelId);
     if (channel.userId !== userId) {
-      throw new ForbiddenException('You do not own this channel');
+      throw new ForbiddenException(ERROR_MESSAGES.CHANNEL_NOT_OWNED);
     }
     if (channel.status !== ChannelStatus.ACTIVE) {
-      throw new ForbiddenException('Channel is not active');
+      throw new ForbiddenException(ERROR_MESSAGES.CHANNEL_NOT_ACTIVE);
     }
   }
 
@@ -50,11 +51,11 @@ export class ChannelAccessService implements IChannelAccessService {
     const channel = await this.channelRepository.findByUserId(userId);
 
     if (!channel) {
-      throw new NotFoundException('Channel not found');
+      throw new NotFoundException(ERROR_MESSAGES.CHANNEL_NOT_FOUND);
     }
 
     if (channel.status !== ChannelStatus.ACTIVE) {
-      throw new ForbiddenException('Channel is not active');
+      throw new ForbiddenException(ERROR_MESSAGES.CHANNEL_NOT_ACTIVE);
     }
 
     return channel.id;
@@ -102,7 +103,7 @@ export class ChannelAccessService implements IChannelAccessService {
   private async loadChannelOrThrow(channelId: string): Promise<ChannelEntity> {
     const channel = await this.channelRepository.findById(channelId);
     if (!channel) {
-      throw new NotFoundException('Channel not found');
+      throw new NotFoundException(ERROR_MESSAGES.CHANNEL_NOT_FOUND);
     }
 
     return channel;

@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import { BadRequestException } from '@shared/domain/exceptions/domain.exception';
 
 export enum ContentReportTargetType {
@@ -91,15 +92,15 @@ export class ContentReportEntity {
       targetType: ContentReportTargetType.VIDEO,
       reporterUserId: ContentReportEntity.requireText(
         input.reporterUserId,
-        'Reporter user id is required',
+        ERROR_MESSAGES.REPORTER_USER_ID_REQUIRED,
       ),
       targetVideoId: ContentReportEntity.requireText(
         input.targetVideoId,
-        'Target video id is required',
+        ERROR_MESSAGES.TARGET_VIDEO_ID_REQUIRED,
       ),
       targetChannelId: ContentReportEntity.requireText(
         input.targetChannelId,
-        'Target channel id is required',
+        ERROR_MESSAGES.TARGET_CHANNEL_ID_REQUIRED,
       ),
       reason: ContentReportEntity.normalizeReason(input.reason),
       evidenceTimestampSeconds: ContentReportEntity.normalizeTimestamp(
@@ -126,12 +127,12 @@ export class ContentReportEntity {
       targetType: ContentReportTargetType.CHANNEL,
       reporterUserId: ContentReportEntity.requireText(
         input.reporterUserId,
-        'Reporter user id is required',
+        ERROR_MESSAGES.REPORTER_USER_ID_REQUIRED,
       ),
       targetVideoId: null,
       targetChannelId: ContentReportEntity.requireText(
         input.targetChannelId,
-        'Target channel id is required',
+        ERROR_MESSAGES.TARGET_CHANNEL_ID_REQUIRED,
       ),
       reason: ContentReportEntity.normalizeReason(input.reason),
       evidenceTimestampSeconds: null,
@@ -151,7 +152,9 @@ export class ContentReportEntity {
 
   updateStatus(status: ContentReportStatus): void {
     if (status === ContentReportStatus.PENDING) {
-      throw new BadRequestException('Cannot move report back to pending');
+      throw new BadRequestException(
+        ERROR_MESSAGES.REPORT_CANNOT_MOVE_BACK_TO_PENDING,
+      );
     }
 
     this.props.status = status;
@@ -161,11 +164,11 @@ export class ContentReportEntity {
   private static normalizeReason(reason: string): string {
     const normalized = reason.trim();
     if (!normalized) {
-      throw new BadRequestException('Report reason is required');
+      throw new BadRequestException(ERROR_MESSAGES.REPORT_REASON_REQUIRED);
     }
 
     if (normalized.length > 1000) {
-      throw new BadRequestException('Report reason must be <= 1000 characters');
+      throw new BadRequestException(ERROR_MESSAGES.REPORT_REASON_MAX_LENGTH);
     }
 
     return normalized;
@@ -177,9 +180,7 @@ export class ContentReportEntity {
     }
 
     if (!Number.isInteger(value) || value < 0) {
-      throw new BadRequestException(
-        'Evidence timestamp must be a non-negative integer',
-      );
+      throw new BadRequestException(ERROR_MESSAGES.EVIDENCE_TIMESTAMP_INVALID);
     }
 
     return value;

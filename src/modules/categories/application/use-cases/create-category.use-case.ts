@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import { ConflictException } from '@shared/domain/exceptions/domain.exception';
 import {
@@ -32,7 +33,7 @@ export class CreateCategoryUseCase extends BaseUseCase<
     const existingCategory = await this.categoryRepository.findBySlug(slug);
 
     if (existingCategory) {
-      throw new ConflictException('Category already exists');
+      throw new ConflictException(ERROR_MESSAGES.CATEGORY_ALREADY_EXISTS);
     }
 
     const category = Category.create({

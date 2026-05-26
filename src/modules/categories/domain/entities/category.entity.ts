@@ -1,3 +1,4 @@
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import { BadRequestException } from '../../../../shared/domain/exceptions/domain.exception';
 import { toSlug } from '../../../../shared/domain/utils/slug.util';
 
@@ -140,7 +141,7 @@ export class Category {
 
   private static validateName(name: string): void {
     if (!name) {
-      throw new BadRequestException('Category name is required');
+      throw new BadRequestException(ERROR_MESSAGES.CATEGORY_NAME_REQUIRED);
     }
 
     if (name.length > 100) {
@@ -152,7 +153,7 @@ export class Category {
 
   private static validateSlug(slug: string): void {
     if (!slug) {
-      throw new BadRequestException('Category slug cannot be empty');
+      throw new BadRequestException(ERROR_MESSAGES.CATEGORY_SLUG_EMPTY);
     }
   }
 

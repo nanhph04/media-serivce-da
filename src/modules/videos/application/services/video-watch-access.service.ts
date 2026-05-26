@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import {
   ForbiddenException,
   NotFoundException,
@@ -45,7 +46,7 @@ export class VideoWatchAccessService {
     this.assertViewerAvailability(video);
 
     if (accessContext.channelStatus !== ChannelStatus.ACTIVE) {
-      throw new ForbiddenException('Channel is not active');
+      throw new ForbiddenException(ERROR_MESSAGES.CHANNEL_NOT_ACTIVE);
     }
 
     const hasPurchaseUnlock = await this.unlockRepository.exists(
@@ -69,26 +70,28 @@ export class VideoWatchAccessService {
       return;
     }
 
-    throw new ForbiddenException(
-      'You do not have permission to watch this video',
-    );
+    throw new ForbiddenException(ERROR_MESSAGES.VIDEO_WATCH_PERMISSION_DENIED);
   }
 
   private assertOwnerCanWatch(video: VideoEntity): void {
     if (video.status === VideoStatus.FAILED || !video.masterPlaylistKey) {
-      throw new NotFoundException('Video is not ready for playback');
+      throw new NotFoundException(ERROR_MESSAGES.VIDEO_NOT_READY_FOR_PLAYBACK);
     }
   }
 
   private assertNotBanned(video: VideoEntity): void {
     if (video.status === VideoStatus.BANNED) {
-      throw new NotFoundException('Video is not available for playback');
+      throw new NotFoundException(
+        ERROR_MESSAGES.VIDEO_NOT_AVAILABLE_FOR_PLAYBACK,
+      );
     }
   }
 
   private assertNotPendingDelete(video: VideoEntity): void {
     if (!video.isAvailableForPlayback) {
-      throw new NotFoundException('Video is not available for playback');
+      throw new NotFoundException(
+        ERROR_MESSAGES.VIDEO_NOT_AVAILABLE_FOR_PLAYBACK,
+      );
     }
   }
 
@@ -98,7 +101,9 @@ export class VideoWatchAccessService {
       video.visibility !== VideoVisibility.PUBLIC ||
       !video.masterPlaylistKey
     ) {
-      throw new NotFoundException('Video is not available for playback');
+      throw new NotFoundException(
+        ERROR_MESSAGES.VIDEO_NOT_AVAILABLE_FOR_PLAYBACK,
+      );
     }
   }
 }

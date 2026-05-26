@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import {
   NotFoundException,
@@ -36,14 +37,14 @@ export class GetVideosByCategoryUseCase extends BaseUseCase<
     const normalizedCategory = query.category.trim();
 
     if (!normalizedCategory) {
-      throw new BadRequestException('Category is required');
+      throw new BadRequestException(ERROR_MESSAGES.CATEGORY_REQUIRED);
     }
 
     const category =
       await this.categoryRepository.findBySlug(normalizedCategory);
 
     if (!category || category.status !== CategoryStatus.ACTIVE) {
-      throw new NotFoundException('Category not found');
+      throw new NotFoundException(ERROR_MESSAGES.CATEGORY_NOT_FOUND);
     }
 
     return this.videoQueryService.getVideosByCategory(

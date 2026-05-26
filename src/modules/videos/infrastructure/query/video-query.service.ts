@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import { NotFoundException } from '@shared/domain/exceptions/domain.exception';
 import {
   createPagination,
@@ -122,7 +123,7 @@ export class VideoQueryService implements IVideoQueryService {
       video.visibility !== VideoVisibility.PUBLIC ||
       video.deletionStatus !== VideoDeletionStatus.ACTIVE
     ) {
-      throw new NotFoundException('Video not found');
+      throw new NotFoundException(ERROR_MESSAGES.VIDEO_NOT_FOUND);
     }
 
     const channel = await this.channelOrmRepository.findOne({
@@ -130,7 +131,7 @@ export class VideoQueryService implements IVideoQueryService {
       select: { id: true, name: true, avatarUrl: true },
     });
     if (!channel) {
-      throw new NotFoundException('Video not found');
+      throw new NotFoundException(ERROR_MESSAGES.VIDEO_NOT_FOUND);
     }
     const membershipTiers = await this.membershipTierOrmRepository.find({
       where: { channelId: video.channelId },

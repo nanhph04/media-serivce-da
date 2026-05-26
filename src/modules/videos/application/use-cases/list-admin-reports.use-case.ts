@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import {
   BadRequestException,
@@ -120,7 +121,7 @@ export class ListAdminReportsUseCase extends BaseUseCase<
 
   private ensureAdminRole(role: string | undefined): void {
     if (role !== 'admin') {
-      throw new ForbiddenException('Admin role is required');
+      throw new ForbiddenException(ERROR_MESSAGES.ADMIN_ROLE_REQUIRED);
     }
   }
 
@@ -144,6 +145,6 @@ export class ListAdminReportsUseCase extends BaseUseCase<
       return VideoStatus.REJECTED;
     }
 
-    throw new BadRequestException('Invalid report status');
+    throw new BadRequestException(ERROR_MESSAGES.REPORT_STATUS_INVALID);
   }
 }

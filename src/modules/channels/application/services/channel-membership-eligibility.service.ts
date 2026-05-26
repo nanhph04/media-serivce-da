@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import {
   CHANNEL_MEMBERSHIP_ELIGIBILITY_CONFIG,
   type IChannelMembershipEligibilityConfig,
@@ -31,7 +32,7 @@ export class ChannelMembershipEligibilityService {
     const channel = await this.channelRepository.findById(channelId);
 
     if (!channel) {
-      throw new NotFoundException('Channel not found');
+      throw new NotFoundException(ERROR_MESSAGES.CHANNEL_NOT_FOUND);
     }
 
     return this.buildEligibilityResponse(channelId);
@@ -43,7 +44,7 @@ export class ChannelMembershipEligibilityService {
     const channel = await this.channelRepository.findById(channelId);
 
     if (!channel) {
-      throw new NotFoundException('Channel not found');
+      throw new NotFoundException(ERROR_MESSAGES.CHANNEL_NOT_FOUND);
     }
 
     const eligibility = await this.buildEligibilityResponse(channelId);

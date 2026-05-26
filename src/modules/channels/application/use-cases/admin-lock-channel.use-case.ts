@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import { NotFoundException } from '@shared/domain/exceptions/domain.exception';
 import type { IIntegrationEvent } from '@shared/domain/types/events/base-integration.event';
@@ -35,7 +36,7 @@ export class AdminLockChannelUseCase extends BaseUseCase<
     const channel = await this.channelRepository.findById(command.channelId);
 
     if (!channel) {
-      throw new NotFoundException('Channel not found');
+      throw new NotFoundException(ERROR_MESSAGES.CHANNEL_NOT_FOUND);
     }
 
     const previousStatus = channel.status;

@@ -1,3 +1,4 @@
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import { BadRequestException } from '@shared/domain/exceptions/domain.exception';
 import { toSlug } from '../../../../shared/domain/utils/slug.util';
 
@@ -89,7 +90,7 @@ export class Tag {
 
   private static validateName(name: string): void {
     if (!name) {
-      throw new BadRequestException('Tag name is required');
+      throw new BadRequestException(ERROR_MESSAGES.TAG_NAME_REQUIRED);
     }
 
     if (name.length > 100) {
@@ -101,7 +102,7 @@ export class Tag {
 
   private static validateSlug(slug: string): void {
     if (!slug) {
-      throw new BadRequestException('Tag slug cannot be empty');
+      throw new BadRequestException(ERROR_MESSAGES.TAG_SLUG_EMPTY);
     }
   }
 }

@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import {
   OBJECT_STORAGE_SERVICE,
   type IObjectStorageService,
@@ -70,14 +71,16 @@ export class StartVideoUploadUseCase extends BaseUseCase<
   ): Promise<StartVideoUploadResponse> {
     if (command.fileSize <= 0) {
       throw new BadRequestException(
-        'Video file size must be greater than zero',
+        ERROR_MESSAGES.VIDEO_FILE_SIZE_MUST_BE_POSITIVE,
       );
     }
 
     const maxVideoUploadSizeBytes =
       this.videoUploadConfig.getMaxVideoUploadSizeBytes();
     if (command.fileSize > maxVideoUploadSizeBytes) {
-      throw new BadRequestException('Video file exceeds maximum upload size');
+      throw new BadRequestException(
+        ERROR_MESSAGES.VIDEO_FILE_EXCEEDS_MAX_UPLOAD_SIZE,
+      );
     }
 
     const channelId = await this.channelAccessService.getOwnedActiveChannelId(
@@ -159,13 +162,15 @@ export class StartVideoUploadUseCase extends BaseUseCase<
   private async resolveCategory(categoryId: string): Promise<Category> {
     const normalizedCategoryId = categoryId.trim();
     if (!normalizedCategoryId) {
-      throw new BadRequestException('Exactly one category is required');
+      throw new BadRequestException(
+        ERROR_MESSAGES.EXACTLY_ONE_CATEGORY_REQUIRED,
+      );
     }
 
     const category =
       await this.categoryRepository.findById(normalizedCategoryId);
     if (!category || category.status !== CategoryStatus.ACTIVE) {
-      throw new BadRequestException('Category is invalid');
+      throw new BadRequestException(ERROR_MESSAGES.CATEGORY_INVALID);
     }
 
     return category;
@@ -178,7 +183,7 @@ export class StartVideoUploadUseCase extends BaseUseCase<
     ];
 
     if (normalizedTagIds.length !== sourceTagIds.length) {
-      throw new BadRequestException('Duplicate tags are not allowed');
+      throw new BadRequestException(ERROR_MESSAGES.DUPLICATE_TAGS_NOT_ALLOWED);
     }
 
     if (normalizedTagIds.length === 0) {
@@ -190,7 +195,7 @@ export class StartVideoUploadUseCase extends BaseUseCase<
       tags.length !== normalizedTagIds.length ||
       tags.some((tag) => tag.status !== TagStatus.ACTIVE)
     ) {
-      throw new BadRequestException('One or more tags are invalid');
+      throw new BadRequestException(ERROR_MESSAGES.ONE_OR_MORE_TAGS_INVALID);
     }
 
     return tags;

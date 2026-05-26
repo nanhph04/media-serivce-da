@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import { ChannelEntity } from '../../domain/entities/channel.entity';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import { ConflictException } from '@shared/domain/exceptions/domain.exception';
@@ -37,7 +38,7 @@ export class CreateChannelUseCase extends BaseUseCase<
       command.userId,
     );
     if (existingChannel) {
-      throw new ConflictException('Channel already exists');
+      throw new ConflictException(ERROR_MESSAGES.CHANNEL_ALREADY_EXISTS);
     }
     const channel = ChannelEntity.create(command);
     const event: IIntegrationEvent<ChannelCreatedEventData> = {

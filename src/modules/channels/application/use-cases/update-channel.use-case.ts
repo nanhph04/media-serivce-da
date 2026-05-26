@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import {
   ForbiddenException,
@@ -28,15 +29,15 @@ export class UpdateChannelUseCase extends BaseUseCase<
     const channel = await this.channelRepository.findById(command.channelId);
 
     if (!channel) {
-      throw new NotFoundException('Channel not found');
+      throw new NotFoundException(ERROR_MESSAGES.CHANNEL_NOT_FOUND);
     }
 
     if (channel.userId !== command.userId) {
-      throw new ForbiddenException('You do not own this channel');
+      throw new ForbiddenException(ERROR_MESSAGES.CHANNEL_NOT_OWNED);
     }
 
     if (channel.status !== ChannelStatus.ACTIVE) {
-      throw new ForbiddenException('Channel is not active');
+      throw new ForbiddenException(ERROR_MESSAGES.CHANNEL_NOT_ACTIVE);
     }
 
     channel.update({

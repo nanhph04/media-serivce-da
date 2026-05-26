@@ -4,6 +4,7 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import type { Request } from 'express';
 
 import { IInternalServiceConfig } from '@shared/application/interfaces/internal-service-config.interface';
@@ -24,7 +25,7 @@ export class InternalServiceGuard implements CanActivate {
       serviceSecret.length === 0
     ) {
       throw new UnauthorizedException(
-        'Missing or invalid internal service credentials',
+        ERROR_MESSAGES.INTERNAL_SERVICE_SECRET_REQUIRED,
       );
     }
 
@@ -35,7 +36,9 @@ export class InternalServiceGuard implements CanActivate {
       .includes(normalizedServiceName);
 
     if (!isAllowed) {
-      throw new UnauthorizedException('Internal service is not allowed');
+      throw new UnauthorizedException(
+        ERROR_MESSAGES.INTERNAL_SERVICE_NOT_ALLOWED,
+      );
     }
 
     const expectedSecret = this.internalServiceConfig.getInternalServiceSecret(
@@ -44,7 +47,7 @@ export class InternalServiceGuard implements CanActivate {
 
     if (!expectedSecret || serviceSecret !== expectedSecret) {
       throw new UnauthorizedException(
-        'Missing or invalid internal service credentials',
+        ERROR_MESSAGES.INTERNAL_SERVICE_SECRET_REQUIRED,
       );
     }
 

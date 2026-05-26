@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import {
   ConflictException,
@@ -31,7 +32,7 @@ export class UpdateCategoryUseCase extends BaseUseCase<
     const category = await this.categoryRepository.findById(input.categoryId);
 
     if (!category) {
-      throw new NotFoundException('Category not found');
+      throw new NotFoundException(ERROR_MESSAGES.CATEGORY_NOT_FOUND);
     }
 
     if (input.name !== undefined) {
@@ -40,7 +41,7 @@ export class UpdateCategoryUseCase extends BaseUseCase<
       const existingCategory = await this.categoryRepository.findBySlug(slug);
 
       if (existingCategory && existingCategory.id !== category.id) {
-        throw new ConflictException('Category already exists');
+        throw new ConflictException(ERROR_MESSAGES.CATEGORY_ALREADY_EXISTS);
       }
     }
 
@@ -80,7 +81,7 @@ function parseCategoryStatus(
   }
 
   if (!Object.values(CategoryStatus).includes(status as CategoryStatus)) {
-    throw new ConflictException('Invalid category status');
+    throw new ConflictException(ERROR_MESSAGES.CATEGORY_INVALID_STATUS);
   }
 
   return status as CategoryStatus;

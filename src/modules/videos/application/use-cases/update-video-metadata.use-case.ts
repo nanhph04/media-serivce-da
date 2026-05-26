@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import {
   BadRequestException,
@@ -67,11 +68,11 @@ export class UpdateVideoMetadataUseCase extends BaseUseCase<
   ): Promise<VideoMetadataResponse> {
     const video = await this.videoRepository.findById(command.videoId);
     if (!video) {
-      throw new NotFoundException('Video not found');
+      throw new NotFoundException(ERROR_MESSAGES.VIDEO_NOT_FOUND);
     }
 
     if (video.ownerId !== command.userId) {
-      throw new ForbiddenException('You do not own this video');
+      throw new ForbiddenException(ERROR_MESSAGES.VIDEO_NOT_OWNED);
     }
 
     const category = await this.resolveCategory(command.categoryId);
@@ -93,7 +94,7 @@ export class UpdateVideoMetadataUseCase extends BaseUseCase<
 
     const channel = await this.channelRepository.findById(video.channelId);
     if (!channel) {
-      throw new NotFoundException('Channel not found');
+      throw new NotFoundException(ERROR_MESSAGES.CHANNEL_NOT_FOUND);
     }
     const membershipTiers = await this.membershipTierRepository.findByChannelId(
       video.channelId,
@@ -144,7 +145,7 @@ export class UpdateVideoMetadataUseCase extends BaseUseCase<
     const category = await this.categoryRepository.findById(categoryId);
 
     if (!category || category.status !== CategoryStatus.ACTIVE) {
-      throw new BadRequestException('Category is invalid');
+      throw new BadRequestException(ERROR_MESSAGES.CATEGORY_INVALID);
     }
 
     return category;
@@ -160,7 +161,7 @@ export class UpdateVideoMetadataUseCase extends BaseUseCase<
     if (
       !Object.values(VideoVisibility).includes(visibility as VideoVisibility)
     ) {
-      throw new BadRequestException('Visibility is invalid');
+      throw new BadRequestException(ERROR_MESSAGES.VIDEO_VISIBILITY_IS_INVALID);
     }
 
     return visibility as VideoVisibility;
@@ -178,7 +179,7 @@ export class UpdateVideoMetadataUseCase extends BaseUseCase<
     ];
 
     if (normalizedTagIds.length !== tagIds.length) {
-      throw new BadRequestException('Duplicate tags are not allowed');
+      throw new BadRequestException(ERROR_MESSAGES.DUPLICATE_TAGS_NOT_ALLOWED);
     }
 
     if (normalizedTagIds.length === 0) {
@@ -191,7 +192,7 @@ export class UpdateVideoMetadataUseCase extends BaseUseCase<
       tags.length !== normalizedTagIds.length ||
       tags.some((tag) => tag.status !== TagStatus.ACTIVE)
     ) {
-      throw new BadRequestException('One or more tags are invalid');
+      throw new BadRequestException(ERROR_MESSAGES.ONE_OR_MORE_TAGS_INVALID);
     }
 
     return tags;

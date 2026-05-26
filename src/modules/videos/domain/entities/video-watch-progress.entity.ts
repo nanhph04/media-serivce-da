@@ -1,3 +1,4 @@
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import { BadRequestException } from '@shared/domain/exceptions/domain.exception';
 
 export type VideoWatchProgressState = 'watching' | 'paused' | 'completed';
@@ -140,7 +141,9 @@ export class VideoWatchProgressEntity {
 
   private assertNonNegativeSeconds(value: number, fieldName: string): void {
     if (value < 0) {
-      throw new BadRequestException(`${fieldName} seconds cannot be negative`);
+      throw new BadRequestException(
+        `${fieldName} ${ERROR_MESSAGES.SECONDS_CANNOT_BE_NEGATIVE}`,
+      );
     }
   }
 }

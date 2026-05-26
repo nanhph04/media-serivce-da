@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import {
   OBJECT_STORAGE_SERVICE,
   type IObjectStorageService,
@@ -52,7 +53,7 @@ export class CompleteVideoUploadUseCase extends BaseUseCase<
 
     for (let partNumber = 1; partNumber <= totalParts; partNumber += 1) {
       if (!completedPartNumbers.has(partNumber)) {
-        throw new BadRequestException('Upload is missing one or more parts');
+        throw new BadRequestException(ERROR_MESSAGES.UPLOAD_MISSING_PARTS);
       }
     }
 

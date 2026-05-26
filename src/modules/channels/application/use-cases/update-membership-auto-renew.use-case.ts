@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import {
   ForbiddenException,
@@ -31,11 +32,11 @@ export class UpdateMembershipAutoRenewUseCase extends BaseUseCase<
     );
 
     if (!membership) {
-      throw new NotFoundException('Membership not found');
+      throw new NotFoundException(ERROR_MESSAGES.MEMBERSHIP_NOT_FOUND);
     }
 
     if (membership.userId !== command.userId) {
-      throw new ForbiddenException('You do not own this membership');
+      throw new ForbiddenException(ERROR_MESSAGES.MEMBERSHIP_NOT_OWNED);
     }
 
     membership.setAutoRenewEnabled(command.enabled);

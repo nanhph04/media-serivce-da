@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import { ConflictException } from '@shared/domain/exceptions/domain.exception';
 import { Tag, TagStatus } from '../../domain/entities/tag.entity';
@@ -28,7 +29,7 @@ export class CreateTagUseCase extends BaseUseCase<
     const existingTag = await this.tagRepository.findBySlug(slug);
 
     if (existingTag) {
-      throw new ConflictException('Tag already exists');
+      throw new ConflictException(ERROR_MESSAGES.TAG_ALREADY_EXISTS);
     }
 
     const tag = Tag.create({ name, status: TagStatus.ACTIVE });

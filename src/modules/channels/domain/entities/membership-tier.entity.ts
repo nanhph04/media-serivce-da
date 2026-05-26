@@ -1,3 +1,4 @@
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import { BadRequestException } from '@shared/domain/exceptions/domain.exception';
 
 export interface MembershipTierProps {
@@ -58,14 +59,16 @@ export class MembershipTierEntity {
   }): MembershipTierEntity {
     if (input.name.length > 50) {
       throw new BadRequestException(
-        'Membership tier name must be less than 50 characters',
+        ERROR_MESSAGES.MEMBERSHIP_TIER_NAME_MAX_LENGTH,
       );
     }
     if (input.priceCoin < 0) {
-      throw new BadRequestException('Price coin cannot be negative');
+      throw new BadRequestException(
+        ERROR_MESSAGES.MEMBERSHIP_TIER_PRICE_COIN_NEGATIVE,
+      );
     }
     if (input.level < 1) {
-      throw new BadRequestException('Level must be greater than or equal to 1');
+      throw new BadRequestException(ERROR_MESSAGES.MEMBERSHIP_TIER_LEVEL_MIN);
     }
 
     return new MembershipTierEntity({
@@ -91,22 +94,22 @@ export class MembershipTierEntity {
     if (input.name !== undefined) {
       if (input.name.length > 50) {
         throw new BadRequestException(
-          'Membership tier name must be less than 50 characters',
+          ERROR_MESSAGES.MEMBERSHIP_TIER_NAME_MAX_LENGTH,
         );
       }
       this.props.name = input.name;
     }
     if (input.level !== undefined) {
       if (input.level < 1) {
-        throw new BadRequestException(
-          'Level must be greater than or equal to 1',
-        );
+        throw new BadRequestException(ERROR_MESSAGES.MEMBERSHIP_TIER_LEVEL_MIN);
       }
       this.props.level = input.level;
     }
     if (input.priceCoin !== undefined) {
       if (input.priceCoin < 0) {
-        throw new BadRequestException('Price coin cannot be negative');
+        throw new BadRequestException(
+          ERROR_MESSAGES.MEMBERSHIP_TIER_PRICE_COIN_NEGATIVE,
+        );
       }
       this.props.priceCoin = input.priceCoin;
     }

@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import { BadRequestException } from '@shared/domain/exceptions/domain.exception';
 import type { SearchContentQuery } from '../dtos/search-content.query';
@@ -31,9 +32,7 @@ export class SearchContentUseCase extends BaseUseCase<
     const category = input.category?.trim() || undefined;
 
     if (!q && !category) {
-      throw new BadRequestException(
-        'At least one of q or category is required',
-      );
+      throw new BadRequestException(ERROR_MESSAGES.SEARCH_QUERY_REQUIRED);
     }
 
     const videos = await this.videoSearchQueryService.searchPublicVideos({

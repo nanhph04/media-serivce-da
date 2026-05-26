@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 
 import {
   FINANCE_PAYMENT_CLIENT,
@@ -59,11 +60,13 @@ export class PurchaseMembershipUseCase extends BaseUseCase<
     const channel = await this.channelRepository.findById(command.channelId);
 
     if (!channel) {
-      throw new NotFoundException('Channel not found');
+      throw new NotFoundException(ERROR_MESSAGES.CHANNEL_NOT_FOUND);
     }
 
     if (channel.userId === command.userId) {
-      throw new BadRequestException('Cannot purchase your own membership');
+      throw new BadRequestException(
+        ERROR_MESSAGES.CANNOT_PURCHASE_OWN_MEMBERSHIP,
+      );
     }
 
     if (
@@ -71,18 +74,20 @@ export class PurchaseMembershipUseCase extends BaseUseCase<
       channel.isMembershipClosedByAdmin ||
       channel.membershipReviewStatus !== MembershipReviewStatus.APPROVED
     ) {
-      throw new ConflictException('Channel membership is not available');
+      throw new ConflictException(
+        ERROR_MESSAGES.CHANNEL_MEMBERSHIP_NOT_AVAILABLE,
+      );
     }
 
     const tier = await this.membershipTierRepository.findById(command.tierId);
 
     if (!tier || tier.channelId !== channel.id) {
-      throw new NotFoundException('Membership tier not found');
+      throw new NotFoundException(ERROR_MESSAGES.MEMBERSHIP_TIER_NOT_FOUND);
     }
 
     if (!tier.isAcceptingNew) {
       throw new ConflictException(
-        'Membership tier is not accepting new buyers',
+        ERROR_MESSAGES.MEMBERSHIP_TIER_NOT_ACCEPTING_NEW_BUYERS,
       );
     }
 
@@ -93,7 +98,7 @@ export class PurchaseMembershipUseCase extends BaseUseCase<
       );
 
     if (existingMembership?.isCurrentlyActive()) {
-      throw new BadRequestException('Already has an active channel membership');
+      throw new BadRequestException(ERROR_MESSAGES.MEMBERSHIP_ALREADY_ACTIVE);
     }
 
     const currentExpiryKey =
@@ -118,7 +123,7 @@ export class PurchaseMembershipUseCase extends BaseUseCase<
 
       if (!paymentTransactionId) {
         throw new InternalServerErrorException(
-          'Finance payment response is missing payment transaction',
+          ERROR_MESSAGES.MEMBERSHIP_PAYMENT_TRANSACTION_MISSING,
         );
       }
     }
@@ -144,7 +149,7 @@ export class PurchaseMembershipUseCase extends BaseUseCase<
 
     if (!membership) {
       throw new InternalServerErrorException(
-        'Membership was not created after payment',
+        ERROR_MESSAGES.MEMBERSHIP_NOT_CREATED_AFTER_PAYMENT,
       );
     }
 

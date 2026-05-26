@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import {
   BadRequestException,
@@ -30,7 +31,7 @@ export class UpdateTagUseCase extends BaseUseCase<
     const tag = await this.tagRepository.findById(input.tagId);
 
     if (!tag) {
-      throw new NotFoundException('Tag not found');
+      throw new NotFoundException(ERROR_MESSAGES.TAG_NOT_FOUND);
     }
 
     if (input.name !== undefined) {
@@ -38,7 +39,7 @@ export class UpdateTagUseCase extends BaseUseCase<
       const existingTag = await this.tagRepository.findBySlug(slug);
 
       if (existingTag && existingTag.id !== tag.id) {
-        throw new ConflictException('Tag already exists');
+        throw new ConflictException(ERROR_MESSAGES.TAG_ALREADY_EXISTS);
       }
     }
 
@@ -59,7 +60,7 @@ function parseTagStatus(status: string | undefined): TagStatus | undefined {
   }
 
   if (!Object.values(TagStatus).includes(status as TagStatus)) {
-    throw new BadRequestException('Invalid tag status');
+    throw new BadRequestException(ERROR_MESSAGES.TAG_INVALID_STATUS);
   }
 
   return status as TagStatus;

@@ -1,3 +1,4 @@
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import type { IChannelMembershipRepository } from '../../domain/repositories/channel-membership.repository';
 import { UnsubscribeChannelCommand } from '../dtos/subscribe-channel.command';
 import type { ChannelMembershipResponse } from '../dtos/channel-membership.response';
@@ -26,11 +27,13 @@ export class UnsubscribeChannelUseCase extends BaseUseCase<
     );
 
     if (!membership) {
-      throw new NotFoundException('Membership not found');
+      throw new NotFoundException(ERROR_MESSAGES.MEMBERSHIP_NOT_FOUND);
     }
 
     if (!membership.isActive()) {
-      throw new BadRequestException('Already unsubscribed from this channel');
+      throw new BadRequestException(
+        ERROR_MESSAGES.ALREADY_UNSUBSCRIBED_FROM_CHANNEL,
+      );
     }
 
     membership.cancel();

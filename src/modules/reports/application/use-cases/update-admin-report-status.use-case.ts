@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import {
   BadRequestException,
@@ -36,14 +37,14 @@ export class UpdateAdminReportStatusUseCase extends BaseUseCase<
       command.status !== ContentReportStatus.RESOLVED &&
       command.status !== ContentReportStatus.DISMISSED
     ) {
-      throw new BadRequestException('Invalid report status');
+      throw new BadRequestException(ERROR_MESSAGES.REPORT_STATUS_INVALID);
     }
 
     const report = await this.contentReportRepository.findById(
       command.reportId,
     );
     if (!report) {
-      throw new NotFoundException('Report not found');
+      throw new NotFoundException(ERROR_MESSAGES.REPORT_NOT_FOUND);
     }
 
     report.updateStatus(command.status);
@@ -60,7 +61,7 @@ export class UpdateAdminReportStatusUseCase extends BaseUseCase<
 
   private ensureAdminRole(role: string | undefined): void {
     if (role !== 'admin') {
-      throw new ForbiddenException('Admin role is required');
+      throw new ForbiddenException(ERROR_MESSAGES.ADMIN_ROLE_REQUIRED);
     }
   }
 }

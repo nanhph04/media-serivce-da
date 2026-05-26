@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import {
   BadRequestException,
@@ -37,7 +38,7 @@ export class ReportVideoUseCase extends BaseUseCase<
   async execute(command: ReportVideoCommand): Promise<ContentReportResponse> {
     const video = await this.videoRepository.findBasicById(command.videoId);
     if (!video) {
-      throw new NotFoundException('Video not found');
+      throw new NotFoundException(ERROR_MESSAGES.VIDEO_NOT_FOUND);
     }
 
     if (
@@ -47,7 +48,7 @@ export class ReportVideoUseCase extends BaseUseCase<
       command.evidenceTimestampSeconds > video.durationSeconds
     ) {
       throw new BadRequestException(
-        'Evidence timestamp cannot exceed video duration',
+        ERROR_MESSAGES.EVIDENCE_TIMESTAMP_EXCEEDS_VIDEO_DURATION,
       );
     }
 

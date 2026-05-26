@@ -1,4 +1,5 @@
 import { Inject } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import {
   OBJECT_STORAGE_SERVICE,
   type IObjectStorageService,
@@ -38,13 +39,13 @@ export abstract class VideoUploadSessionUseCaseBase {
   }): Promise<VideoUploadSession> {
     const video = await this.videoRepository.findById(input.videoId);
     if (!video) {
-      throw new NotFoundException('Video not found');
+      throw new NotFoundException(ERROR_MESSAGES.VIDEO_NOT_FOUND);
     }
     if (video.ownerId !== input.userId) {
-      throw new ForbiddenException('You do not own this video');
+      throw new ForbiddenException(ERROR_MESSAGES.VIDEO_NOT_OWNED);
     }
     if (video.status !== VideoStatus.DRAFT) {
-      throw new ConflictException('Video is not in draft status');
+      throw new ConflictException(ERROR_MESSAGES.VIDEO_NOT_DRAFT);
     }
 
     const session = await this.uploadSessionRepository.findByVideoAndUploadId(
@@ -52,13 +53,13 @@ export abstract class VideoUploadSessionUseCaseBase {
       input.uploadId,
     );
     if (!session) {
-      throw new NotFoundException('Upload session not found');
+      throw new NotFoundException(ERROR_MESSAGES.UPLOAD_SESSION_NOT_FOUND);
     }
     if (session.userId !== input.userId) {
-      throw new ForbiddenException('You do not own this upload session');
+      throw new ForbiddenException(ERROR_MESSAGES.UPLOAD_SESSION_NOT_OWNED);
     }
     if (session.status !== VideoUploadSessionStatus.ACTIVE) {
-      throw new ConflictException('Upload session is not active');
+      throw new ConflictException(ERROR_MESSAGES.UPLOAD_SESSION_NOT_ACTIVE);
     }
 
     return session;
@@ -66,12 +67,12 @@ export abstract class VideoUploadSessionUseCaseBase {
 
   assertPartNumber(session: VideoUploadSession, partNumber: number): void {
     if (!Number.isInteger(partNumber) || partNumber < 1) {
-      throw new BadRequestException('Part number is invalid');
+      throw new BadRequestException(ERROR_MESSAGES.PART_NUMBER_INVALID);
     }
 
     const totalParts = Math.ceil(session.fileSize / session.partSizeBytes);
     if (partNumber > totalParts) {
-      throw new BadRequestException('Part number is out of range');
+      throw new BadRequestException(ERROR_MESSAGES.PART_NUMBER_OUT_OF_RANGE);
     }
   }
 }

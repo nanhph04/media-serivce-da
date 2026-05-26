@@ -3,6 +3,7 @@ import {
   ExecutionContext,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import type { Request } from 'express';
 
 export const CurrentUserId = createParamDecorator(
@@ -11,9 +12,7 @@ export const CurrentUserId = createParamDecorator(
     const userId = request.headers['x-user-id'] as string | undefined;
 
     if (!userId) {
-      throw new UnauthorizedException(
-        'Missing user identity from gateway headers',
-      );
+      throw new UnauthorizedException(ERROR_MESSAGES.CURRENT_USER_ID_REQUIRED);
     }
 
     return userId;

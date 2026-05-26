@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import { MembershipTierEntity } from '../../domain/entities/membership-tier.entity';
 import {
@@ -54,25 +55,27 @@ export class CreateMembershipTierUseCase extends BaseUseCase<
     const channel = await this.channelRepository.findById(command.channelId);
 
     if (!channel) {
-      throw new NotFoundException('Channel not found');
+      throw new NotFoundException(ERROR_MESSAGES.CHANNEL_NOT_FOUND);
     }
 
     if (channel.userId !== command.userId) {
-      throw new ForbiddenException('You do not own this channel');
+      throw new ForbiddenException(ERROR_MESSAGES.CHANNEL_NOT_OWNED);
     }
 
     if (channel.status !== ChannelStatus.ACTIVE) {
-      throw new ForbiddenException('Channel is not active');
+      throw new ForbiddenException(ERROR_MESSAGES.CHANNEL_NOT_ACTIVE);
     }
 
     if (channel.isMembershipClosedByAdmin) {
       throw new ForbiddenException(
-        'Membership registration is temporarily closed by admin',
+        ERROR_MESSAGES.CHANNEL_MEMBERSHIP_REGISTRATION_CLOSED,
       );
     }
 
     if (![1, 2, 3].includes(command.level)) {
-      throw new BadRequestException('Level must be 1, 2, or 3');
+      throw new BadRequestException(
+        ERROR_MESSAGES.MEMBERSHIP_TIER_LEVEL_INVALID,
+      );
     }
 
     const existingTiers = await this.membershipTierRepository.findByChannelId(
@@ -83,7 +86,9 @@ export class CreateMembershipTierUseCase extends BaseUseCase<
     );
 
     if (existingTier) {
-      throw new ConflictException('Membership tier level already exists');
+      throw new ConflictException(
+        ERROR_MESSAGES.MEMBERSHIP_TIER_LEVEL_ALREADY_EXISTS,
+      );
     }
 
     const eligibility = channel.isEligibleForMembership
@@ -94,7 +99,7 @@ export class CreateMembershipTierUseCase extends BaseUseCase<
 
     if (!channel.isEligibleForMembership && !eligibility?.isEligible) {
       throw new ForbiddenException(
-        'Channel is not eligible to open membership registration yet',
+        ERROR_MESSAGES.CHANNEL_NOT_ELIGIBLE_TO_OPEN_MEMBERSHIP,
         eligibility?.missingRequirements,
       );
     }
@@ -102,8 +107,8 @@ export class CreateMembershipTierUseCase extends BaseUseCase<
     if (channel.membershipReviewStatus !== MembershipReviewStatus.APPROVED) {
       const message =
         channel.membershipReviewStatus === MembershipReviewStatus.REJECTED
-          ? 'Channel membership registration was rejected by admin'
-          : 'Channel membership registration is pending admin approval';
+          ? ERROR_MESSAGES.CHANNEL_MEMBERSHIP_REGISTRATION_REJECTED
+          : ERROR_MESSAGES.CHANNEL_MEMBERSHIP_REGISTRATION_PENDING;
       throw new ForbiddenException(message);
     }
 
@@ -111,7 +116,7 @@ export class CreateMembershipTierUseCase extends BaseUseCase<
 
     if (command.priceCoin < minPrice) {
       throw new BadRequestException(
-        `Price must be at least ${minPrice} coin for level ${command.level}`,
+        `${ERROR_MESSAGES.MEMBERSHIP_TIER_PRICE_MIN_PREFIX} ${minPrice} ${ERROR_MESSAGES.MEMBERSHIP_TIER_PRICE_MIN_SUFFIX} ${command.level}`,
       );
     }
 
