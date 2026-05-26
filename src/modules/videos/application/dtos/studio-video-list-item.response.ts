@@ -21,6 +21,7 @@ export interface StudioVideoListItemResponse extends VideoJobStatusFields {
   thumbnailStatus: string;
   durationSeconds: number | null;
   resolutions: string[];
+  processingWarnings: string[];
   errorMessage: string | null;
   viewCount: number;
   publishedAt: Date | null;
@@ -51,6 +52,7 @@ export function mapVideoEntityToStudioListItem(
     thumbnailStatus: video.thumbnailStatus,
     durationSeconds: video.durationSeconds,
     resolutions: video.resolutions,
+    processingWarnings: video.processingWarnings,
     errorMessage: video.errorMessage,
     ...mapVideoStatusToJobFields({
       status: video.status,

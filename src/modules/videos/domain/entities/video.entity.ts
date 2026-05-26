@@ -76,6 +76,7 @@ export interface VideoProps {
   thumbnailError: string | null;
   durationSeconds: number | null;
   resolutions: string[];
+  processingWarnings?: string[];
   errorMessage: string | null;
   moderationDetails?: VideoModerationDetails | null;
   viewCount: number;
@@ -179,6 +180,10 @@ export class VideoEntity {
 
   get resolutions(): string[] {
     return this.props.resolutions;
+  }
+
+  get processingWarnings(): string[] {
+    return this.props.processingWarnings ?? [];
   }
 
   get errorMessage(): string | null {
@@ -291,6 +296,7 @@ export class VideoEntity {
       thumbnailError: null,
       durationSeconds: null,
       resolutions: [],
+      processingWarnings: [],
       errorMessage: null,
       moderationDetails: null,
       viewCount: 0,
@@ -326,6 +332,7 @@ export class VideoEntity {
     this.assertDraftUploadMutable();
     this.setRequestedResolutions(input.resolutions);
     this.changeStatus(VideoStatus.PENDING_MODERATION);
+    this.props.processingWarnings = [];
     this.props.errorMessage = null;
   }
 
@@ -479,6 +486,7 @@ export class VideoEntity {
     thumbnailUrl?: string | null;
     durationSeconds?: number | null;
     resolutions?: string[];
+    processingWarnings?: string[];
   }): void {
     this.changeStatus(VideoStatus.READY);
     this.props.masterPlaylistKey = input.masterPlaylistKey;
@@ -488,6 +496,9 @@ export class VideoEntity {
     this.props.durationSeconds =
       input.durationSeconds ?? this.props.durationSeconds;
     this.props.resolutions = input.resolutions ?? this.props.resolutions;
+    this.props.processingWarnings = this.normalizeProcessingWarnings(
+      input.processingWarnings ?? [],
+    );
     this.props.errorMessage = null;
     this.props.moderationDetails = null;
     this.props.publishedAt = new Date();
@@ -612,6 +623,16 @@ export class VideoEntity {
 
     this.props.resolutions = normalizedResolutions;
     this.touch();
+  }
+
+  private normalizeProcessingWarnings(warnings: string[]): string[] {
+    return [
+      ...new Set(
+        warnings
+          .map((warning) => warning.trim())
+          .filter((warning) => warning.length > 0),
+      ),
+    ];
   }
 
   private changeStatus(status: VideoStatus): void {

@@ -25,6 +25,7 @@ export interface VideoMetadataResponse extends VideoJobStatusFields {
   requiredTierLevel: number | null;
   status: VideoStatus;
   visibility: VideoVisibility;
+  processingWarnings: string[];
   errorMessage: string | null;
   publishedAt: Date | null;
   isDeleted: boolean;

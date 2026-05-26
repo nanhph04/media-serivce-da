@@ -100,6 +100,41 @@ describe('HandleVideoProcessedSuccessUseCase', () => {
     );
   });
 
+  it('stores processing warnings when requested resolutions are skipped', async () => {
+    videoRepository.findById.mockResolvedValue(
+      buildVideo({
+        status: VideoStatus.PROCESSING,
+        resolutions: ['480p', '720p', '1080p'],
+      }),
+    );
+
+    await useCase.execute({
+      eventId: 'event-1',
+      data: {
+        videoId: 'video-1',
+        masterPlaylistKey: 'processed/master.m3u8',
+        durationSeconds: 120,
+        thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
+        resolution: ['480p', '720p'],
+      },
+    });
+
+    const savedVideo = videoRepository.save.mock.calls[0][0] as VideoEntity;
+    expect(savedVideo.resolutions).toEqual(['480p', '720p']);
+    expect(savedVideo.processingWarnings).toEqual([
+      'Skipped 1080p because it is not available for the uploaded source video.',
+    ]);
+    expect(
+      videoStatusEventPublisher.publishVideoStatusChanged,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        processingWarnings: [
+          'Skipped 1080p because it is not available for the uploaded source video.',
+        ],
+      }),
+    );
+  });
+
   it('does not delete raw when the raw object is already missing', async () => {
     objectStorageService.objectExists.mockResolvedValue(false);
     videoRepository.findById.mockResolvedValue(
@@ -247,7 +282,10 @@ describe('HandleVideoProcessedSuccessUseCase', () => {
   });
 });
 
-function buildVideo(input: { status: VideoStatus }): VideoEntity {
+function buildVideo(input: {
+  status: VideoStatus;
+  resolutions?: string[];
+}): VideoEntity {
   return new VideoEntity({
     id: 'video-1',
     channelId: 'channel-1',
@@ -268,7 +306,7 @@ function buildVideo(input: { status: VideoStatus }): VideoEntity {
     thumbnailGeneratedAt: null,
     thumbnailError: null,
     durationSeconds: null,
-    resolutions: [],
+    resolutions: input.resolutions ?? [],
     errorMessage: null,
     viewCount: 0,
     publishedAt: null,

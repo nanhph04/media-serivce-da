@@ -73,6 +73,9 @@ export class AdminVideoListItemResponseDto {
   @ApiProperty({ type: [String] })
   resolutions!: string[];
 
+  @ApiProperty({ type: [String] })
+  processingWarnings!: string[];
+
   @ApiProperty({ nullable: true })
   errorMessage!: string | null;
 
@@ -130,6 +133,7 @@ export class AdminVideoListItemResponseDto {
     response.thumbnailUrl = dto.thumbnailUrl;
     response.durationSeconds = dto.durationSeconds;
     response.resolutions = dto.resolutions;
+    response.processingWarnings = dto.processingWarnings;
     response.errorMessage = dto.errorMessage;
     response.jobStatus = dto.jobStatus;
     response.jobStatusMessage = dto.jobStatusMessage;

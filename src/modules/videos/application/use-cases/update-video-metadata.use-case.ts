@@ -120,6 +120,7 @@ export class UpdateVideoMetadataUseCase extends BaseUseCase<
       requiredTierLevel: video.requiredTierLevel,
       status: video.status,
       visibility: video.visibility,
+      processingWarnings: video.processingWarnings,
       errorMessage: video.errorMessage,
       ...mapVideoStatusToJobFields({
         status: video.status,

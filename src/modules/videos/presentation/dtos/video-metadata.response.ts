@@ -95,6 +95,9 @@ export class VideoMetadataResponseDto {
   @ApiProperty()
   visibility!: string;
 
+  @ApiProperty({ type: [String] })
+  processingWarnings!: string[];
+
   @ApiProperty({ nullable: true })
   errorMessage!: string | null;
 

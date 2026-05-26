@@ -16,6 +16,7 @@ export interface VideoStatusChangedEvent {
   jobStatus: VideoJobStatus;
   jobStatusMessage: string;
   failureReason: string | null;
+  processingWarnings: string[];
   thumbnailStatus: VideoThumbnailStatus;
   thumbnailUrl: string | null;
   moderationDetails: VideoModerationDetails | null;

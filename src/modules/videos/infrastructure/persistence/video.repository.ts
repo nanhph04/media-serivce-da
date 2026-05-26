@@ -71,6 +71,7 @@ export class VideoRepository implements IVideoRepository {
         thumbnailError: video.thumbnailError,
         durationSeconds: video.durationSeconds,
         resolutions: video.resolutions,
+        processingWarnings: video.processingWarnings,
         errorMessage: video.errorMessage,
         moderationDetails: video.moderationDetails
           ? { ...video.moderationDetails }
@@ -731,6 +732,7 @@ export class VideoRepository implements IVideoRepository {
       thumbnailError: row.thumbnailError ?? null,
       durationSeconds: row.durationSeconds,
       resolutions: row.resolutions.filter((value) => value.length > 0),
+      processingWarnings: toStringArray(row.processingWarnings),
       errorMessage: row.errorMessage,
       moderationDetails: toModerationDetails(row.moderationDetails),
       viewCount: row.viewCount,
@@ -790,6 +792,14 @@ function toModerationDetails(
         : null,
     thresholds: isModerationThresholds(thresholds) ? thresholds : null,
   };
+}
+
+function toStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter((item): item is string => typeof item === 'string');
 }
 
 function isModerationThresholds(

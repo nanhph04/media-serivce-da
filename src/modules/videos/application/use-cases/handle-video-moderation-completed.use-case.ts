@@ -283,6 +283,7 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
       status: video.status,
       thumbnailStatus: video.thumbnailStatus,
       thumbnailUrl: video.thumbnailUrl,
+      processingWarnings: video.processingWarnings,
       updatedAt: video.updatedAt.toISOString(),
       ...jobFields,
     });

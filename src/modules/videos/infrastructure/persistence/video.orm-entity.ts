@@ -111,6 +111,13 @@ export class VideoOrmEntity {
   @Column({ type: 'simple-array', default: '' })
   resolutions!: string[];
 
+  @Column({
+    type: 'jsonb',
+    name: 'processing_warnings',
+    default: () => "'[]'::jsonb",
+  })
+  processingWarnings!: string[];
+
   @Column({ type: 'text', name: 'error_message', nullable: true })
   errorMessage!: string | null;
 

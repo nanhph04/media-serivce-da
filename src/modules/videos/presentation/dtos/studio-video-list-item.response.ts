@@ -57,6 +57,9 @@ export class StudioVideoListItemResponseDto {
   @ApiProperty({ type: [String] })
   resolutions!: string[];
 
+  @ApiProperty({ type: [String] })
+  processingWarnings!: string[];
+
   @ApiProperty({ nullable: true })
   errorMessage!: string | null;
 

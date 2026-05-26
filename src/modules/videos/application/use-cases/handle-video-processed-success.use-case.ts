@@ -76,11 +76,19 @@ export class HandleVideoProcessedSuccessUseCase extends BaseUseCase<
       return;
     }
 
+    const processedResolutions = command.data.resolution ?? [];
+    const processingWarnings = this.buildProcessingWarnings({
+      requestedResolutions: video.resolutions,
+      processedResolutions,
+      skippedResolutions: command.data.skippedResolutions ?? [],
+    });
+
     video.markReady({
       masterPlaylistKey: command.data.masterPlaylistKey,
       durationSeconds: command.data.durationSeconds ?? null,
       thumbnailUrl: command.data.thumbnailUrl ?? null,
-      resolutions: command.data.resolution ?? [],
+      resolutions: processedResolutions,
+      processingWarnings,
     });
 
     await this.videoRepository.save(video);
@@ -134,8 +142,46 @@ export class HandleVideoProcessedSuccessUseCase extends BaseUseCase<
       status: video.status,
       thumbnailStatus: video.thumbnailStatus,
       thumbnailUrl: video.thumbnailUrl,
+      processingWarnings: video.processingWarnings,
       updatedAt: video.updatedAt.toISOString(),
       ...jobFields,
     });
+  }
+
+  private buildProcessingWarnings(input: {
+    requestedResolutions: string[];
+    processedResolutions: string[];
+    skippedResolutions: Array<{ resolution: string; reason?: string }>;
+  }): string[] {
+    const processedSet = new Set(input.processedResolutions);
+    const explicitSkippedResolutions = input.skippedResolutions.map(
+      (item) => item.resolution,
+    );
+    const explicitSkippedSet = new Set(explicitSkippedResolutions);
+    const inferredSkippedResolutions = input.requestedResolutions.filter(
+      (resolution) =>
+        !processedSet.has(resolution) && !explicitSkippedSet.has(resolution),
+    );
+
+    return [
+      ...input.skippedResolutions.map((item) =>
+        this.formatSkippedResolutionWarning(item.resolution, item.reason),
+      ),
+      ...inferredSkippedResolutions.map((resolution) =>
+        this.formatSkippedResolutionWarning(resolution),
+      ),
+    ];
+  }
+
+  private formatSkippedResolutionWarning(
+    resolution: string,
+    reason?: string,
+  ): string {
+    const normalizedReason = reason?.trim();
+    if (normalizedReason) {
+      return `Skipped ${resolution}: ${normalizedReason}`;
+    }
+
+    return `Skipped ${resolution} because it is not available for the uploaded source video.`;
   }
 }
