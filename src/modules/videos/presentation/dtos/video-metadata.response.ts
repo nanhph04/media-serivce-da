@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import type { VideoMetadataResponse } from '../../application/dtos/video-metadata.response';
 
 class VideoModerationDetailsDto {
   @ApiProperty()
@@ -130,4 +131,51 @@ export class VideoMetadataResponseDto {
 
   @ApiProperty()
   updatedAt!: string;
+
+  static fromApplicationDto(
+    metadata: VideoMetadataResponse,
+  ): VideoMetadataResponseDto {
+    return {
+      id: metadata.id,
+      channelId: metadata.channelId,
+      channelName: metadata.channelName,
+      avatarUrlChannel: metadata.avatarUrlChannel,
+      membershipTiers: metadata.membershipTiers.map((tier) => ({
+        id: tier.id,
+        channelId: tier.channelId,
+        name: tier.name,
+        level: tier.level,
+        priceCoin: tier.priceCoin,
+        isAcceptingNew: tier.isAcceptingNew,
+        createdAt: tier.createdAt.toISOString(),
+        updatedAt: tier.updatedAt.toISOString(),
+      })),
+      title: metadata.title,
+      description: metadata.description,
+      categoryId: metadata.categoryId,
+      category: metadata.category,
+      tagIds: metadata.tagIds,
+      tags: metadata.tags,
+      thumbnailUrl: metadata.thumbnailUrl,
+      thumbnailSource: metadata.thumbnailSource,
+      thumbnailStatus: metadata.thumbnailStatus,
+      viewCount: metadata.viewCount,
+      price: metadata.price,
+      requiredTierLevel: metadata.requiredTierLevel,
+      status: metadata.status,
+      visibility: metadata.visibility,
+      processingWarnings: metadata.processingWarnings,
+      errorMessage: metadata.errorMessage,
+      jobStatus: metadata.jobStatus,
+      jobStatusMessage: metadata.jobStatusMessage,
+      failureReason: metadata.failureReason,
+      moderationDetails: metadata.moderationDetails,
+      publishedAt: metadata.publishedAt?.toISOString() ?? null,
+      isDeleted: metadata.isDeleted,
+      deletedAt: metadata.deletedAt?.toISOString() ?? null,
+      deletedBy: metadata.deletedBy,
+      deleteReason: metadata.deleteReason,
+      updatedAt: metadata.updatedAt.toISOString(),
+    };
+  }
 }

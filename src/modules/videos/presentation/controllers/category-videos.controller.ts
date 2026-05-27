@@ -5,6 +5,7 @@ import { SkipInternalGatewayGuard } from '@shared/presentation/decorators/skip-i
 import { ApiResponse } from '@shared/presentation/dto/api-response.dto';
 import { GetVideosByCategoryUseCase } from '../../application/use-cases/get-videos-by-category.use-case';
 import { VideoListItemResponseDto } from '../dtos/video-list-item.response';
+import { parseVideoLimit, parseVideoPage } from '../dtos/video-query-parser';
 
 @ApiTags('categories')
 @Controller('categories')
@@ -25,8 +26,8 @@ export class CategoryVideosController {
   ): Promise<ApiResponse<VideoListItemResponseDto[]>> {
     const result = await this.getVideosByCategoryUseCase.execute({
       category,
-      page: this.parsePage(page),
-      limit: this.parseLimit(limit),
+      page: parseVideoPage(page),
+      limit: parseVideoLimit(limit),
     });
 
     return ApiResponse.success(
@@ -36,15 +37,5 @@ export class CategoryVideosController {
       undefined,
       result.pagination,
     );
-  }
-
-  private parseLimit(limit?: string): number {
-    const parsed = Number(limit) || 20;
-    return Math.min(Math.max(parsed, 1), 50);
-  }
-
-  private parsePage(page?: string): number {
-    const parsed = Number(page) || 1;
-    return Math.max(parsed, 1);
   }
 }

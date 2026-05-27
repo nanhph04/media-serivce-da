@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import type { StudioVideoListItemResponse } from '../../application/dtos/studio-video-list-item.response';
 
 class VideoModerationDetailsDto {
   @ApiProperty()
@@ -98,4 +99,40 @@ export class StudioVideoListItemResponseDto {
 
   @ApiProperty()
   updatedAt!: string;
+
+  static fromApplicationDto(
+    video: StudioVideoListItemResponse,
+  ): StudioVideoListItemResponseDto {
+    return {
+      id: video.id,
+      channelId: video.channelId,
+      title: video.title,
+      description: video.description,
+      category: video.category,
+      tags: video.tags,
+      status: video.status,
+      visibility: video.visibility,
+      price: video.price,
+      requiredTierLevel: video.requiredTierLevel,
+      thumbnailUrl: video.thumbnailUrl,
+      thumbnailSource: video.thumbnailSource,
+      thumbnailStatus: video.thumbnailStatus,
+      durationSeconds: video.durationSeconds,
+      resolutions: video.resolutions,
+      processingWarnings: video.processingWarnings,
+      errorMessage: video.errorMessage,
+      jobStatus: video.jobStatus,
+      jobStatusMessage: video.jobStatusMessage,
+      failureReason: video.failureReason,
+      moderationDetails: video.moderationDetails,
+      viewCount: video.viewCount,
+      publishedAt: video.publishedAt?.toISOString() ?? null,
+      isDeleted: video.isDeleted,
+      deletedAt: video.deletedAt?.toISOString() ?? null,
+      deletedBy: video.deletedBy,
+      deleteReason: video.deleteReason,
+      createdAt: video.createdAt.toISOString(),
+      updatedAt: video.updatedAt.toISOString(),
+    };
+  }
 }

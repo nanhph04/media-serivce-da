@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import type { ContinueWatchingItemResponse } from '../../application/dtos/continue-watching-item.response';
 
 export class ContinueWatchingItemResponseDto {
   @ApiProperty()
@@ -27,4 +28,20 @@ export class ContinueWatchingItemResponseDto {
 
   @ApiProperty()
   viewCount!: number;
+
+  static fromApplicationDto(
+    item: ContinueWatchingItemResponse,
+  ): ContinueWatchingItemResponseDto {
+    return {
+      videoId: item.videoId,
+      channelId: item.channelId,
+      title: item.title,
+      thumbnailUrl: item.thumbnailUrl,
+      durationSeconds: item.durationSeconds,
+      resumePositionSeconds: item.resumePositionSeconds,
+      remainingSeconds: item.remainingSeconds,
+      lastWatchedAt: item.lastWatchedAt.toISOString(),
+      viewCount: item.viewCount,
+    };
+  }
 }

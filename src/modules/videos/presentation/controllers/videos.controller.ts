@@ -20,10 +20,7 @@ import {
   apiResponseContract,
 } from '@shared/presentation/dto/api-response.dto';
 import { InternalGatewayGuard } from '@shared/presentation/guards/internal-gateway.guard';
-import {
-  VideoStatus,
-  VideoVisibility,
-} from '../../domain/entities/video.entity';
+import type { VideoVisibility } from '../../domain/entities/video.entity';
 import { ConfirmVideoUploadUseCase } from '../../application/use-cases/confirm-video-upload.use-case';
 import { GetContinueWatchingUseCase } from '../../application/use-cases/get-continue-watching.use-case';
 import { GetLatestVideosUseCase } from '../../application/use-cases/get-latest-videos.use-case';
@@ -47,7 +44,6 @@ import { UpdateVideoMetadataUseCase } from '../../application/use-cases/update-v
 import { UnpublishVideoUseCase } from '../../application/use-cases/unpublish-video.use-case';
 import { CancelVideoUploadUseCase } from '../../application/use-cases/cancel-video-upload.use-case';
 import { DeleteFailedVideoUseCase } from '../../application/use-cases/delete-failed-video.use-case';
-import type { ContinueWatchingItemResponse } from '../../application/dtos/continue-watching-item.response';
 import { ConfirmVideoUploadRequestDto } from '../dtos/confirm-video-upload.request';
 import { ConfirmVideoUploadResponseDto } from '../dtos/confirm-video-upload.response';
 import { ContinueWatchingItemResponseDto } from '../dtos/continue-watching-item.response';
@@ -76,10 +72,13 @@ import { UnpublishVideoResponseDto } from '../dtos/unpublish-video.response';
 import { StudioVideoListItemResponseDto } from '../dtos/studio-video-list-item.response';
 import { VideoListItemResponseDto } from '../dtos/video-list-item.response';
 import { VideoMetadataResponseDto } from '../dtos/video-metadata.response';
-import type { StudioVideoListItemResponse } from '../../application/dtos/studio-video-list-item.response';
-import type { PurchasedVideoItemResponse } from '../../application/dtos/purchased-video-item.response';
-import type { VideoMetadataResponse } from '../../application/dtos/video-metadata.response';
-import type { UpdateVideoProgressResponse } from '../../application/dtos/update-video-progress.response';
+import {
+  parseVideoLimit,
+  parseVideoPage,
+  parseVideoStatuses,
+  parseVideoTags,
+  parseVideoVisibilities,
+} from '../dtos/video-query-parser';
 
 @ApiTags('videos')
 @ApiHeader({ name: 'x-user-id', required: true })
@@ -127,14 +126,16 @@ export class VideosController {
   ): Promise<ApiResponse<StudioVideoListItemResponseDto[]>> {
     const rows = await this.getStudioVideosUseCase.execute({
       userId,
-      page: this.parsePage(page),
-      limit: this.parseLimit(limit),
-      statuses: this.parseStatuses(status),
-      visibilities: this.parseVisibilities(visibility),
+      page: parseVideoPage(page),
+      limit: parseVideoLimit(limit),
+      statuses: parseVideoStatuses(status),
+      visibilities: parseVideoVisibilities(visibility),
     });
 
     return ApiResponse.success(
-      rows.items.map((row) => this.toStudioVideoListItemDto(row)),
+      rows.items.map((row) =>
+        StudioVideoListItemResponseDto.fromApplicationDto(row),
+      ),
       undefined,
       rows.pagination,
     );
@@ -154,7 +155,9 @@ export class VideosController {
       videoId,
     });
 
-    return apiResponseContract(this.toStudioVideoListItemDto(video));
+    return apiResponseContract(
+      StudioVideoListItemResponseDto.fromApplicationDto(video),
+    );
   }
 
   @Post('studio/videos/uploads')
@@ -273,9 +276,9 @@ export class VideosController {
     const rows = await this.searchPublicVideosUseCase.execute({
       q,
       category,
-      tags: this.parseTags(tags),
-      page: this.parsePage(page),
-      limit: this.parseLimit(limit),
+      tags: parseVideoTags(tags),
+      page: parseVideoPage(page),
+      limit: parseVideoLimit(limit),
     });
 
     return ApiResponse.success(
@@ -393,7 +396,9 @@ export class VideosController {
       state: dto.state,
     });
 
-    return apiResponseContract(this.toUpdateVideoProgressDto(response));
+    return apiResponseContract(
+      UpdateVideoProgressResponseDto.fromApplicationDto(response),
+    );
   }
 
   @Post('me/videos/:id/playback-token/refresh')
@@ -417,7 +422,9 @@ export class VideosController {
     @Param('id') videoId: string,
   ): Promise<ApiResponse<VideoMetadataResponseDto>> {
     const metadata = await this.getVideoMetadataUseCase.execute(videoId);
-    return apiResponseContract(this.toVideoMetadataDto(metadata));
+    return apiResponseContract(
+      VideoMetadataResponseDto.fromApplicationDto(metadata),
+    );
   }
 
   @Patch('studio/videos/:id/metadata')
@@ -441,7 +448,9 @@ export class VideosController {
       price: dto.price,
       requiredTierLevel: dto.requiredTierLevel,
     });
-    return apiResponseContract(this.toVideoMetadataDto(metadata));
+    return apiResponseContract(
+      VideoMetadataResponseDto.fromApplicationDto(metadata),
+    );
   }
 
   @Get('videos/latest')
@@ -454,8 +463,8 @@ export class VideosController {
     @Query('limit') limit?: string,
   ): Promise<ApiResponse<VideoListItemResponseDto[]>> {
     const rows = await this.getLatestVideosUseCase.execute({
-      page: this.parsePage(page),
-      limit: this.parseLimit(limit),
+      page: parseVideoPage(page),
+      limit: parseVideoLimit(limit),
     });
     return ApiResponse.success(
       rows.items.map((row) => VideoListItemResponseDto.fromApplicationDto(row)),
@@ -475,12 +484,14 @@ export class VideosController {
   ): Promise<ApiResponse<PurchasedVideoResponseDto[]>> {
     const result = await this.getPurchasedVideosUseCase.execute({
       userId,
-      page: this.parsePage(page),
-      limit: this.parseLimit(limit),
+      page: parseVideoPage(page),
+      limit: parseVideoLimit(limit),
     });
 
     return ApiResponse.success(
-      result.items.map((row) => this.toPurchasedVideoDto(row)),
+      result.items.map((row) =>
+        PurchasedVideoResponseDto.fromApplicationDto(row),
+      ),
       undefined,
       result.pagination,
     );
@@ -499,8 +510,8 @@ export class VideosController {
   ): Promise<ApiResponse<VideoListItemResponseDto[]>> {
     const result = await this.getVideosByCategoryUseCase.execute({
       category,
-      page: this.parsePage(page),
-      limit: this.parseLimit(limit),
+      page: parseVideoPage(page),
+      limit: parseVideoLimit(limit),
     });
     return ApiResponse.success(
       result.items.map((row) =>
@@ -528,8 +539,8 @@ export class VideosController {
   ): Promise<ApiResponse<VideoListItemResponseDto[]>> {
     const rows = await this.getSubscribedVideosUseCase.execute({
       userId,
-      page: this.parsePage(page),
-      limit: this.parseLimit(limit),
+      page: parseVideoPage(page),
+      limit: parseVideoLimit(limit),
     });
     return ApiResponse.success(
       rows.items.map((row) => VideoListItemResponseDto.fromApplicationDto(row)),
@@ -549,198 +560,15 @@ export class VideosController {
   ): Promise<ApiResponse<ContinueWatchingItemResponseDto[]>> {
     const rows = await this.getContinueWatchingUseCase.execute({
       userId,
-      page: this.parsePage(page),
-      limit: this.parseLimit(limit),
+      page: parseVideoPage(page),
+      limit: parseVideoLimit(limit),
     });
     return ApiResponse.success(
-      rows.items.map((row) => this.toContinueWatchingItemDto(row)),
+      rows.items.map((row) =>
+        ContinueWatchingItemResponseDto.fromApplicationDto(row),
+      ),
       undefined,
       rows.pagination,
     );
-  }
-
-  private toStudioVideoListItemDto(
-    video: StudioVideoListItemResponse,
-  ): StudioVideoListItemResponseDto {
-    return {
-      id: video.id,
-      channelId: video.channelId,
-      title: video.title,
-      description: video.description,
-      category: video.category,
-      tags: video.tags,
-      status: video.status,
-      visibility: video.visibility,
-      price: video.price,
-      requiredTierLevel: video.requiredTierLevel,
-      thumbnailUrl: video.thumbnailUrl,
-      thumbnailSource: video.thumbnailSource,
-      thumbnailStatus: video.thumbnailStatus,
-      durationSeconds: video.durationSeconds,
-      resolutions: video.resolutions,
-      processingWarnings: video.processingWarnings,
-      errorMessage: video.errorMessage,
-      jobStatus: video.jobStatus,
-      jobStatusMessage: video.jobStatusMessage,
-      failureReason: video.failureReason,
-      moderationDetails: video.moderationDetails,
-      viewCount: video.viewCount,
-      publishedAt: video.publishedAt?.toISOString() ?? null,
-      isDeleted: video.isDeleted,
-      deletedAt: video.deletedAt?.toISOString() ?? null,
-      deletedBy: video.deletedBy,
-      deleteReason: video.deleteReason,
-      createdAt: video.createdAt.toISOString(),
-      updatedAt: video.updatedAt.toISOString(),
-    };
-  }
-
-  private toPurchasedVideoDto(
-    item: PurchasedVideoItemResponse,
-  ): PurchasedVideoResponseDto {
-    return {
-      videoId: item.videoId,
-      channelId: item.channelId,
-      channelName: item.channelName,
-      title: item.title,
-      description: item.description,
-      thumbnailUrl: item.thumbnailUrl,
-      durationSeconds: item.durationSeconds,
-      categories: item.categories,
-      tags: item.tags,
-      priceCoin: item.priceCoin,
-      purchasedAt: item.purchasedAt.toISOString(),
-      publishedAt: item.publishedAt?.toISOString() ?? null,
-      viewCount: item.viewCount,
-      accessStatus: item.accessStatus,
-    };
-  }
-
-  private toVideoMetadataDto(
-    metadata: VideoMetadataResponse,
-  ): VideoMetadataResponseDto {
-    return {
-      id: metadata.id,
-      channelId: metadata.channelId,
-      channelName: metadata.channelName,
-      avatarUrlChannel: metadata.avatarUrlChannel,
-      membershipTiers: metadata.membershipTiers.map((tier) => ({
-        id: tier.id,
-        channelId: tier.channelId,
-        name: tier.name,
-        level: tier.level,
-        priceCoin: tier.priceCoin,
-        isAcceptingNew: tier.isAcceptingNew,
-        createdAt: tier.createdAt.toISOString(),
-        updatedAt: tier.updatedAt.toISOString(),
-      })),
-      title: metadata.title,
-      description: metadata.description,
-      categoryId: metadata.categoryId,
-      category: metadata.category,
-      tagIds: metadata.tagIds,
-      tags: metadata.tags,
-      thumbnailUrl: metadata.thumbnailUrl,
-      thumbnailSource: metadata.thumbnailSource,
-      thumbnailStatus: metadata.thumbnailStatus,
-      viewCount: metadata.viewCount,
-      price: metadata.price,
-      requiredTierLevel: metadata.requiredTierLevel,
-      status: metadata.status,
-      visibility: metadata.visibility,
-      processingWarnings: metadata.processingWarnings,
-      errorMessage: metadata.errorMessage,
-      jobStatus: metadata.jobStatus,
-      jobStatusMessage: metadata.jobStatusMessage,
-      failureReason: metadata.failureReason,
-      moderationDetails: metadata.moderationDetails,
-      publishedAt: metadata.publishedAt?.toISOString() ?? null,
-      isDeleted: metadata.isDeleted,
-      deletedAt: metadata.deletedAt?.toISOString() ?? null,
-      deletedBy: metadata.deletedBy,
-      deleteReason: metadata.deleteReason,
-      updatedAt: metadata.updatedAt.toISOString(),
-    };
-  }
-
-  private toUpdateVideoProgressDto(
-    response: UpdateVideoProgressResponse,
-  ): UpdateVideoProgressResponseDto {
-    return {
-      videoId: response.videoId,
-      positionSeconds: response.positionSeconds,
-      completed: response.completed,
-    };
-  }
-
-  private toContinueWatchingItemDto(
-    item: ContinueWatchingItemResponse,
-  ): ContinueWatchingItemResponseDto {
-    return {
-      videoId: item.videoId,
-      channelId: item.channelId,
-      title: item.title,
-      thumbnailUrl: item.thumbnailUrl,
-      durationSeconds: item.durationSeconds,
-      resumePositionSeconds: item.resumePositionSeconds,
-      remainingSeconds: item.remainingSeconds,
-      lastWatchedAt: item.lastWatchedAt.toISOString(),
-      viewCount: item.viewCount,
-    };
-  }
-
-  private parseLimit(limit?: string): number {
-    const parsed = Number(limit) || 20;
-    return Math.min(Math.max(parsed, 1), 50);
-  }
-
-  private parseTags(tags?: string): string[] | undefined {
-    if (!tags) {
-      return undefined;
-    }
-
-    const normalizedTags = [
-      ...new Set(
-        tags
-          .split(',')
-          .map((value) => value.trim())
-          .filter(Boolean),
-      ),
-    ];
-
-    return normalizedTags.length > 0 ? normalizedTags : undefined;
-  }
-
-  private parsePage(page?: string): number {
-    const parsed = Number(page) || 1;
-    return Math.max(parsed, 1);
-  }
-
-  private parseStatuses(status?: string): VideoStatus[] | undefined {
-    if (!status) {
-      return undefined;
-    }
-
-    return status
-      .split(',')
-      .map((value) => value.trim())
-      .filter((value): value is VideoStatus =>
-        Object.values(VideoStatus).includes(value as VideoStatus),
-      );
-  }
-
-  private parseVisibilities(
-    visibility?: string,
-  ): VideoVisibility[] | undefined {
-    if (!visibility) {
-      return undefined;
-    }
-
-    return visibility
-      .split(',')
-      .map((value) => value.trim())
-      .filter((value): value is VideoVisibility =>
-        Object.values(VideoVisibility).includes(value as VideoVisibility),
-      );
   }
 }
