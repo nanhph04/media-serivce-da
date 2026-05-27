@@ -8,9 +8,10 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-
-export const VIDEO_UPLOAD_RESOLUTIONS = ['480p', '720p', '1080p'] as const;
-export type VideoUploadResolution = (typeof VIDEO_UPLOAD_RESOLUTIONS)[number];
+import {
+  VIDEO_UPLOAD_RESOLUTIONS,
+  type VideoUploadResolution,
+} from '../../application/dtos/video-upload-resolution';
 
 export class ConfirmVideoUploadRequestDto {
   @ApiProperty({

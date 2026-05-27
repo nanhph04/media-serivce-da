@@ -28,7 +28,7 @@ import {
   VIDEO_STATUS_EVENT_PUBLISHER,
   type IVideoStatusEventPublisher,
 } from '../interfaces/video-status-event-publisher.interface';
-import { VIDEO_UPLOAD_RESOLUTIONS } from '../../presentation/dtos/confirm-video-upload.request';
+import { VIDEO_UPLOAD_RESOLUTIONS } from '../dtos/video-upload-resolution';
 import type { ConfirmVideoUploadCommand } from '../dtos/confirm-video-upload.command';
 import type { ConfirmVideoUploadResponse } from '../dtos/confirm-video-upload.response';
 import { mapVideoStatusToJobFields } from '../dtos/video-job-status';

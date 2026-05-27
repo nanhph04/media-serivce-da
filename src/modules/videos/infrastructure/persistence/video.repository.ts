@@ -261,11 +261,11 @@ export class VideoRepository implements IVideoRepository {
     };
 
     if (filters.statuses && filters.statuses.length > 0) {
-      where.status = In(filters.statuses as VideoStatus[]);
+      where.status = In(filters.statuses);
     }
 
     if (filters.visibilities && filters.visibilities.length > 0) {
-      where.visibility = In(filters.visibilities as VideoVisibility[]);
+      where.visibility = In(filters.visibilities);
     }
 
     const [rows, total] = await this.ormRepository.findAndCount({

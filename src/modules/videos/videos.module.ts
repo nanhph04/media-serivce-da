@@ -93,6 +93,7 @@ import { VIDEO_VIEW_AGGREGATION } from './application/interfaces/video-view-aggr
 import { VIDEO_WATCHDOG_HEALTH_FAILURE_STORE } from './application/interfaces/video-watchdog-health-failure-store.interface';
 import { VIDEO_WORKER_HEALTH_CHECKER } from './application/interfaces/video-worker-health-checker.interface';
 import { VIDEO_STATUS_EVENT_PUBLISHER } from './application/interfaces/video-status-event-publisher.interface';
+import { VIDEO_STATUS_EVENT_STREAM } from './application/interfaces/video-status-event-stream.interface';
 import { VIDEO_PURCHASE_UNLOCK_REPOSITORY } from './domain/repositories/video-purchase-unlock.repository';
 import { VIDEO_REPOSITORY } from './domain/repositories/video.repository';
 import { VIDEO_UPLOAD_SESSION_REPOSITORY } from './domain/repositories/video-upload-session.repository';
@@ -243,6 +244,10 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
     },
     {
       provide: VIDEO_STATUS_EVENT_PUBLISHER,
+      useExisting: VideoStatusSseService,
+    },
+    {
+      provide: VIDEO_STATUS_EVENT_STREAM,
       useExisting: VideoStatusSseService,
     },
   ],

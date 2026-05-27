@@ -11,8 +11,8 @@ export interface ChannelVideoMembershipEligibilityMetrics {
 export interface StudioVideoFilters {
   page: number;
   limit: number;
-  statuses?: string[];
-  visibilities?: string[];
+  statuses?: VideoStatus[];
+  visibilities?: VideoVisibility[];
 }
 
 export interface PublicVideoSearchFilters {

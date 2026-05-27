@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import type { VideoListItemResponse } from '../../application/dtos/video-list-item.response';
 
 export class VideoListItemResponseDto {
   @ApiProperty()
@@ -57,4 +58,30 @@ export class VideoListItemResponseDto {
 
   @ApiProperty()
   updatedAt!: string;
+
+  static fromApplicationDto(
+    video: VideoListItemResponse,
+  ): VideoListItemResponseDto {
+    return {
+      id: video.id,
+      channelId: video.channelId,
+      title: video.title,
+      description: video.description,
+      category: video.category,
+      tags: video.tags,
+      status: video.status,
+      price: video.price,
+      requiredTierLevel: video.requiredTierLevel,
+      thumbnailUrl: video.thumbnailUrl,
+      thumbnailSource: video.thumbnailSource,
+      thumbnailStatus: video.thumbnailStatus,
+      durationSeconds: video.durationSeconds,
+      resolutions: video.resolutions,
+      errorMessage: video.errorMessage,
+      viewCount: video.viewCount,
+      publishedAt: video.publishedAt?.toISOString() ?? null,
+      createdAt: video.createdAt.toISOString(),
+      updatedAt: video.updatedAt.toISOString(),
+    };
+  }
 }

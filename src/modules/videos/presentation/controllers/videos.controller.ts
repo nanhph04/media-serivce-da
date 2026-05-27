@@ -24,7 +24,6 @@ import {
   VideoStatus,
   VideoVisibility,
 } from '../../domain/entities/video.entity';
-import type { VideoListItemResponse } from '../../application/dtos/video-list-item.response';
 import { ConfirmVideoUploadUseCase } from '../../application/use-cases/confirm-video-upload.use-case';
 import { GetContinueWatchingUseCase } from '../../application/use-cases/get-continue-watching.use-case';
 import { GetLatestVideosUseCase } from '../../application/use-cases/get-latest-videos.use-case';
@@ -280,7 +279,7 @@ export class VideosController {
     });
 
     return ApiResponse.success(
-      rows.items.map((row) => this.toVideoListItemDto(row)),
+      rows.items.map((row) => VideoListItemResponseDto.fromApplicationDto(row)),
       undefined,
       rows.pagination,
     );
@@ -459,7 +458,7 @@ export class VideosController {
       limit: this.parseLimit(limit),
     });
     return ApiResponse.success(
-      rows.items.map((row) => this.toVideoListItemDto(row)),
+      rows.items.map((row) => VideoListItemResponseDto.fromApplicationDto(row)),
       undefined,
       rows.pagination,
     );
@@ -504,7 +503,9 @@ export class VideosController {
       limit: this.parseLimit(limit),
     });
     return ApiResponse.success(
-      result.items.map((row) => this.toVideoListItemDto(row)),
+      result.items.map((row) =>
+        VideoListItemResponseDto.fromApplicationDto(row),
+      ),
       undefined,
       result.pagination,
     );
@@ -531,7 +532,7 @@ export class VideosController {
       limit: this.parseLimit(limit),
     });
     return ApiResponse.success(
-      rows.items.map((row) => this.toVideoListItemDto(row)),
+      rows.items.map((row) => VideoListItemResponseDto.fromApplicationDto(row)),
       undefined,
       rows.pagination,
     );
@@ -556,32 +557,6 @@ export class VideosController {
       undefined,
       rows.pagination,
     );
-  }
-
-  private toVideoListItemDto(
-    video: VideoListItemResponse,
-  ): VideoListItemResponseDto {
-    return {
-      id: video.id,
-      channelId: video.channelId,
-      title: video.title,
-      description: video.description,
-      category: video.category,
-      tags: video.tags,
-      status: video.status,
-      price: video.price,
-      requiredTierLevel: video.requiredTierLevel,
-      thumbnailUrl: video.thumbnailUrl,
-      thumbnailSource: video.thumbnailSource,
-      thumbnailStatus: video.thumbnailStatus,
-      durationSeconds: video.durationSeconds,
-      resolutions: video.resolutions,
-      errorMessage: video.errorMessage,
-      viewCount: video.viewCount,
-      publishedAt: video.publishedAt?.toISOString() ?? null,
-      createdAt: video.createdAt.toISOString(),
-      updatedAt: video.updatedAt.toISOString(),
-    };
   }
 
   private toStudioVideoListItemDto(

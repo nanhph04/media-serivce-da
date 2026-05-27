@@ -4,7 +4,6 @@ import { ApiSuccessResponse } from '@shared/presentation/decorators/api-success-
 import { SkipInternalGatewayGuard } from '@shared/presentation/decorators/skip-internal-gateway.decorator';
 import { ApiResponse } from '@shared/presentation/dto/api-response.dto';
 import { GetVideosByCategoryUseCase } from '../../application/use-cases/get-videos-by-category.use-case';
-import type { VideoListItemResponse } from '../../application/dtos/video-list-item.response';
 import { VideoListItemResponseDto } from '../dtos/video-list-item.response';
 
 @ApiTags('categories')
@@ -31,36 +30,12 @@ export class CategoryVideosController {
     });
 
     return ApiResponse.success(
-      result.items.map((row) => this.toVideoListItemDto(row)),
+      result.items.map((row) =>
+        VideoListItemResponseDto.fromApplicationDto(row),
+      ),
       undefined,
       result.pagination,
     );
-  }
-
-  private toVideoListItemDto(
-    video: VideoListItemResponse,
-  ): VideoListItemResponseDto {
-    return {
-      id: video.id,
-      channelId: video.channelId,
-      title: video.title,
-      description: video.description,
-      category: video.category,
-      tags: video.tags,
-      status: video.status,
-      price: video.price,
-      requiredTierLevel: video.requiredTierLevel,
-      thumbnailUrl: video.thumbnailUrl,
-      thumbnailSource: video.thumbnailSource,
-      thumbnailStatus: video.thumbnailStatus,
-      durationSeconds: video.durationSeconds,
-      resolutions: video.resolutions,
-      errorMessage: video.errorMessage,
-      viewCount: video.viewCount,
-      publishedAt: video.publishedAt?.toISOString() ?? null,
-      createdAt: video.createdAt.toISOString(),
-      updatedAt: video.updatedAt.toISOString(),
-    };
   }
 
   private parseLimit(limit?: string): number {

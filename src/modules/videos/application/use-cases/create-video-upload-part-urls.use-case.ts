@@ -1,10 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import {
   OBJECT_STORAGE_SERVICE,
   type IObjectStorageService,
 } from '@shared/application/interfaces/object-storage.service.interface';
-import { Inject } from '@nestjs/common';
 import {
   type IVideoRepository,
   VIDEO_REPOSITORY,
