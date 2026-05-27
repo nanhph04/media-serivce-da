@@ -80,7 +80,6 @@ Important public GET routes:
 ```text
 GET /api/media/
 GET /api/media/categories
-GET /api/media/categories/:slug/videos
 GET /api/media/tags
 GET /api/media/search
 GET /api/media/videos

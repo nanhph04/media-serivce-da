@@ -34,7 +34,7 @@ export class GetVideosByCategoryUseCase extends BaseUseCase<
   async execute(
     query: GetVideosByCategoryQuery,
   ): Promise<VideosByCategoryResponse> {
-    const normalizedCategory = query.category.trim();
+    const normalizedCategory = query.category?.trim() ?? '';
 
     if (!normalizedCategory) {
       throw new BadRequestException(ERROR_MESSAGES.CATEGORY_REQUIRED);

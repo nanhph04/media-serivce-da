@@ -1213,26 +1213,6 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
     - `total` (number)
     - `totalPages` (number)
 
-### 4.16 GET `/api/media/categories/:slug/videos?page=1&limit=20`
-
-- Muc dich: lay danh sach video public theo category slug qua nested category route.
-- Public API: khong can `x-internal-secret`.
-- Path param:
-  - `slug` (string): category slug
-- Query:
-  - `page` (number, optional, default 1, min 1)
-  - `limit` (number, optional, default 20, min 1, max 50)
-- Ghi chu:
-  - Endpoint nay dung chung logic voi `GET /api/media/videos/by-category?category=...`.
-  - Neu category khong ton tai hoac khong `active` thi tra `NOT_FOUND` / HTTP 404.
-- Response HTTP 200:
-  - Envelope `data`: array, moi object giong shape cua `GET /api/media/videos/by-category`
-  - Envelope `pagination`:
-    - `page` (number)
-    - `limit` (number)
-    - `total` (number)
-    - `totalPages` (number)
-
 ### 4.16 GET `/api/media/me/videos/subscribed?page=1&limit=20`
 
 - Muc dich: lay video public moi tu cac channel ma user dang co membership active.

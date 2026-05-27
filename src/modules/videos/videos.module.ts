@@ -83,7 +83,6 @@ import { VideoQueryService } from './infrastructure/query/video-query.service';
 import { AdminVideoController } from './presentation/controllers/admin-video.controller';
 import { VideoEventsController } from './presentation/controllers/video-events.controller';
 import { VideosController } from './presentation/controllers/videos.controller';
-import { CategoryVideosController } from './presentation/controllers/category-videos.controller';
 import { VIDEO_CACHE_INVALIDATOR } from './application/interfaces/video-cache-invalidator.interface';
 import { VIDEO_MODERATION_REQUEST_PUBLISHER } from './application/interfaces/video-moderation-request-publisher.interface';
 import { VIDEO_MODERATION_OUTCOME_PUBLISHER } from './application/interfaces/video-moderation-outcome-publisher.interface';
@@ -118,12 +117,7 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
     forwardRef(() => ChannelsModule),
     EngagementModule,
   ],
-  controllers: [
-    AdminVideoController,
-    VideoEventsController,
-    VideosController,
-    CategoryVideosController,
-  ],
+  controllers: [AdminVideoController, VideoEventsController, VideosController],
   providers: [
     VideoRepository,
     VideoPurchaseUnlockRepository,

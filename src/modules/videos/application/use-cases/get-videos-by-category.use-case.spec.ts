@@ -77,6 +77,16 @@ describe('GetVideosByCategoryUseCase', () => {
     expect(categoryRepository.findBySlug).not.toHaveBeenCalled();
   });
 
+  it('rejects missing category', async () => {
+    await expect(
+      useCase.execute({
+        page: 1,
+        limit: 20,
+      }),
+    ).rejects.toThrow(BadRequestException);
+    expect(categoryRepository.findBySlug).not.toHaveBeenCalled();
+  });
+
   it('throws not found when category does not exist', async () => {
     categoryRepository.findBySlug.mockResolvedValue(null);
 

@@ -1,5 +1,5 @@
 export interface GetVideosByCategoryQuery {
-  category: string;
+  category?: string;
   page: number;
   limit: number;
 }
