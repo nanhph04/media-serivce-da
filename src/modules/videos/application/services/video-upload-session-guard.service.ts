@@ -1,9 +1,5 @@
-import { Inject } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
-import {
-  OBJECT_STORAGE_SERVICE,
-  type IObjectStorageService,
-} from '@shared/application/interfaces/object-storage.service.interface';
 import {
   BadRequestException,
   ConflictException,
@@ -22,14 +18,13 @@ import {
   VIDEO_UPLOAD_SESSION_REPOSITORY,
 } from '../../domain/repositories/video-upload-session.repository';
 
-export abstract class VideoUploadSessionUseCaseBase {
+@Injectable()
+export class VideoUploadSessionGuardService {
   constructor(
     @Inject(VIDEO_REPOSITORY)
-    protected readonly videoRepository: IVideoRepository,
+    private readonly videoRepository: IVideoRepository,
     @Inject(VIDEO_UPLOAD_SESSION_REPOSITORY)
-    protected readonly uploadSessionRepository: IVideoUploadSessionRepository,
-    @Inject(OBJECT_STORAGE_SERVICE)
-    protected readonly objectStorageService: IObjectStorageService,
+    private readonly uploadSessionRepository: IVideoUploadSessionRepository,
   ) {}
 
   async getActiveOwnedDraftSession(input: {

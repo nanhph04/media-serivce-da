@@ -4,16 +4,8 @@ import {
   OBJECT_STORAGE_SERVICE,
   type IObjectStorageService,
 } from '@shared/application/interfaces/object-storage.service.interface';
-import {
-  type IVideoRepository,
-  VIDEO_REPOSITORY,
-} from '../../domain/repositories/video.repository';
-import {
-  type IVideoUploadSessionRepository,
-  VIDEO_UPLOAD_SESSION_REPOSITORY,
-} from '../../domain/repositories/video-upload-session.repository';
+import { VideoUploadSessionGuardService } from '../services/video-upload-session-guard.service';
 import type { VideoUploadPartUrlsResponse } from '../dtos/video-upload-session.response';
-import { VideoUploadSessionUseCaseBase } from './video-upload-session.use-case.base';
 
 const UPLOAD_PART_URL_EXPIRY_SECONDS = 900;
 
@@ -23,12 +15,9 @@ export class CreateVideoUploadPartUrlsUseCase extends BaseUseCase<
   VideoUploadPartUrlsResponse
 > {
   constructor(
-    @Inject(VIDEO_REPOSITORY)
-    private readonly videoRepository: IVideoRepository,
-    @Inject(VIDEO_UPLOAD_SESSION_REPOSITORY)
-    private readonly uploadSessionRepository: IVideoUploadSessionRepository,
     @Inject(OBJECT_STORAGE_SERVICE)
     private readonly objectStorageService: IObjectStorageService,
+    private readonly uploadSessionGuardService: VideoUploadSessionGuardService,
   ) {
     super();
   }
@@ -39,16 +28,12 @@ export class CreateVideoUploadPartUrlsUseCase extends BaseUseCase<
     uploadId: string;
     partNumbers: number[];
   }): Promise<VideoUploadPartUrlsResponse> {
-    const helper = new VideoUploadSessionHelper(
-      this.videoRepository,
-      this.uploadSessionRepository,
-      this.objectStorageService,
-    );
-    const session = await helper.getActiveOwnedDraftSession(command);
+    const session =
+      await this.uploadSessionGuardService.getActiveOwnedDraftSession(command);
     const uniquePartNumbers = [...new Set(command.partNumbers)];
 
     for (const partNumber of uniquePartNumbers) {
-      helper.assertPartNumber(session, partNumber);
+      this.uploadSessionGuardService.assertPartNumber(session, partNumber);
     }
 
     const expiresAt = new Date(
@@ -72,5 +57,3 @@ export class CreateVideoUploadPartUrlsUseCase extends BaseUseCase<
     };
   }
 }
-
-class VideoUploadSessionHelper extends VideoUploadSessionUseCaseBase {}

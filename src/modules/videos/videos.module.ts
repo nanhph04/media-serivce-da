@@ -48,6 +48,7 @@ import { UpdateVideoProgressUseCase } from './application/use-cases/update-video
 import { UpdateVideoMetadataUseCase } from './application/use-cases/update-video-metadata.use-case';
 import { UnpublishVideoUseCase } from './application/use-cases/unpublish-video.use-case';
 import { UnlockVideoUseCase } from './application/use-cases/unlock-video.use-case';
+import { VideoUploadSessionGuardService } from './application/services/video-upload-session-guard.service';
 import { VideoWatchAccessService } from './application/services/video-watch-access.service';
 import { VideoProcessingConsumer } from './infrastructure/consumers/video-processing.consumer';
 import { VideoThumbnailConsumer } from './infrastructure/consumers/video-thumbnail.consumer';
@@ -132,6 +133,7 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
     VideoCacheInvalidator,
     VideoViewAggregationService,
     VideoStatusSseService,
+    VideoUploadSessionGuardService,
     VideoWatchAccessService,
     StartVideoUploadUseCase,
     CreateVideoUploadPartUrlsUseCase,

@@ -7,37 +7,25 @@ import {
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import { BadRequestException } from '@shared/domain/exceptions/domain.exception';
 import {
-  type IVideoRepository,
-  VIDEO_REPOSITORY,
-} from '../../domain/repositories/video.repository';
-import {
   type IVideoUploadSessionRepository,
   VIDEO_UPLOAD_SESSION_REPOSITORY,
 } from '../../domain/repositories/video-upload-session.repository';
+import { VideoUploadSessionGuardService } from '../services/video-upload-session-guard.service';
 import type { CompleteVideoUploadResponse } from '../dtos/video-upload-session.response';
-import { VideoUploadSessionUseCaseBase } from './video-upload-session.use-case.base';
 
 @Injectable()
 export class CompleteVideoUploadUseCase extends BaseUseCase<
   { userId: string; videoId: string; uploadId: string },
   CompleteVideoUploadResponse
 > {
-  private readonly helper: VideoUploadSessionUseCaseBase;
-
   constructor(
-    @Inject(VIDEO_REPOSITORY)
-    videoRepository: IVideoRepository,
     @Inject(VIDEO_UPLOAD_SESSION_REPOSITORY)
     private readonly uploadSessionRepository: IVideoUploadSessionRepository,
     @Inject(OBJECT_STORAGE_SERVICE)
     private readonly objectStorageService: IObjectStorageService,
+    private readonly uploadSessionGuardService: VideoUploadSessionGuardService,
   ) {
     super();
-    this.helper = new VideoUploadSessionHelper(
-      videoRepository,
-      uploadSessionRepository,
-      objectStorageService,
-    );
   }
 
   async execute(command: {
@@ -45,7 +33,8 @@ export class CompleteVideoUploadUseCase extends BaseUseCase<
     videoId: string;
     uploadId: string;
   }): Promise<CompleteVideoUploadResponse> {
-    const session = await this.helper.getActiveOwnedDraftSession(command);
+    const session =
+      await this.uploadSessionGuardService.getActiveOwnedDraftSession(command);
     const totalParts = Math.ceil(session.fileSize / session.partSizeBytes);
     const completedPartNumbers = new Set(
       session.parts.map((part) => part.partNumber),
@@ -80,5 +69,3 @@ export class CompleteVideoUploadUseCase extends BaseUseCase<
     };
   }
 }
-
-class VideoUploadSessionHelper extends VideoUploadSessionUseCaseBase {}

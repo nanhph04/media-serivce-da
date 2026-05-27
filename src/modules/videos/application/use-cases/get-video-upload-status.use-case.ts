@@ -1,41 +1,17 @@
-import { Inject, Injectable } from '@nestjs/common';
-import {
-  OBJECT_STORAGE_SERVICE,
-  type IObjectStorageService,
-} from '@shared/application/interfaces/object-storage.service.interface';
+import { Injectable } from '@nestjs/common';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
-import {
-  type IVideoRepository,
-  VIDEO_REPOSITORY,
-} from '../../domain/repositories/video.repository';
-import {
-  type IVideoUploadSessionRepository,
-  VIDEO_UPLOAD_SESSION_REPOSITORY,
-} from '../../domain/repositories/video-upload-session.repository';
+import { VideoUploadSessionGuardService } from '../services/video-upload-session-guard.service';
 import type { VideoUploadStatusResponse } from '../dtos/video-upload-session.response';
-import { VideoUploadSessionUseCaseBase } from './video-upload-session.use-case.base';
 
 @Injectable()
 export class GetVideoUploadStatusUseCase extends BaseUseCase<
   { userId: string; videoId: string; uploadId: string },
   VideoUploadStatusResponse
 > {
-  private readonly helper: VideoUploadSessionUseCaseBase;
-
   constructor(
-    @Inject(VIDEO_REPOSITORY)
-    videoRepository: IVideoRepository,
-    @Inject(VIDEO_UPLOAD_SESSION_REPOSITORY)
-    uploadSessionRepository: IVideoUploadSessionRepository,
-    @Inject(OBJECT_STORAGE_SERVICE)
-    objectStorageService: IObjectStorageService,
+    private readonly uploadSessionGuardService: VideoUploadSessionGuardService,
   ) {
     super();
-    this.helper = new VideoUploadSessionHelper(
-      videoRepository,
-      uploadSessionRepository,
-      objectStorageService,
-    );
   }
 
   async execute(command: {
@@ -43,7 +19,8 @@ export class GetVideoUploadStatusUseCase extends BaseUseCase<
     videoId: string;
     uploadId: string;
   }): Promise<VideoUploadStatusResponse> {
-    const session = await this.helper.getActiveOwnedDraftSession(command);
+    const session =
+      await this.uploadSessionGuardService.getActiveOwnedDraftSession(command);
 
     return {
       videoId: session.videoId,
@@ -64,5 +41,3 @@ export class GetVideoUploadStatusUseCase extends BaseUseCase<
     };
   }
 }
-
-class VideoUploadSessionHelper extends VideoUploadSessionUseCaseBase {}
