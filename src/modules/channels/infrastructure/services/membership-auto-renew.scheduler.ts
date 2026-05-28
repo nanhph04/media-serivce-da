@@ -32,6 +32,13 @@ export class MembershipAutoRenewScheduler
       return;
     }
 
+    if (!this.isKafkaEnabled()) {
+      this.logger.logWarn(
+        'Membership auto-renew scheduler disabled because Kafka is disabled',
+      );
+      return;
+    }
+
     this.intervalId = setInterval(
       () => {
         void this.runOnce();
@@ -50,6 +57,13 @@ export class MembershipAutoRenewScheduler
   }
 
   async runOnce(): Promise<void> {
+    if (!this.isKafkaEnabled()) {
+      this.logger.logWarn(
+        'Skipped membership auto-renew run because Kafka is disabled',
+      );
+      return;
+    }
+
     if (this.running) {
       this.logger.logWarn(
         'Skipped auto-renew run because previous run is active',
@@ -89,5 +103,9 @@ export class MembershipAutoRenewScheduler
     } finally {
       this.running = false;
     }
+  }
+
+  private isKafkaEnabled(): boolean {
+    return this.configService.get<string>('KAFKA_ENABLE') === 'true';
   }
 }

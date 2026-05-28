@@ -25,8 +25,11 @@ class FakeChannelMembershipRepository {
     return Promise.resolve();
   }
 
-  findById(): Promise<ChannelMembershipEntity | null> {
-    return Promise.resolve(null);
+  findById(id: string): Promise<ChannelMembershipEntity | null> {
+    return Promise.resolve(
+      [...this.items.values()].find((membership) => membership.id === id) ??
+        null,
+    );
   }
 
   findByUserIdAndChannelId(
@@ -275,6 +278,75 @@ describe('HandleMembershipPaymentSuccessUseCase', () => {
       '1',
       60 * 60 * 24,
     );
+    expect(repository.items.size).toBe(0);
+  });
+
+  it('applies renew success to the referenced membership record', async () => {
+    const dateNowSpy = jest
+      .spyOn(Date, 'now')
+      .mockReturnValue(new Date('2026-05-04T00:00:00.000Z').getTime());
+    const repository = new FakeChannelMembershipRepository();
+    const existing = ChannelMembershipEntity.create({
+      userId: 'user-renew',
+      channelId: 'channel-1',
+      membershipId: 'tier-1',
+      expiryDate: new Date('2026-05-10T00:00:00.000Z'),
+    });
+    await repository.upsert(existing);
+    const useCase = new HandleMembershipPaymentSuccessUseCase(
+      repository as never,
+      channelRepository as never,
+      membershipTierRepository as never,
+      cacheService as never,
+      compensationPublisher as never,
+    );
+
+    await useCase.execute({
+      eventId: 'event-renew',
+      data: {
+        userId: 'user-renew',
+        channelId: 'channel-1',
+        membershipTierId: 'tier-1',
+        paymentType: 'renew',
+        chargedCoinAmount: 50,
+        ledgerReferenceId: 'ledger-renew',
+        membershipRecordId: existing.id,
+        currentExpiryDate: '2026-05-10T00:00:00.000Z',
+      },
+    });
+
+    const membership = await repository.findById(existing.id);
+
+    expect(membership?.expiryDate?.toISOString()).toBe(
+      '2026-06-10T00:00:00.000Z',
+    );
+    dateNowSpy.mockRestore();
+  });
+
+  it('does not create a new membership for renew success when record is missing', async () => {
+    const repository = new FakeChannelMembershipRepository();
+    const useCase = new HandleMembershipPaymentSuccessUseCase(
+      repository as never,
+      channelRepository as never,
+      membershipTierRepository as never,
+      cacheService as never,
+      compensationPublisher as never,
+    );
+
+    await useCase.execute({
+      eventId: 'event-missing-renew',
+      data: {
+        userId: 'user-missing-renew',
+        channelId: 'channel-1',
+        membershipTierId: 'tier-1',
+        paymentType: 'renew',
+        chargedCoinAmount: 50,
+        ledgerReferenceId: 'ledger-missing-renew',
+        membershipRecordId: 'missing-membership',
+        currentExpiryDate: '2026-05-10T00:00:00.000Z',
+      },
+    });
+
     expect(repository.items.size).toBe(0);
   });
 });

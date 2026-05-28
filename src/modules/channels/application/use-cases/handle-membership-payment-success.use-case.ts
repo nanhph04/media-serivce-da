@@ -57,10 +57,7 @@ export class HandleMembershipPaymentSuccessUseCase extends BaseUseCase<
       return;
     }
 
-    const existing = await this.membershipRepository.findByUserIdAndChannelId(
-      command.data.userId,
-      command.data.channelId,
-    );
+    const existing = await this.resolveExistingMembership(command);
 
     if (existing) {
       existing.syncMembership({
@@ -68,9 +65,24 @@ export class HandleMembershipPaymentSuccessUseCase extends BaseUseCase<
         expiryDate: this.resolveExpiryDate(
           command.data.expiryDate,
           existing.expiryDate,
+          command.data.currentExpiryDate,
         ),
       });
       await this.membershipRepository.upsert(existing);
+      return;
+    }
+
+    if (command.data.paymentType === 'renew') {
+      this.logger.logWarn(
+        'Skipped membership renew success for missing record',
+        {
+          eventId: command.eventId,
+          userId: command.data.userId,
+          channelId: command.data.channelId,
+          membershipTierId: command.data.membershipTierId,
+          membershipRecordId: command.data.membershipRecordId,
+        },
+      );
       return;
     }
 
@@ -78,9 +90,47 @@ export class HandleMembershipPaymentSuccessUseCase extends BaseUseCase<
       userId: command.data.userId,
       channelId: command.data.channelId,
       membershipId: command.data.membershipTierId,
-      expiryDate: this.resolveExpiryDate(command.data.expiryDate),
+      expiryDate: this.resolveExpiryDate(
+        command.data.expiryDate,
+        undefined,
+        command.data.currentExpiryDate,
+      ),
     });
     await this.membershipRepository.upsert(membership);
+  }
+
+  private async resolveExistingMembership(
+    command: HandleMembershipPaymentSuccessCommand,
+  ): Promise<ChannelMembershipEntity | null> {
+    if (command.data.membershipRecordId) {
+      const membership = await this.membershipRepository.findById(
+        command.data.membershipRecordId,
+      );
+
+      if (
+        membership &&
+        membership.userId === command.data.userId &&
+        membership.channelId === command.data.channelId
+      ) {
+        return membership;
+      }
+
+      this.logger.logWarn(
+        'Membership payment success referenced invalid record',
+        {
+          eventId: command.eventId,
+          userId: command.data.userId,
+          channelId: command.data.channelId,
+          membershipRecordId: command.data.membershipRecordId,
+        },
+      );
+      return null;
+    }
+
+    return this.membershipRepository.findByUserIdAndChannelId(
+      command.data.userId,
+      command.data.channelId,
+    );
   }
 
   private async markPaymentProcessing(
@@ -170,16 +220,23 @@ export class HandleMembershipPaymentSuccessUseCase extends BaseUseCase<
   private resolveExpiryDate(
     expiryDate: string | null | undefined,
     currentExpiryDate?: Date | null,
+    requestedCurrentExpiryDate?: string,
   ): Date {
     if (expiryDate) {
       return new Date(expiryDate);
     }
 
     const now = Date.now();
-    const baseTime =
-      currentExpiryDate && currentExpiryDate.getTime() > now
-        ? currentExpiryDate.getTime()
-        : now;
+    const requestedExpiryTime = requestedCurrentExpiryDate
+      ? new Date(requestedCurrentExpiryDate).getTime()
+      : Number.NaN;
+    const baseTime = Math.max(
+      now,
+      currentExpiryDate?.getTime() ?? Number.NEGATIVE_INFINITY,
+      Number.isNaN(requestedExpiryTime)
+        ? Number.NEGATIVE_INFINITY
+        : requestedExpiryTime,
+    );
     const nextExpiryDate = new Date(baseTime);
     nextExpiryDate.setMonth(nextExpiryDate.getMonth() + 1);
 

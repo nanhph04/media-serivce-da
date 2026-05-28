@@ -6,6 +6,7 @@ import { KafkaService } from '@shared/infrastructure/messaging/kafka.service';
 import { HandleMembershipAutoRenewFailedUseCase } from '../../application/use-cases/handle-membership-auto-renew-failed.use-case';
 
 interface MembershipAutoRenewFailedEventData {
+  sourceEventId?: string;
   membershipRecordId: string;
   userId: string;
   channelId: string;

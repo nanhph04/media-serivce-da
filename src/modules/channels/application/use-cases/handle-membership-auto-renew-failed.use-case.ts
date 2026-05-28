@@ -1,5 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
+import {
+  IDEMPOTENCY_STORE,
+  type IIdempotencyStore,
+} from '@shared/application/interfaces/cache-store.interface';
 import { ConfigService } from '@shared/infrastructure/config/config.service';
 import {
   CHANNEL_MEMBERSHIP_REPOSITORY,
@@ -15,6 +19,8 @@ export class HandleMembershipAutoRenewFailedUseCase extends BaseUseCase<
   constructor(
     @Inject(CHANNEL_MEMBERSHIP_REPOSITORY)
     private readonly membershipRepository: IChannelMembershipRepository,
+    @Inject(IDEMPOTENCY_STORE)
+    private readonly idempotencyStore: IIdempotencyStore,
     private readonly configService: ConfigService,
   ) {
     super();
@@ -23,6 +29,10 @@ export class HandleMembershipAutoRenewFailedUseCase extends BaseUseCase<
   async execute(
     command: HandleMembershipAutoRenewFailedCommand,
   ): Promise<void> {
+    if (!(await this.markFailureProcessing(command))) {
+      return;
+    }
+
     const membership = await this.membershipRepository.findById(
       command.data.membershipRecordId,
     );
@@ -47,5 +57,17 @@ export class HandleMembershipAutoRenewFailedUseCase extends BaseUseCase<
     }
 
     await this.membershipRepository.update(membership);
+  }
+
+  private async markFailureProcessing(
+    command: HandleMembershipAutoRenewFailedCommand,
+  ): Promise<boolean> {
+    const dedupeKey = command.data.sourceEventId ?? command.eventId;
+
+    return this.idempotencyStore.setIfNotExists(
+      `media:membership-auto-renew-failed:${dedupeKey}`,
+      '1',
+      60 * 60 * 24 * 7,
+    );
   }
 }

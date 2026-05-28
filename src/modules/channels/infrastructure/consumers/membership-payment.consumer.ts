@@ -22,6 +22,8 @@ export class MembershipPaymentConsumer implements OnModuleInit {
         paymentType?: 'new' | 'renew' | 'upgrade';
         chargedCoinAmount?: number | null;
         ledgerReferenceId?: string | null;
+        membershipRecordId?: string;
+        currentExpiryDate?: string;
         expiryDate?: string | null;
       }>
     >(

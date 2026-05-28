@@ -1,6 +1,7 @@
 export interface HandleMembershipAutoRenewFailedCommand {
   eventId: string;
   data: {
+    sourceEventId?: string;
     membershipRecordId: string;
     userId: string;
     channelId: string;
