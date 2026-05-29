@@ -25,8 +25,8 @@ describe('ConfirmVideoUploadUseCase', () => {
   const videoProcessingJobDispatcher = {
     enqueueTranscodeJob: jest.fn(),
   };
-  const videoModerationRequestPublisher = {
-    publishModerationRequested: jest.fn(),
+  const videoOutboxTransaction = {
+    saveVideoWithOutbox: jest.fn(),
   };
   const videoUploadConfig = {
     getMaxVideoUploadSizeBytes: jest.fn(),
@@ -42,7 +42,7 @@ describe('ConfirmVideoUploadUseCase', () => {
   const useCase = new ConfirmVideoUploadUseCase(
     videoRepository as never,
     objectStorageService as never,
-    videoModerationRequestPublisher as never,
+    videoOutboxTransaction as never,
     videoUploadConfig as never,
     videoStatusEventPublisher as never,
     loggerService as never,
@@ -56,6 +56,7 @@ describe('ConfirmVideoUploadUseCase', () => {
     objectStorageService.getBucketName.mockReturnValue('media-raw');
     objectStorageService.copyObject.mockResolvedValue(undefined);
     objectStorageService.deleteObject.mockResolvedValue(undefined);
+    videoOutboxTransaction.saveVideoWithOutbox.mockResolvedValue(undefined);
   });
 
   it('rejects when uploaded file exceeds maximum size', async () => {
@@ -95,14 +96,10 @@ describe('ConfirmVideoUploadUseCase', () => {
 
   it('normalizes resolution order before requesting moderation', async () => {
     videoRepository.findById.mockResolvedValue(buildDraftVideo());
-    videoRepository.save.mockResolvedValue(undefined);
     objectStorageService.objectExists.mockResolvedValue(true);
     objectStorageService.getObjectMetadata.mockResolvedValue({
       sizeBytes: 1024,
     });
-    videoModerationRequestPublisher.publishModerationRequested.mockResolvedValue(
-      undefined,
-    );
 
     const result = await useCase.execute({
       userId: 'owner-1',
@@ -110,19 +107,30 @@ describe('ConfirmVideoUploadUseCase', () => {
       resolutions: ['1080p', '480p', '720p'],
     });
 
-    const savedVideo = videoRepository.save.mock.calls[0][0] as VideoEntity;
+    const [savedVideo, outboxMessage] = videoOutboxTransaction
+      .saveVideoWithOutbox.mock.calls[0] as [
+      VideoEntity,
+      { topic: string; messageKey: string; payload: { data: unknown } },
+    ];
     expect(savedVideo.resolutions).toEqual(['480p', '720p', '1080p']);
-    expect(videoRepository.save).toHaveBeenCalledTimes(1);
-    expect(
-      videoModerationRequestPublisher.publishModerationRequested,
-    ).toHaveBeenCalledWith({
-      videoId: 'video-1',
-      rawFileKey: expect.stringMatching(
-        /^uploads\/confirmed\/video-1\/.+\.mp4$/,
-      ),
-      rawBucket: 'media-raw',
-      resolution: ['480p', '720p', '1080p'],
-      userId: 'owner-1',
+    expect(videoOutboxTransaction.saveVideoWithOutbox).toHaveBeenCalledTimes(1);
+    expect(outboxMessage).toMatchObject({
+      topic: 'video.moderation.requested',
+      messageKey: 'video-1',
+      payload: {
+        eventType: 'video.moderation.requested',
+        aggregateId: 'video-1',
+        sourceService: 'media-service',
+        data: {
+          videoId: 'video-1',
+          rawFileKey: expect.stringMatching(
+            /^uploads\/confirmed\/video-1\/.+\.mp4$/,
+          ),
+          rawBucket: 'media-raw',
+          resolutions: ['480p', '720p', '1080p'],
+          userId: 'owner-1',
+        },
+      },
     });
     expect(objectStorageService.copyObject).toHaveBeenCalledWith(
       'raw',
@@ -168,9 +176,7 @@ describe('ConfirmVideoUploadUseCase', () => {
     ).rejects.toThrow('copy failed');
 
     expect(videoRepository.save).not.toHaveBeenCalled();
-    expect(
-      videoModerationRequestPublisher.publishModerationRequested,
-    ).not.toHaveBeenCalled();
+    expect(videoOutboxTransaction.saveVideoWithOutbox).not.toHaveBeenCalled();
   });
 
   it('throws not found when video does not exist', async () => {

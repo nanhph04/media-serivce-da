@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import {
   OBJECT_STORAGE_SERVICE,
   type IObjectStorageService,
@@ -15,15 +16,16 @@ import {
   NotFoundException,
 } from '@shared/domain/exceptions/domain.exception';
 import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
+import type { IIntegrationEvent } from '@shared/domain/types/events/base-integration.event';
 import {
   type IVideoRepository,
   VIDEO_REPOSITORY,
 } from '../../domain/repositories/video.repository';
 import type { VideoEntity } from '../../domain/entities/video.entity';
 import {
-  VIDEO_MODERATION_REQUEST_PUBLISHER,
-  type IVideoModerationRequestPublisher,
-} from '../interfaces/video-moderation-request-publisher.interface';
+  VIDEO_OUTBOX_TRANSACTION,
+  type IVideoOutboxTransaction,
+} from '../interfaces/video-outbox-transaction.interface';
 import {
   VIDEO_STATUS_EVENT_PUBLISHER,
   type IVideoStatusEventPublisher,
@@ -37,6 +39,15 @@ const VIDEO_UPLOAD_RESOLUTION_ORDER = new Map<string, number>(
   VIDEO_UPLOAD_RESOLUTIONS.map((resolution, index) => [resolution, index]),
 );
 const MAX_THUMBNAIL_SIZE_BYTES = 5 * 1024 * 1024;
+const VIDEO_MODERATION_REQUESTED_TOPIC = 'video.moderation.requested';
+
+interface VideoModerationRequestedEventData {
+  videoId: string;
+  rawFileKey: string;
+  rawBucket: string;
+  resolutions: string[];
+  userId: string;
+}
 
 @Injectable()
 export class ConfirmVideoUploadUseCase extends BaseUseCase<
@@ -48,8 +59,8 @@ export class ConfirmVideoUploadUseCase extends BaseUseCase<
     private readonly videoRepository: IVideoRepository,
     @Inject(OBJECT_STORAGE_SERVICE)
     private readonly objectStorageService: IObjectStorageService,
-    @Inject(VIDEO_MODERATION_REQUEST_PUBLISHER)
-    private readonly videoModerationRequestPublisher: IVideoModerationRequestPublisher,
+    @Inject(VIDEO_OUTBOX_TRANSACTION)
+    private readonly videoOutboxTransaction: IVideoOutboxTransaction,
     @Inject(VIDEO_UPLOAD_CONFIG)
     private readonly videoUploadConfig: IVideoUploadConfig,
     @Inject(VIDEO_STATUS_EVENT_PUBLISHER)
@@ -122,15 +133,29 @@ export class ConfirmVideoUploadUseCase extends BaseUseCase<
     );
 
     video.markPendingModeration({ resolutions: normalizedResolutions });
-    await this.videoRepository.save(video);
-    this.publishVideoStatusChanged(video);
-    await this.videoModerationRequestPublisher.publishModerationRequested({
-      videoId: video.id,
-      rawFileKey: video.rawFileKey,
-      rawBucket: this.objectStorageService.getBucketName('raw'),
-      resolution: normalizedResolutions,
-      userId: command.userId,
+    const event: IIntegrationEvent<VideoModerationRequestedEventData> = {
+      eventId: randomUUID(),
+      eventType: VIDEO_MODERATION_REQUESTED_TOPIC,
+      aggregateId: video.id,
+      timestamp: new Date().toISOString(),
+      version: 1,
+      traceId: randomUUID(),
+      sourceService: 'media-service',
+      data: {
+        videoId: video.id,
+        rawFileKey: video.rawFileKey,
+        rawBucket: this.objectStorageService.getBucketName('raw'),
+        resolutions: normalizedResolutions,
+        userId: command.userId,
+      },
+    };
+
+    await this.videoOutboxTransaction.saveVideoWithOutbox(video, {
+      topic: VIDEO_MODERATION_REQUESTED_TOPIC,
+      messageKey: video.id,
+      payload: event,
     });
+    this.publishVideoStatusChanged(video);
     await this.deleteDraftRawFileIfPresent(draftRawFileKey);
 
     return {

@@ -51,6 +51,7 @@ import { MembershipCoinCompensationPublisher } from './infrastructure/messaging/
 import { MembershipAutoRenewScheduler } from './infrastructure/services/membership-auto-renew.scheduler';
 import { ChannelCreationTransactionService } from './infrastructure/persistence/channel-creation-transaction.service';
 import { ChannelStatusChangeTransactionService } from './infrastructure/persistence/channel-status-change-transaction.service';
+import { MembershipRenewalTransactionService } from './infrastructure/persistence/membership-renewal-transaction.service';
 import { ChannelSearchQueryService } from './infrastructure/query/channel-search-query.service';
 import { UserMembershipQueryService } from './infrastructure/query/user-membership-query.service';
 import { ConfigModule } from '@shared/infrastructure/config/config.module';
@@ -69,6 +70,7 @@ import { USER_MEMBERSHIP_QUERY_SERVICE } from './application/interfaces/user-mem
 import { CHANNEL_CREATION_TRANSACTION } from './application/interfaces/channel-creation-transaction.interface';
 import { CHANNEL_STATUS_EVENT_PUBLISHER } from './application/interfaces/channel-status-event.publisher.interface';
 import { CHANNEL_STATUS_CHANGE_TRANSACTION } from './application/interfaces/channel-status-change-transaction.interface';
+import { MEMBERSHIP_RENEWAL_TRANSACTION } from './application/interfaces/membership-renewal-transaction.interface';
 
 @Module({
   imports: [
@@ -99,6 +101,7 @@ import { CHANNEL_STATUS_CHANGE_TRANSACTION } from './application/interfaces/chan
     ChannelMembershipMapper,
     ChannelCreationTransactionService,
     ChannelStatusChangeTransactionService,
+    MembershipRenewalTransactionService,
     CreateChannelUseCase,
     GetCurrentChannelUseCase,
     UpdateChannelUseCase,
@@ -143,6 +146,10 @@ import { CHANNEL_STATUS_CHANGE_TRANSACTION } from './application/interfaces/chan
     {
       provide: CHANNEL_STATUS_CHANGE_TRANSACTION,
       useExisting: ChannelStatusChangeTransactionService,
+    },
+    {
+      provide: MEMBERSHIP_RENEWAL_TRANSACTION,
+      useExisting: MembershipRenewalTransactionService,
     },
     {
       provide: CHANNEL_MEMBERSHIP_REPOSITORY,

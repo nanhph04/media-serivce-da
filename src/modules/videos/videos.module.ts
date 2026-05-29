@@ -74,6 +74,7 @@ import { VideoPurchaseUnlockRepository } from './infrastructure/persistence/vide
 import { VideoTagOrmEntity } from './infrastructure/persistence/video-tag.orm-entity';
 import { VideoOrmEntity } from './infrastructure/persistence/video.orm-entity';
 import { VideoRepository } from './infrastructure/persistence/video.repository';
+import { VideoOutboxTransactionService } from './infrastructure/persistence/video-outbox-transaction.service';
 import { VideoUploadPartOrmEntity } from './infrastructure/persistence/video-upload-part.orm-entity';
 import { VideoUploadSessionOrmEntity } from './infrastructure/persistence/video-upload-session.orm-entity';
 import { VideoUploadSessionRepository } from './infrastructure/persistence/video-upload-session.repository';
@@ -94,6 +95,7 @@ import { VIDEO_WATCHDOG_HEALTH_FAILURE_STORE } from './application/interfaces/vi
 import { VIDEO_WORKER_HEALTH_CHECKER } from './application/interfaces/video-worker-health-checker.interface';
 import { VIDEO_STATUS_EVENT_PUBLISHER } from './application/interfaces/video-status-event-publisher.interface';
 import { VIDEO_STATUS_EVENT_STREAM } from './application/interfaces/video-status-event-stream.interface';
+import { VIDEO_OUTBOX_TRANSACTION } from './application/interfaces/video-outbox-transaction.interface';
 import { VIDEO_PURCHASE_UNLOCK_REPOSITORY } from './domain/repositories/video-purchase-unlock.repository';
 import { VIDEO_REPOSITORY } from './domain/repositories/video.repository';
 import { VIDEO_UPLOAD_SESSION_REPOSITORY } from './domain/repositories/video-upload-session.repository';
@@ -127,6 +129,7 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
     VideoCacheInvalidator,
     VideoViewAggregationService,
     VideoStatusSseService,
+    VideoOutboxTransactionService,
     VideoUploadSessionGuardService,
     VideoWatchAccessService,
     StartVideoUploadUseCase,
@@ -213,6 +216,10 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
     {
       provide: VIDEO_CACHE_INVALIDATOR,
       useExisting: VideoCacheInvalidator,
+    },
+    {
+      provide: VIDEO_OUTBOX_TRANSACTION,
+      useExisting: VideoOutboxTransactionService,
     },
     {
       provide: VIDEO_VIEW_AGGREGATION,

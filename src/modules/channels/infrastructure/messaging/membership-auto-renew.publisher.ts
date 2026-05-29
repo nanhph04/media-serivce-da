@@ -1,9 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { DataSource } from 'typeorm';
 import {
   EVENT_PUBLISHER,
   type IEventPublisher,
 } from '@shared/application/interfaces/event-publisher.interface';
 import { ConfigService } from '@shared/infrastructure/config/config.service';
+import {
+  OutboxMessageOrmEntity,
+  OutboxMessageStatus,
+} from '@shared/infrastructure/messaging/outbox-message.orm-entity';
 import type {
   IMembershipAutoRenewPublisher,
   MembershipAutoRenewRequest,
@@ -15,6 +20,7 @@ export class MembershipAutoRenewPublisher implements IMembershipAutoRenewPublish
   constructor(
     @Inject(EVENT_PUBLISHER)
     private readonly eventPublisher: IEventPublisher,
+    private readonly dataSource: DataSource,
     private readonly configService: ConfigService,
   ) {}
 
@@ -51,10 +57,12 @@ export class MembershipAutoRenewPublisher implements IMembershipAutoRenewPublish
       'membership.auto_renew.requested',
     );
 
-    await this.eventPublisher.emit(topic, [
-      {
-        key: request.userId,
-        value: {
+    await this.dataSource.transaction(async (manager) => {
+      await manager.getRepository(OutboxMessageOrmEntity).save({
+        id: crypto.randomUUID(),
+        topic,
+        messageKey: request.userId,
+        payload: {
           eventId: crypto.randomUUID(),
           eventType: 'membership.auto_renew.requested',
           aggregateId: request.membershipRecordId,
@@ -64,7 +72,13 @@ export class MembershipAutoRenewPublisher implements IMembershipAutoRenewPublish
           sourceService: 'media-service',
           data: request,
         },
-      },
-    ]);
+        status: OutboxMessageStatus.PENDING,
+        attemptCount: 0,
+        nextAttemptAt: new Date(),
+        lockedAt: null,
+        publishedAt: null,
+        lastError: null,
+      });
+    });
   }
 }

@@ -1,5 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
+import type { IIntegrationEvent } from '@shared/domain/types/events/base-integration.event';
 import {
   CHANNEL_MEMBERSHIP_REPOSITORY,
   type IChannelMembershipRepository,
@@ -12,10 +14,11 @@ import {
   MEMBERSHIP_TIER_REPOSITORY,
   type IMembershipTierRepository,
 } from '../../domain/repositories/membership-tier.repository';
+import type { MembershipAutoRenewRequest } from '../interfaces/membership-auto-renew.publisher.interface';
 import {
-  MEMBERSHIP_AUTO_RENEW_PUBLISHER,
-  type IMembershipAutoRenewPublisher,
-} from '../interfaces/membership-auto-renew.publisher.interface';
+  MEMBERSHIP_RENEWAL_TRANSACTION,
+  type IMembershipRenewalTransaction,
+} from '../interfaces/membership-renewal-transaction.interface';
 
 export interface RequestDueMembershipRenewalsInput {
   now: Date;
@@ -27,6 +30,8 @@ export interface RequestDueMembershipRenewalsOutput {
   requested: number;
   skipped: number;
 }
+
+const MEMBERSHIP_AUTO_RENEW_REQUESTED_TOPIC = 'membership.auto_renew.requested';
 
 @Injectable()
 export class RequestDueMembershipRenewalsUseCase extends BaseUseCase<
@@ -40,8 +45,8 @@ export class RequestDueMembershipRenewalsUseCase extends BaseUseCase<
     private readonly channelRepository: IChannelRepository,
     @Inject(MEMBERSHIP_TIER_REPOSITORY)
     private readonly membershipTierRepository: IMembershipTierRepository,
-    @Inject(MEMBERSHIP_AUTO_RENEW_PUBLISHER)
-    private readonly autoRenewPublisher: IMembershipAutoRenewPublisher,
+    @Inject(MEMBERSHIP_RENEWAL_TRANSACTION)
+    private readonly membershipRenewalTransaction: IMembershipRenewalTransaction,
   ) {
     super();
   }
@@ -68,7 +73,7 @@ export class RequestDueMembershipRenewalsUseCase extends BaseUseCase<
       }
 
       const currentExpiryDate = membership.expiryDate.toISOString();
-      await this.autoRenewPublisher.publishRenewalRequested({
+      const data: MembershipAutoRenewRequest = {
         membershipRecordId: membership.id,
         userId: membership.userId,
         channelId: membership.channelId,
@@ -78,10 +83,27 @@ export class RequestDueMembershipRenewalsUseCase extends BaseUseCase<
         currentExpiryDate,
         paymentType: 'renew',
         idempotencyKey: `membership-renew:${membership.id}:${currentExpiryDate}`,
-      });
+      };
+      const event: IIntegrationEvent<MembershipAutoRenewRequest> = {
+        eventId: randomUUID(),
+        eventType: MEMBERSHIP_AUTO_RENEW_REQUESTED_TOPIC,
+        aggregateId: membership.id,
+        timestamp: input.now.toISOString(),
+        version: 1,
+        traceId: randomUUID(),
+        sourceService: 'media-service',
+        data,
+      };
 
       membership.markRenewalRequested(input.now);
-      await this.membershipRepository.update(membership);
+      await this.membershipRenewalTransaction.persistRenewalRequest(
+        membership,
+        {
+          topic: MEMBERSHIP_AUTO_RENEW_REQUESTED_TOPIC,
+          messageKey: membership.userId,
+          payload: event,
+        },
+      );
       requested += 1;
     }
 

@@ -16,20 +16,18 @@ describe('UnpublishVideoUseCase', () => {
     findById: jest.fn(),
     save: jest.fn(),
   };
-  const videoDeleteRequestPublisher = {
-    publishVideoDeleteRequested: jest.fn(),
+  const videoOutboxTransaction = {
+    saveVideoWithOutbox: jest.fn(),
   };
   const useCase = new UnpublishVideoUseCase(
     videoRepository as never,
-    videoDeleteRequestPublisher as never,
+    videoOutboxTransaction as never,
   );
 
   beforeEach(() => {
     jest.clearAllMocks();
     videoRepository.save.mockResolvedValue(undefined);
-    videoDeleteRequestPublisher.publishVideoDeleteRequested.mockResolvedValue(
-      undefined,
-    );
+    videoOutboxTransaction.saveVideoWithOutbox.mockResolvedValue(undefined);
   });
 
   it('marks a ready video pending delete and publishes delete request', async () => {
@@ -40,21 +38,32 @@ describe('UnpublishVideoUseCase', () => {
       videoId: 'video-1',
     });
 
-    const savedVideo = videoRepository.save.mock.calls[0][0] as VideoEntity;
+    const [savedVideo, outboxMessage] = videoOutboxTransaction
+      .saveVideoWithOutbox.mock.calls[0] as [
+      VideoEntity,
+      { topic: string; messageKey: string; payload: { data: unknown } },
+    ];
     expect(savedVideo.isDeleted).toBe(true);
     expect(savedVideo.deletionStatus).toBe(VideoDeletionStatus.PENDING_DELETE);
     expect(savedVideo.deletedAt).toBeInstanceOf(Date);
     expect(savedVideo.deletedBy).toBe('owner-1');
     expect(savedVideo.deleteReason).toBe('creator_delete');
-    expect(
-      videoDeleteRequestPublisher.publishVideoDeleteRequested,
-    ).toHaveBeenCalledWith({
-      videoId: 'video-1',
-      channelId: 'channel-1',
-      ownerId: 'owner-1',
-      deletedBy: 'owner-1',
-      deletedAt: expect.any(String),
-      refundWindowHours: 72,
+    expect(outboxMessage).toMatchObject({
+      topic: 'video.delete.requested',
+      messageKey: 'video-1',
+      payload: {
+        eventType: 'video.delete.requested',
+        aggregateId: 'video-1',
+        sourceService: 'media-service',
+        data: {
+          videoId: 'video-1',
+          channelId: 'channel-1',
+          ownerId: 'owner-1',
+          deletedBy: 'owner-1',
+          deletedAt: expect.any(String),
+          refundWindowHours: 72,
+        },
+      },
     });
     expect(result).toEqual({
       videoId: 'video-1',
@@ -78,7 +87,7 @@ describe('UnpublishVideoUseCase', () => {
     await expect(
       useCase.execute({ userId: 'owner-1', videoId: 'video-1' }),
     ).rejects.toThrow(ForbiddenException);
-    expect(videoRepository.save).not.toHaveBeenCalled();
+    expect(videoOutboxTransaction.saveVideoWithOutbox).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -95,7 +104,7 @@ describe('UnpublishVideoUseCase', () => {
     await expect(
       useCase.execute({ userId: 'owner-1', videoId: 'video-1' }),
     ).rejects.toThrow(ConflictException);
-    expect(videoRepository.save).not.toHaveBeenCalled();
+    expect(videoOutboxTransaction.saveVideoWithOutbox).not.toHaveBeenCalled();
   });
 });
 

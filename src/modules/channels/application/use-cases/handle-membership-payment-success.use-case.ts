@@ -47,56 +47,68 @@ export class HandleMembershipPaymentSuccessUseCase extends BaseUseCase<
   }
 
   async execute(command: HandleMembershipPaymentSuccessCommand): Promise<void> {
-    if (!(await this.markPaymentProcessing(command))) {
+    const processingKey = this.getPaymentProcessingKey(command);
+    if (
+      !(await this.idempotencyStore.setIfNotExists(
+        processingKey,
+        '1',
+        60 * 60 * 24,
+      ))
+    ) {
       return;
     }
 
-    const policyRejection = await this.resolvePolicyRejection(command);
-    if (policyRejection) {
-      await this.publishCompensation(command, policyRejection);
-      return;
-    }
+    try {
+      const policyRejection = await this.resolvePolicyRejection(command);
+      if (policyRejection) {
+        await this.publishCompensation(command, policyRejection);
+        return;
+      }
 
-    const existing = await this.resolveExistingMembership(command);
+      const existing = await this.resolveExistingMembership(command);
 
-    if (existing) {
-      existing.syncMembership({
+      if (existing) {
+        existing.syncMembership({
+          membershipId: command.data.membershipTierId,
+          expiryDate: this.resolveExpiryDate(
+            command.data.expiryDate,
+            existing.expiryDate,
+            command.data.currentExpiryDate,
+          ),
+        });
+        await this.membershipRepository.upsert(existing);
+        return;
+      }
+
+      if (command.data.paymentType === 'renew') {
+        this.logger.logWarn(
+          'Skipped membership renew success for missing record',
+          {
+            eventId: command.eventId,
+            userId: command.data.userId,
+            channelId: command.data.channelId,
+            membershipTierId: command.data.membershipTierId,
+            membershipRecordId: command.data.membershipRecordId,
+          },
+        );
+        return;
+      }
+
+      const membership = ChannelMembershipEntity.create({
+        userId: command.data.userId,
+        channelId: command.data.channelId,
         membershipId: command.data.membershipTierId,
         expiryDate: this.resolveExpiryDate(
           command.data.expiryDate,
-          existing.expiryDate,
+          undefined,
           command.data.currentExpiryDate,
         ),
       });
-      await this.membershipRepository.upsert(existing);
-      return;
+      await this.membershipRepository.upsert(membership);
+    } catch (error: unknown) {
+      await this.releasePaymentProcessing(processingKey);
+      throw error;
     }
-
-    if (command.data.paymentType === 'renew') {
-      this.logger.logWarn(
-        'Skipped membership renew success for missing record',
-        {
-          eventId: command.eventId,
-          userId: command.data.userId,
-          channelId: command.data.channelId,
-          membershipTierId: command.data.membershipTierId,
-          membershipRecordId: command.data.membershipRecordId,
-        },
-      );
-      return;
-    }
-
-    const membership = ChannelMembershipEntity.create({
-      userId: command.data.userId,
-      channelId: command.data.channelId,
-      membershipId: command.data.membershipTierId,
-      expiryDate: this.resolveExpiryDate(
-        command.data.expiryDate,
-        undefined,
-        command.data.currentExpiryDate,
-      ),
-    });
-    await this.membershipRepository.upsert(membership);
   }
 
   private async resolveExistingMembership(
@@ -133,22 +145,25 @@ export class HandleMembershipPaymentSuccessUseCase extends BaseUseCase<
     );
   }
 
-  private async markPaymentProcessing(
+  private getPaymentProcessingKey(
     command: HandleMembershipPaymentSuccessCommand,
-  ): Promise<boolean> {
+  ): string {
     if (command.data.ledgerReferenceId) {
-      return this.idempotencyStore.setIfNotExists(
-        `media:membership-payment:${command.data.ledgerReferenceId}`,
-        '1',
-        60 * 60 * 24,
-      );
+      return `media:membership-payment:${command.data.ledgerReferenceId}`;
     }
 
-    return this.idempotencyStore.setIfNotExists(
-      `media:event:${command.eventId}`,
-      '1',
-      60 * 60 * 24,
-    );
+    return `media:event:${command.eventId}`;
+  }
+
+  private async releasePaymentProcessing(processingKey: string): Promise<void> {
+    try {
+      await this.idempotencyStore.delete(processingKey);
+    } catch (error: unknown) {
+      this.logger.logWarn('Failed to release membership payment idempotency', {
+        processingKey,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
   }
 
   private async resolvePolicyRejection(

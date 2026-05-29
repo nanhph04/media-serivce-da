@@ -1,9 +1,11 @@
-import { Inject, Injectable } from '@nestjs/common';
-import {
-  EVENT_PUBLISHER,
-  type IEventPublisher,
-} from '@shared/application/interfaces/event-publisher.interface';
+import { Injectable } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
+import { DataSource } from 'typeorm';
 import { ConfigService } from '@shared/infrastructure/config/config.service';
+import {
+  OutboxMessageOrmEntity,
+  OutboxMessageStatus,
+} from '@shared/infrastructure/messaging/outbox-message.orm-entity';
 import type {
   IMembershipCoinCompensationPublisher,
   MembershipCoinCompensationRequest,
@@ -12,8 +14,7 @@ import type {
 @Injectable()
 export class MembershipCoinCompensationPublisher implements IMembershipCoinCompensationPublisher {
   constructor(
-    @Inject(EVENT_PUBLISHER)
-    private readonly eventPublisher: IEventPublisher,
+    private readonly dataSource: DataSource,
     private readonly configService: ConfigService,
   ) {}
 
@@ -25,20 +26,28 @@ export class MembershipCoinCompensationPublisher implements IMembershipCoinCompe
       'membership.coin_compensation_required',
     );
 
-    await this.eventPublisher.emit(topic, [
-      {
-        key: request.userId,
-        value: {
-          eventId: crypto.randomUUID(),
+    await this.dataSource.transaction(async (manager) => {
+      await manager.getRepository(OutboxMessageOrmEntity).save({
+        id: randomUUID(),
+        topic,
+        messageKey: request.userId,
+        payload: {
+          eventId: randomUUID(),
           eventType: 'membership.coin_compensation_required',
           aggregateId: request.channelId,
           timestamp: new Date().toISOString(),
           version: 1,
-          traceId: crypto.randomUUID(),
+          traceId: randomUUID(),
           sourceService: 'media-service',
           data: request,
         },
-      },
-    ]);
+        status: OutboxMessageStatus.PENDING,
+        attemptCount: 0,
+        nextAttemptAt: new Date(),
+        lockedAt: null,
+        publishedAt: null,
+        lastError: null,
+      });
+    });
   }
 }
