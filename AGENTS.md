@@ -251,10 +251,10 @@ Error responses use ApiError format (`shared/presentation/dto/api-response.dto.t
 ```json
 {
   "success": false,
-  "code": 403,
-  "mess": "You do not own this channel",
+  "statusCode": 403,
+  "message": "You do not own this channel",
   "data": null,
-  "errors": ["You do not own this channel"],
+  "errorCode": "FORBIDDEN",
   "requestId": "1744712345-abc1234",
   "timestamp": "2026-04-15T10:19:05.123Z",
   "path": "/api/user/channels/123"
@@ -318,12 +318,12 @@ Use decorators to extract Gateway headers in controllers:
 **ApiResponse** (`shared/presentation/dto/api-response.dto.ts`):
 
 - Success response format
-- `success: true`, `code: number`, `data: T`, optional `mess`, optional `pagination`
+- `success: true`, `statusCode: number`, `data: T`, optional `message`, optional `pagination`
 
 **ApiError** (`shared/presentation/dto/api-response.dto.ts`):
 
 - Error response format
-- `success: false`, `code: number` (HTTP status), `mess: string`, `errors: string[]`
+- `success: false`, `statusCode: number` (HTTP status), `message: string`, optional `errorCode`
 - Auto-generated fields: `requestId`, `timestamp`, `path`
 
 ---

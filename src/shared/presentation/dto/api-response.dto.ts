@@ -1,23 +1,29 @@
-import { PaginationDto, PaginationMeta } from './pagination.dto';
+import type { PaginationDto, PaginationMeta } from './pagination.dto';
 
 export interface ApiResponseOptions<T> {
   data?: T;
-  mess?: string;
+  message?: string;
   pagination?: PaginationDto;
 }
 
-export class ApiResponse<T> {
-  success: true;
-  code: number;
-  data: T | null;
-  mess?: string;
-  pagination?: PaginationMeta;
+export interface ApiErrorOptions {
+  requestId?: string;
+  path?: string;
+  errorCode?: string;
+}
 
-  constructor(success: true, code: number, options: ApiResponseOptions<T>) {
-    this.success = success;
-    this.code = code;
+export class ApiResponse<T> {
+  readonly success: true;
+  readonly statusCode: number;
+  readonly data: T | null;
+  readonly message?: string;
+  readonly pagination?: PaginationMeta;
+
+  constructor(statusCode: number, options: ApiResponseOptions<T> = {}) {
+    this.success = true;
+    this.statusCode = statusCode;
     this.data = options.data ?? null;
-    this.mess = options.mess;
+    this.message = options.message;
     this.pagination = options.pagination
       ? {
           page: options.pagination.page,
@@ -28,54 +34,59 @@ export class ApiResponse<T> {
       : undefined;
   }
 
-  static success<T>(
+  static withStatus<T>(
+    statusCode: number,
     data: T,
-    mess?: string,
+    message?: string,
     pagination?: PaginationDto,
   ): ApiResponse<T> {
-    return new ApiResponse<T>(true, 200, { data, mess, pagination });
+    return new ApiResponse<T>(statusCode, { data, message, pagination });
   }
 
-  static created<T>(data: T, mess?: string): ApiResponse<T> {
-    return new ApiResponse<T>(true, 201, { data, mess });
+  static success<T>(
+    data: T,
+    message?: string,
+    pagination?: PaginationDto,
+  ): ApiResponse<T> {
+    return ApiResponse.withStatus(200, data, message, pagination);
+  }
+
+  static created<T>(data: T, message?: string): ApiResponse<T> {
+    return ApiResponse.withStatus(201, data, message);
   }
 }
 
 export class ApiError {
-  success: false;
-  code: number;
-  mess: string;
-  data: null;
-  errors: string[];
-  requestId?: string;
-  timestamp: string;
-  path?: string;
+  readonly success: false;
+  readonly statusCode: number;
+  readonly message: string;
+  readonly data: null;
+  readonly errorCode?: string;
+  readonly requestId?: string;
+  readonly timestamp: string;
+  readonly path?: string;
 
   constructor(
-    code: number,
-    mess: string,
-    errors: string[] = [],
-    requestId?: string,
-    path?: string,
+    statusCode: number,
+    message: string,
+    options: ApiErrorOptions = {},
   ) {
     this.success = false;
-    this.code = code;
-    this.mess = mess;
+    this.statusCode = statusCode;
+    this.message = message;
     this.data = null;
-    this.errors = errors;
-    this.requestId = requestId;
+    this.errorCode = options.errorCode;
+    this.requestId = options.requestId;
     this.timestamp = new Date().toISOString();
-    this.path = path;
+    this.path = options.path;
   }
 
   static create(
-    code: number,
-    mess: string,
-    errors: string[] = [],
-    requestId?: string,
-    path?: string,
+    statusCode: number,
+    message: string,
+    options: ApiErrorOptions = {},
   ): ApiError {
-    return new ApiError(code, mess, errors, requestId, path);
+    return new ApiError(statusCode, message, options);
   }
 }
 

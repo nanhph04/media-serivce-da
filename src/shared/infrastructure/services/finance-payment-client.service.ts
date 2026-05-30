@@ -17,10 +17,10 @@ import { ConfigService } from '../config/config.service';
 
 interface FinanceApiResponse<T> {
   success: boolean;
-  code: number;
-  mess?: string;
+  statusCode: number;
+  message?: string;
   data: T | null;
-  errors?: string[];
+  errorCode?: string;
 }
 
 @Injectable()
@@ -85,10 +85,10 @@ export class FinancePaymentClientService implements IFinancePaymentClient {
   ): Promise<FinanceApiResponse<T>> {
     const fallback: FinanceApiResponse<T> = {
       success: false,
-      code: response.status,
-      mess: 'Finance payment request failed',
+      statusCode: response.status,
+      message: 'Finance payment request failed',
       data: null,
-      errors: ['Finance payment request failed'],
+      errorCode: 'FINANCE_PAYMENT_REQUEST_FAILED',
     };
 
     try {
@@ -102,8 +102,8 @@ export class FinancePaymentClientService implements IFinancePaymentClient {
     status: number,
     payload: FinanceApiResponse<FinancePaymentResult>,
   ): never {
-    const message = payload.mess ?? 'Finance payment request failed';
-    const errors = payload.errors ?? [message];
+    const message = payload.message ?? 'Finance payment request failed';
+    const errors = [message];
 
     if (status === 400) {
       throw new BadRequestException(message, errors);

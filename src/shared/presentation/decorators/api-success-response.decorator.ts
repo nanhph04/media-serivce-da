@@ -68,7 +68,7 @@ function buildEnvelopeSchema(
       { $ref: getSchemaPath(ApiSuccessEnvelopeDto) },
       {
         properties: {
-          code: {
+          statusCode: {
             type: 'number',
             example: statusCode,
           },

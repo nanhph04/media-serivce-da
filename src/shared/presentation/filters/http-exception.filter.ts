@@ -5,15 +5,15 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
-import { Response, Request } from 'express';
+import type { Response, Request } from 'express';
 import { LoggerService } from '../../infrastructure/logger/logger.service';
 import { ApiError } from '../../presentation/dto/api-response.dto';
 import { DomainException } from '../../domain/exceptions/domain.exception';
 
 interface HttpExceptionResponse {
-  mess?: string;
-  errors?: string[];
   message?: string | string[];
+  error?: string;
+  errorCode?: string;
 }
 
 const DOMAIN_CODE_TO_HTTP: Record<string, number> = {
@@ -24,6 +24,16 @@ const DOMAIN_CODE_TO_HTTP: Record<string, number> = {
   FORBIDDEN: HttpStatus.FORBIDDEN,
   INTERNAL_SERVER_ERROR: HttpStatus.INTERNAL_SERVER_ERROR,
   TOO_MANY_REQUESTS: HttpStatus.TOO_MANY_REQUESTS,
+};
+
+const HTTP_STATUS_TO_ERROR_CODE: Record<number, string> = {
+  [HttpStatus.BAD_REQUEST]: 'BAD_REQUEST',
+  [HttpStatus.UNAUTHORIZED]: 'UNAUTHORIZED',
+  [HttpStatus.FORBIDDEN]: 'FORBIDDEN',
+  [HttpStatus.NOT_FOUND]: 'NOT_FOUND',
+  [HttpStatus.CONFLICT]: 'CONFLICT',
+  [HttpStatus.TOO_MANY_REQUESTS]: 'TOO_MANY_REQUESTS',
+  [HttpStatus.INTERNAL_SERVER_ERROR]: 'INTERNAL_SERVER_ERROR',
 };
 
 interface RequestWithId extends Request {
@@ -45,48 +55,45 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
-    let errors: string[] = [];
+    let errorCode = HTTP_STATUS_TO_ERROR_CODE[HttpStatus.INTERNAL_SERVER_ERROR];
 
     if (exception instanceof DomainException) {
       status =
         DOMAIN_CODE_TO_HTTP[exception.code] || HttpStatus.INTERNAL_SERVER_ERROR;
       message = exception.message;
-      errors = exception.errors || [exception.message];
+      errorCode = exception.code;
     } else if (exception instanceof HttpException) {
       status = exception.getStatus();
+      errorCode = HTTP_STATUS_TO_ERROR_CODE[status];
       const exceptionResponse = exception.getResponse();
 
       if (typeof exceptionResponse === 'string') {
         message = exceptionResponse;
-        errors = [exceptionResponse];
       } else if (
         typeof exceptionResponse === 'object' &&
         exceptionResponse !== null
       ) {
         const resp = exceptionResponse as HttpExceptionResponse;
-        if (resp.mess) {
-          message = resp.mess;
-          errors = resp.errors ?? [resp.mess];
-        } else if (resp.message) {
+        if (resp.message) {
           message = Array.isArray(resp.message)
             ? resp.message[0]
             : resp.message;
-          errors = Array.isArray(resp.message) ? resp.message : [resp.message];
+        } else if (resp.error) {
+          message = resp.error;
         }
+
+        errorCode = resp.errorCode ?? errorCode;
       }
     } else if (exception instanceof Error) {
       message = exception.message;
-      errors = [exception.message];
     }
 
     const requestId = request.requestId ?? 'unknown';
-    const apiError = ApiError.create(
-      status,
-      message,
-      errors,
+    const apiError = ApiError.create(status, message, {
+      errorCode,
       requestId,
-      request.url,
-    );
+      path: request.url,
+    });
 
     this.logger.logError(`HTTP ${status} Error`, exception, {
       requestId,

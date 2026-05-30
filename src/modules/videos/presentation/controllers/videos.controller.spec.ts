@@ -390,7 +390,7 @@ describe('VideosController', () => {
     });
     expect(result).toEqual({
       success: true,
-      code: 200,
+      statusCode: 200,
       data: [
         {
           id: 'video-1',
@@ -412,7 +412,7 @@ describe('VideosController', () => {
           updatedAt: '2026-01-02T00:00:00.000Z',
         },
       ],
-      mess: undefined,
+      message: undefined,
       pagination: {
         page: 2,
         limit: 10,
@@ -459,7 +459,7 @@ describe('VideosController', () => {
     });
     expect(result).toEqual({
       success: true,
-      code: 200,
+      statusCode: 200,
       data: [
         {
           videoId: 'video-1',
@@ -478,7 +478,7 @@ describe('VideosController', () => {
           accessStatus: 'ACTIVE',
         },
       ],
-      mess: undefined,
+      message: undefined,
       pagination: {
         page: 2,
         limit: 10,

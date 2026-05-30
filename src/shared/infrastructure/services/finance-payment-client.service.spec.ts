@@ -57,7 +57,7 @@ function mockSuccessfulFetch(): jest.MockedFunction<typeof fetch> {
         new Response(
           JSON.stringify({
             success: true,
-            code: 201,
+            statusCode: 201,
             data: {
               payerWalletId: 'payer-wallet-id',
               channelWalletId: 'channel-wallet-id',

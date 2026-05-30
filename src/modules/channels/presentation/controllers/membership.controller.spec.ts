@@ -49,7 +49,7 @@ describe('MembershipController', () => {
     });
     expect(result).toEqual({
       success: true,
-      code: 200,
+      statusCode: 200,
       data: [
         {
           membershipId: 'membership-1',
@@ -69,7 +69,7 @@ describe('MembershipController', () => {
           membershipBlockedReason: null,
         },
       ],
-      mess: undefined,
+      message: undefined,
       pagination: {
         page: 2,
         limit: 10,

@@ -280,17 +280,17 @@ Gateway-generated errors use:
 ```json
 {
   "success": false,
-  "code": 401,
-  "mess": "Invalid or expired token",
+  "statusCode": 401,
+  "message": "Invalid or expired token",
   "data": null,
-  "errors": ["Invalid or expired token"],
+  "errorCode": "UNAUTHORIZED",
   "requestId": "request-id",
   "timestamp": "2026-05-12T00:00:00.000Z",
   "path": "/api/media/studio/videos"
 }
 ```
 
-Use `mess`, not `message`, as the frontend-facing error message field.
+Use `message` as the frontend-facing error message field.
 
 ## Integration Checklist
 

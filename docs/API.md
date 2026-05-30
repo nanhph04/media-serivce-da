@@ -16,9 +16,9 @@
 ```json
   {
     "success": true,
-    "code": 200,
+    "statusCode": 200,
     "data": { ... } | [ ... ] | "Hello World!" | null,
-    "mess": "optional",
+    "message": "optional",
     "pagination": {
       "page": 1,
       "limit": 20,
@@ -28,7 +28,7 @@
   }
 ```
 
-- Voi endpoint `POST`, neu NestJS tra HTTP 201 thi response envelope co `code = 201`.
+- Voi endpoint `POST`, neu NestJS tra HTTP 201 thi response envelope co `statusCode = 201`.
 - Error response dung format `ApiError` o cuoi tai lieu nay.
 
 ## 1. HEALTH CHECK
@@ -724,7 +724,7 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
 ```json
 {
   "success": true,
-  "code": 201,
+  "statusCode": 201,
   "data": {
     "videoId": "video-123",
     "status": "draft",
@@ -1926,10 +1926,10 @@ Khi loi, service dung format:
 ```json
 {
   "success": false,
-  "code": 400,
-  "mess": "Error message",
+  "statusCode": 400,
+  "message": "Error message",
   "data": null,
-  "errors": ["Error detail"],
+  "errorCode": "BAD_REQUEST",
   "requestId": "1744712345-abc1234",
   "timestamp": "2026-04-15T10:19:05.123Z",
   "path": "/api/media/..."

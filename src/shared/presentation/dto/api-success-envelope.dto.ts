@@ -5,8 +5,8 @@ export class ApiSuccessEnvelopeDto {
   success!: true;
 
   @ApiProperty({ example: 200 })
-  code!: number;
+  statusCode!: number;
 
   @ApiPropertyOptional()
-  mess?: string;
+  message?: string;
 }
