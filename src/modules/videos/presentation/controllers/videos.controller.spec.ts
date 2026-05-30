@@ -51,6 +51,9 @@ describe('VideosController', () => {
   const getVideoMetadataUseCase = {
     execute: jest.fn(),
   };
+  const generateVideoMetadataSuggestionUseCase = {
+    execute: jest.fn(),
+  };
   const updateVideoMetadataUseCase = {
     execute: jest.fn(),
   };
@@ -91,6 +94,7 @@ describe('VideosController', () => {
     getVideosByCategoryUseCase as never,
     getSubscribedVideosUseCase as never,
     getVideoMetadataUseCase as never,
+    generateVideoMetadataSuggestionUseCase as never,
     updateVideoMetadataUseCase as never,
     unpublishVideoUseCase as never,
     searchPublicVideosUseCase as never,
@@ -110,6 +114,9 @@ describe('VideosController', () => {
     expect(getRoutePaths('latest')).toEqual('videos/latest');
     expect(getRoutePaths('studioVideos')).toEqual('studio/videos');
     expect(getRoutePaths('studioVideoDetail')).toEqual('studio/videos/:id');
+    expect(getRoutePaths('generateMetadataSuggestion')).toEqual(
+      'studio/videos/metadata-suggestions',
+    );
     expect(getRoutePaths('purchaseVideo')).toEqual('videos/:id/purchase');
     expect(getRoutePaths('purchased')).toEqual('me/videos/purchased');
     expect(getRoutePaths('continueWatching')).toEqual(
@@ -221,6 +228,53 @@ describe('VideosController', () => {
     });
   });
 
+  it('generates video metadata suggestions', async () => {
+    generateVideoMetadataSuggestionUseCase.execute.mockResolvedValue({
+      title: 'Better Video Title',
+      description: 'Better video description',
+      hashtags: ['#NestJS'],
+      suggestedTags: [{ id: 'tag-1', name: 'Backend', slug: 'backend' }],
+      provider: 'z-ai',
+      model: 'glm-4.5-flash',
+    });
+
+    const result = await controller.generateMetadataSuggestion(
+      'owner-1',
+      'trace-1',
+      {
+        title: 'Video',
+        description: 'Description',
+        categoryId: 'category-1',
+        tagIds: ['tag-1'],
+        language: 'vi',
+        tone: 'natural',
+        maxDescriptionLength: 1200,
+      },
+    );
+
+    expect(generateVideoMetadataSuggestionUseCase.execute).toHaveBeenCalledWith(
+      {
+        userId: 'owner-1',
+        traceId: 'trace-1',
+        title: 'Video',
+        description: 'Description',
+        categoryId: 'category-1',
+        tagIds: ['tag-1'],
+        language: 'vi',
+        tone: 'natural',
+        maxDescriptionLength: 1200,
+      },
+    );
+    expect(result).toEqual({
+      title: 'Better Video Title',
+      description: 'Better video description',
+      hashtags: ['#NestJS'],
+      suggestedTags: [{ id: 'tag-1', name: 'Backend', slug: 'backend' }],
+      provider: 'z-ai',
+      model: 'glm-4.5-flash',
+    });
+  });
+
   it('purchases a video for the current user', async () => {
     purchaseVideoUseCase.execute.mockResolvedValue({
       videoId: 'video-1',
@@ -329,6 +383,8 @@ describe('VideosController', () => {
       categoryId: undefined,
       tagIds: undefined,
       visibility: VideoVisibility.PRIVATE,
+      price: undefined,
+      requiredTierLevel: undefined,
     });
     expect(result).toMatchObject({
       id: 'video-1',

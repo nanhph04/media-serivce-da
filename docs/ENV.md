@@ -76,3 +76,25 @@ Stored in `MINIO_PUBLIC_BUCKET`:
 
 Clients render the stored `avatarUrl`, `bannerUrl`, and `thumbnailUrl` directly.
 These URLs are not presigned GET URLs.
+
+AI video metadata suggestions using Z.AI GLM:
+
+```text
+ZAI_API_KEY=your-zai-api-key
+ZAI_BASE_URL=https://api.z.ai/api
+ZAI_METADATA_MODEL=glm-4.5-flash
+ZAI_METADATA_TIMEOUT_MS=15000
+ZAI_METADATA_MAX_OUTPUT_TOKENS=800
+ZAI_METADATA_TEMPERATURE=0.7
+```
+
+- `ZAI_API_KEY`: Z.AI API key used by media-service to generate suggested
+  video title, description, hashtags, and existing tag selections.
+- `ZAI_BASE_URL`: Z.AI API base URL. Keep the default unless the provider
+  changes endpoint.
+- `ZAI_METADATA_MODEL`: model id for metadata suggestions. Default is
+  `glm-4.5-flash`.
+- `ZAI_METADATA_TIMEOUT_MS`: request timeout for AI suggestions.
+- `ZAI_METADATA_MAX_OUTPUT_TOKENS`: max generated tokens for the JSON response.
+- `ZAI_METADATA_TEMPERATURE`: generation creativity. Lower values are more
+  deterministic.

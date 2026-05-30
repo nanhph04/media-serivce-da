@@ -22,6 +22,7 @@ import { GetStudioVideoDetailUseCase } from './application/use-cases/get-studio-
 import { GetStudioVideosUseCase } from './application/use-cases/get-studio-videos.use-case';
 import { GetSubscribedVideosUseCase } from './application/use-cases/get-subscribed-videos.use-case';
 import { GetVideoMetadataUseCase } from './application/use-cases/get-video-metadata.use-case';
+import { GenerateVideoMetadataSuggestionUseCase } from './application/use-cases/generate-video-metadata-suggestion.use-case';
 import { GetVideosByCategoryUseCase } from './application/use-cases/get-videos-by-category.use-case';
 import { HandleVideoProcessedFailedUseCase } from './application/use-cases/handle-video-processed-failed.use-case';
 import { HandleVideoProcessedSuccessUseCase } from './application/use-cases/handle-video-processed-success.use-case';
@@ -68,6 +69,7 @@ import { VideoWatchdogHealthFailureStore } from './infrastructure/health/video-w
 import { VideoCacheInvalidator } from './infrastructure/cache/video-cache-invalidator.service';
 import { VideoViewAggregationService } from './infrastructure/cache/video-view-aggregation.service';
 import { VideoStatusSseService } from './infrastructure/events/video-status-sse.service';
+import { ZaiVideoMetadataSuggestionGeneratorService } from './infrastructure/services/zai-video-metadata-suggestion-generator.service';
 import { VideoPurchaseUnlockOrmEntity } from './infrastructure/persistence/video-purchase-unlock.orm-entity';
 import { VideoCategoryOrmEntity } from './infrastructure/persistence/video-category.orm-entity';
 import { VideoPurchaseUnlockRepository } from './infrastructure/persistence/video-purchase-unlock.repository';
@@ -85,6 +87,7 @@ import { AdminVideoController } from './presentation/controllers/admin-video.con
 import { VideoEventsController } from './presentation/controllers/video-events.controller';
 import { VideosController } from './presentation/controllers/videos.controller';
 import { VIDEO_CACHE_INVALIDATOR } from './application/interfaces/video-cache-invalidator.interface';
+import { VIDEO_METADATA_SUGGESTION_GENERATOR } from './application/interfaces/video-metadata-suggestion-generator.interface';
 import { VIDEO_MODERATION_REQUEST_PUBLISHER } from './application/interfaces/video-moderation-request-publisher.interface';
 import { VIDEO_MODERATION_OUTCOME_PUBLISHER } from './application/interfaces/video-moderation-outcome-publisher.interface';
 import { VIDEO_DELETE_REQUEST_PUBLISHER } from './application/interfaces/video-delete-request-publisher.interface';
@@ -159,6 +162,7 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
     ModerateAdminVideoUseCase,
     GetContinueWatchingUseCase,
     GetVideoMetadataUseCase,
+    GenerateVideoMetadataSuggestionUseCase,
     UpdateVideoMetadataUseCase,
     GetLatestVideosUseCase,
     GetPurchasedVideosUseCase,
@@ -189,6 +193,7 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
     VideoDeleteRequestPublisher,
     VideoWorkerHealthCheckerService,
     VideoWatchdogHealthFailureStore,
+    ZaiVideoMetadataSuggestionGeneratorService,
     {
       provide: VIDEO_REPOSITORY,
       useExisting: VideoRepository,
@@ -216,6 +221,10 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
     {
       provide: VIDEO_CACHE_INVALIDATOR,
       useExisting: VideoCacheInvalidator,
+    },
+    {
+      provide: VIDEO_METADATA_SUGGESTION_GENERATOR,
+      useExisting: ZaiVideoMetadataSuggestionGeneratorService,
     },
     {
       provide: VIDEO_OUTBOX_TRANSACTION,

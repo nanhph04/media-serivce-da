@@ -29,6 +29,7 @@ import { GetStudioVideoDetailUseCase } from '../../application/use-cases/get-stu
 import { GetStudioVideosUseCase } from '../../application/use-cases/get-studio-videos.use-case';
 import { GetSubscribedVideosUseCase } from '../../application/use-cases/get-subscribed-videos.use-case';
 import { GetVideoMetadataUseCase } from '../../application/use-cases/get-video-metadata.use-case';
+import { GenerateVideoMetadataSuggestionUseCase } from '../../application/use-cases/generate-video-metadata-suggestion.use-case';
 import { GetVideosByCategoryUseCase } from '../../application/use-cases/get-videos-by-category.use-case';
 import { StartVideoUploadUseCase } from '../../application/use-cases/start-video-upload.use-case';
 import { CreateVideoUploadPartUrlsUseCase } from '../../application/use-cases/create-video-upload-part-urls.use-case';
@@ -47,6 +48,8 @@ import { DeleteFailedVideoUseCase } from '../../application/use-cases/delete-fai
 import { ConfirmVideoUploadRequestDto } from '../dtos/confirm-video-upload.request';
 import { ConfirmVideoUploadResponseDto } from '../dtos/confirm-video-upload.response';
 import { ContinueWatchingItemResponseDto } from '../dtos/continue-watching-item.response';
+import { GenerateVideoMetadataSuggestionRequestDto } from '../dtos/generate-video-metadata-suggestion.request';
+import { GenerateVideoMetadataSuggestionResponseDto } from '../dtos/generate-video-metadata-suggestion.response';
 import { StartVideoUploadRequestDto } from '../dtos/start-video-upload.request';
 import { StartVideoUploadResponseDto } from '../dtos/start-video-upload.response';
 import {
@@ -101,6 +104,7 @@ export class VideosController {
     private readonly getVideosByCategoryUseCase: GetVideosByCategoryUseCase,
     private readonly getSubscribedVideosUseCase: GetSubscribedVideosUseCase,
     private readonly getVideoMetadataUseCase: GetVideoMetadataUseCase,
+    private readonly generateVideoMetadataSuggestionUseCase: GenerateVideoMetadataSuggestionUseCase,
     private readonly updateVideoMetadataUseCase: UpdateVideoMetadataUseCase,
     private readonly unpublishVideoUseCase: UnpublishVideoUseCase,
     private readonly searchPublicVideosUseCase: SearchPublicVideosUseCase,
@@ -424,6 +428,33 @@ export class VideosController {
     const metadata = await this.getVideoMetadataUseCase.execute(videoId);
     return apiResponseContract(
       VideoMetadataResponseDto.fromApplicationDto(metadata),
+    );
+  }
+
+  @Post('studio/videos/metadata-suggestions')
+  @ApiHeader({ name: 'x-internal-secret', required: true })
+  @ApiHeader({ name: 'x-user-id', required: true })
+  @ApiSuccessResponse(GenerateVideoMetadataSuggestionResponseDto)
+  async generateMetadataSuggestion(
+    @CurrentUserId() userId: string,
+    @CurrentRequestId() traceId: string,
+    @Body() dto: GenerateVideoMetadataSuggestionRequestDto,
+  ): Promise<ApiResponse<GenerateVideoMetadataSuggestionResponseDto>> {
+    const suggestion =
+      await this.generateVideoMetadataSuggestionUseCase.execute({
+        userId,
+        traceId,
+        title: dto.title,
+        description: dto.description,
+        categoryId: dto.categoryId,
+        tagIds: dto.tagIds,
+        language: dto.language,
+        tone: dto.tone,
+        maxDescriptionLength: dto.maxDescriptionLength,
+      });
+
+    return apiResponseContract(
+      GenerateVideoMetadataSuggestionResponseDto.fromApplicationDto(suggestion),
     );
   }
 
