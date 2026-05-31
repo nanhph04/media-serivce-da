@@ -2,6 +2,7 @@ import type { StudioVideoListItemResponse } from './studio-video-list-item.respo
 
 export interface AdminVideoListItemResponse extends StudioVideoListItemResponse {
   ownerId: string;
+  channelName?: string | null;
 }
 
 export interface AdminVideosPageResponse {

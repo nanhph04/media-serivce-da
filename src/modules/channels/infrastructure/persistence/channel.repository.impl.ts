@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import {
   type AdminChannelFilters,
   type AdminChannelCounts,
@@ -77,6 +77,18 @@ export class ChannelRepositoryImpl implements IChannelRepository {
       return null;
     }
     return this.toDomain(ormEntity);
+  }
+
+  async findByIds(ids: string[]): Promise<ChannelEntity[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const ormEntities = await this.ormRepository.find({
+      where: { id: In(ids) },
+    });
+
+    return ormEntities.map((ormEntity) => this.toDomain(ormEntity));
   }
 
   async findByMembershipReviewStatus(

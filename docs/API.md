@@ -1869,6 +1869,7 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
     - `items` (array), moi object gom:
       - `id` (string)
       - `channelId` (string)
+      - `channelName` (string)
       - `ownerId` (string)
       - `title` (string)
       - `description` (string)

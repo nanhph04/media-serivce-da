@@ -34,6 +34,7 @@ describe('AdminVideoController', () => {
         {
           id: 'video-1',
           channelId: 'channel-1',
+          channelName: 'Channel',
           ownerId: 'owner-1',
           title: 'Video',
           description: 'Description',
@@ -95,6 +96,7 @@ describe('AdminVideoController', () => {
         expect.objectContaining({
           id: 'video-1',
           channelId: 'channel-1',
+          channelName: 'Channel',
           ownerId: 'owner-1',
           publishedAt: '2026-01-01T00:00:00.000Z',
           createdAt: '2026-01-01T00:00:00.000Z',

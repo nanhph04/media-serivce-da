@@ -37,6 +37,9 @@ export class AdminVideoListItemResponseDto {
   @ApiProperty()
   channelId!: string;
 
+  @ApiProperty({ nullable: true })
+  channelName!: string | null;
+
   @ApiProperty()
   ownerId!: string;
 
@@ -121,6 +124,7 @@ export class AdminVideoListItemResponseDto {
     const response = new AdminVideoListItemResponseDto();
     response.id = dto.id;
     response.channelId = dto.channelId;
+    response.channelName = dto.channelName ?? null;
     response.ownerId = dto.ownerId;
     response.title = dto.title;
     response.description = dto.description;

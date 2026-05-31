@@ -2,6 +2,11 @@ import {
   BadRequestException,
   ForbiddenException,
 } from '@shared/domain/exceptions/domain.exception';
+import {
+  ChannelEntity,
+  ChannelStatus,
+} from '../../../channels/domain/entities/channel.entity';
+import type { IChannelRepository } from '../../../channels/domain/repositories/channel.repository';
 import { Category } from '../../../categories/domain/entities/category.entity';
 import { CategoryStatus } from '../../../categories/domain/entities/category.entity';
 import {
@@ -19,8 +24,10 @@ describe('ListAdminVideosUseCase', () => {
       items: [video],
       total: 1,
     });
+    const findByIds = jest.fn().mockResolvedValue([buildChannel()]);
     const useCase = new ListAdminVideosUseCase(
       createVideoRepository({ findAdminVideos }),
+      createChannelRepository({ findByIds }),
     );
 
     const result = await useCase.execute({
@@ -44,11 +51,13 @@ describe('ListAdminVideosUseCase', () => {
       ownerId: 'owner-1',
       q: 'Video',
     });
+    expect(findByIds).toHaveBeenCalledWith(['channel-1']);
     expect(result).toEqual({
       items: [
         expect.objectContaining({
           id: 'video-1',
           channelId: 'channel-1',
+          channelName: 'Channel',
           ownerId: 'owner-1',
           title: 'Video',
           status: VideoStatus.READY,
@@ -71,6 +80,7 @@ describe('ListAdminVideosUseCase', () => {
     });
     const useCase = new ListAdminVideosUseCase(
       createVideoRepository({ findAdminVideos }),
+      createChannelRepository(),
     );
 
     await useCase.execute({
@@ -92,7 +102,10 @@ describe('ListAdminVideosUseCase', () => {
   });
 
   it('rejects non-admin callers', async () => {
-    const useCase = new ListAdminVideosUseCase(createVideoRepository());
+    const useCase = new ListAdminVideosUseCase(
+      createVideoRepository(),
+      createChannelRepository(),
+    );
 
     await expect(
       useCase.execute({ adminId: 'user-1', role: 'user' }),
@@ -100,7 +113,10 @@ describe('ListAdminVideosUseCase', () => {
   });
 
   it('rejects invalid status and visibility filters', async () => {
-    const useCase = new ListAdminVideosUseCase(createVideoRepository());
+    const useCase = new ListAdminVideosUseCase(
+      createVideoRepository(),
+      createChannelRepository(),
+    );
 
     await expect(
       useCase.execute({
@@ -131,6 +147,30 @@ function createVideoRepository(input?: {
         total: 0,
       }),
   } as unknown as IVideoRepository;
+}
+
+function createChannelRepository(input?: {
+  findByIds?: jest.Mock;
+}): IChannelRepository {
+  return {
+    findByIds: input?.findByIds ?? jest.fn().mockResolvedValue([]),
+  } as unknown as IChannelRepository;
+}
+
+function buildChannel(): ChannelEntity {
+  return new ChannelEntity({
+    id: 'channel-1',
+    userId: 'owner-1',
+    name: 'Channel',
+    bio: 'Bio',
+    avatarUrl: '',
+    bannerUrl: '',
+    status: ChannelStatus.ACTIVE,
+    isEligibleForMembership: false,
+    isMembershipClosedByAdmin: false,
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+  });
 }
 
 function buildVideo(): VideoEntity {

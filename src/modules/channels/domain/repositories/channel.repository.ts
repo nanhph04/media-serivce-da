@@ -33,6 +33,7 @@ export interface IChannelRepository {
   update(channel: ChannelEntity): Promise<void>;
   delete(channel: ChannelEntity): Promise<void>;
   findById(id: string): Promise<ChannelEntity | null>;
+  findByIds(ids: string[]): Promise<ChannelEntity[]>;
   findByUserId(userId: string): Promise<ChannelEntity | null>;
   findByMembershipReviewStatus(
     status: MembershipReviewStatus,

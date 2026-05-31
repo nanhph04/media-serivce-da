@@ -6,6 +6,10 @@ import {
   ForbiddenException,
 } from '@shared/domain/exceptions/domain.exception';
 import {
+  CHANNEL_REPOSITORY,
+  type IChannelRepository,
+} from '../../../channels/domain/repositories/channel.repository';
+import {
   VideoStatus,
   VideoVisibility,
   type VideoEntity,
@@ -33,6 +37,8 @@ export class ListAdminVideosUseCase extends BaseUseCase<
   constructor(
     @Inject(VIDEO_REPOSITORY)
     private readonly videoRepository: IVideoRepository,
+    @Inject(CHANNEL_REPOSITORY)
+    private readonly channelRepository: IChannelRepository,
   ) {
     super();
   }
@@ -56,8 +62,12 @@ export class ListAdminVideosUseCase extends BaseUseCase<
       q: this.normalizeOptionalText(query.q),
     });
 
+    const channelNames = await this.getChannelNamesById(result.items);
+
     return {
-      items: result.items.map((video) => this.toAdminVideoItem(video)),
+      items: result.items.map((video) =>
+        this.toAdminVideoItem(video, channelNames.get(video.channelId) ?? null),
+      ),
       pagination: {
         page,
         limit,
@@ -67,10 +77,25 @@ export class ListAdminVideosUseCase extends BaseUseCase<
     };
   }
 
-  private toAdminVideoItem(video: VideoEntity): AdminVideoListItemResponse {
+  private async getChannelNamesById(
+    videos: VideoEntity[],
+  ): Promise<Map<string, string>> {
+    const channelIds = [...new Set(videos.map((video) => video.channelId))];
+    const channels = await this.channelRepository.findByIds(channelIds);
+
+    return new Map(
+      channels.map((channel) => [channel.id, channel.name] as const),
+    );
+  }
+
+  private toAdminVideoItem(
+    video: VideoEntity,
+    channelName: string | null,
+  ): AdminVideoListItemResponse {
     return {
       ...mapVideoEntityToStudioListItem(video),
       ownerId: video.ownerId,
+      channelName,
     };
   }
 
