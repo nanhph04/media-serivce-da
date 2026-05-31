@@ -240,7 +240,11 @@ export class VideoQueryService implements IVideoQueryService {
     const fromDate = this.getPeriodStartDate(query.period);
     const result =
       query.metric === 'purchases'
-        ? await this.getPurchasedVideoRankRows(fromDate, query.page, query.limit)
+        ? await this.getPurchasedVideoRankRows(
+            fromDate,
+            query.page,
+            query.limit,
+          )
         : await this.getViewedVideoRankRows(fromDate, query.page, query.limit);
 
     const videoIds = result.rows.map((row) => row.videoId);
@@ -505,7 +509,12 @@ export class VideoQueryService implements IVideoQueryService {
         channelStatus: ChannelStatus.ACTIVE,
       });
 
-    return this.getRankRowsFromQueryBuilder(baseQueryBuilder, 'unlock.id', page, limit);
+    return this.getRankRowsFromQueryBuilder(
+      baseQueryBuilder,
+      'unlock.id',
+      page,
+      limit,
+    );
   }
 
   private async getViewedVideoRankRows(
@@ -562,24 +571,25 @@ export class VideoQueryService implements IVideoQueryService {
       ? `COALESCE(SUM(${metricExpression}), 0)`
       : `COUNT(${metricExpression})`;
 
+    const metricCountAlias = 'metric_count';
     const rows = await queryBuilder
       .clone()
       .select('video.id', 'videoId')
-      .addSelect(aggregationExpression, 'metricCount')
+      .addSelect(aggregationExpression, metricCountAlias)
       .groupBy('video.id')
       .addGroupBy('video.published_at')
       .addGroupBy('video.created_at')
-      .orderBy('metricCount', 'DESC')
+      .orderBy(metricCountAlias, 'DESC')
       .addOrderBy('video.published_at', 'DESC')
       .addOrderBy('video.created_at', 'DESC')
       .offset((page - 1) * limit)
       .limit(limit)
-      .getRawMany<{ videoId: string; metricCount: string | number }>();
+      .getRawMany<{ videoId: string; metric_count: string | number }>();
 
     return {
       rows: rows.map((row) => ({
         videoId: row.videoId,
-        metricCount: Number(row.metricCount),
+        metricCount: Number(row.metric_count),
       })),
       total: Number(totalRaw?.total ?? 0),
     };

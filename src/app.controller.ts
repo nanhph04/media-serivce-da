@@ -8,6 +8,12 @@ import {
 } from './shared/presentation/dto/api-response.dto';
 import { AppService } from './app.service';
 
+interface HealthResponse {
+  status: 'ok';
+  service: string;
+  timestamp: string;
+}
+
 @ApiTags('app')
 @SkipInternalGatewayGuard()
 @Controller()
@@ -18,5 +24,15 @@ export class AppController {
   @ApiSuccessResponse(String)
   getHello(): ApiResponse<string> {
     return apiResponseContract(this.appService.getHello());
+  }
+
+  @Get('health')
+  @ApiSuccessResponse(Object)
+  getHealth(): HealthResponse {
+    return {
+      status: 'ok',
+      service: 'media-service',
+      timestamp: new Date().toISOString(),
+    };
   }
 }
