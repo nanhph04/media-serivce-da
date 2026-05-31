@@ -1,22 +1,16 @@
 import { Inject, Injectable } from '@nestjs/common';
-import {
-  createPagination,
-  type PaginatedResponse,
-} from '@shared/application/dtos/paginated.response';
+import type { PaginatedResponse } from '@shared/application/dtos/paginated.response';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import {
   CHANNEL_ACCESS_SERVICE,
   type IChannelAccessService,
 } from '../../../channels/application/interfaces/channel-access.service.interface';
-import {
-  mapVideoEntityToListItem,
-  type VideoListItemResponse,
-} from '../dtos/video-list-item.response';
+import type { VideoListItemResponse } from '../dtos/video-list-item.response';
 import type { GetSubscribedVideosQuery } from '../dtos/subscribed-videos.query';
 import {
-  type IVideoRepository,
-  VIDEO_REPOSITORY,
-} from '../../domain/repositories/video.repository';
+  type IVideoQueryService,
+  VIDEO_QUERY_SERVICE,
+} from '../interfaces/video-query.service.interface';
 
 @Injectable()
 export class GetSubscribedVideosUseCase extends BaseUseCase<
@@ -24,10 +18,10 @@ export class GetSubscribedVideosUseCase extends BaseUseCase<
   PaginatedResponse<VideoListItemResponse>
 > {
   constructor(
-    @Inject(VIDEO_REPOSITORY)
-    private readonly videoRepository: IVideoRepository,
     @Inject(CHANNEL_ACCESS_SERVICE)
     private readonly channelAccessService: IChannelAccessService,
+    @Inject(VIDEO_QUERY_SERVICE)
+    private readonly videoQueryService: IVideoQueryService,
   ) {
     super();
   }
@@ -42,15 +36,10 @@ export class GetSubscribedVideosUseCase extends BaseUseCase<
         query.userId,
       );
 
-    const result = await this.videoRepository.findByChannelIds(
+    return this.videoQueryService.getPublicVideosByChannelIds(
       channelIds,
       query.page,
       query.limit,
     );
-
-    return {
-      items: result.items.map(mapVideoEntityToListItem),
-      pagination: createPagination(query.page, query.limit, result.total),
-    };
   }
 }

@@ -5,6 +5,10 @@ import {
   type IVideoViewAggregation,
   VIDEO_VIEW_AGGREGATION,
 } from '../interfaces/video-view-aggregation.interface';
+import {
+  type IVideoViewStatRepository,
+  VIDEO_VIEW_STAT_REPOSITORY,
+} from '../interfaces/video-view-stat.repository.interface';
 
 @Injectable()
 export class HandleVideoViewedUseCase extends BaseUseCase<
@@ -14,14 +18,35 @@ export class HandleVideoViewedUseCase extends BaseUseCase<
   constructor(
     @Inject(VIDEO_VIEW_AGGREGATION)
     private readonly videoViewAggregation: IVideoViewAggregation,
+    @Inject(VIDEO_VIEW_STAT_REPOSITORY)
+    private readonly videoViewStatRepository: IVideoViewStatRepository,
   ) {
     super();
   }
 
   async execute(command: HandleVideoViewedCommand): Promise<void> {
-    await this.videoViewAggregation.recordViewedEvent(
+    const wasRecorded = await this.videoViewAggregation.recordViewedEvent(
       command.eventId,
       command.data.videoId,
     );
+
+    if (!wasRecorded) {
+      return;
+    }
+
+    await this.videoViewStatRepository.incrementDailyView(
+      command.data.videoId,
+      this.toEventDate(command.timestamp),
+    );
+  }
+
+  private toEventDate(timestamp: string): Date {
+    const parsedDate = new Date(timestamp);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return new Date();
+    }
+
+    return parsedDate;
   }
 }

@@ -27,6 +27,7 @@ describe('VideoViewedConsumer', () => {
       | ((payload: {
           value: {
             eventId: string;
+            timestamp: string;
             data: {
               videoId: string;
               userId: string;
@@ -52,6 +53,7 @@ describe('VideoViewedConsumer', () => {
     await handler?.({
       value: {
         eventId: 'event-1',
+        timestamp: '2026-01-01T00:00:00.000Z',
         data: {
           videoId: 'video-1',
           userId: 'user-1',
@@ -61,6 +63,7 @@ describe('VideoViewedConsumer', () => {
 
     expect(handleVideoViewedUseCase.execute).toHaveBeenCalledWith({
       eventId: 'event-1',
+      timestamp: '2026-01-01T00:00:00.000Z',
       data: {
         videoId: 'video-1',
         userId: 'user-1',

@@ -8,6 +8,9 @@ export class VideoListItemResponseDto {
   @ApiProperty()
   channelId!: string;
 
+  @ApiProperty({ nullable: true })
+  channelName!: string | null;
+
   @ApiProperty()
   title!: string;
 
@@ -65,6 +68,7 @@ export class VideoListItemResponseDto {
     return {
       id: video.id,
       channelId: video.channelId,
+      channelName: video.channelName,
       title: video.title,
       description: video.description,
       category: video.category,

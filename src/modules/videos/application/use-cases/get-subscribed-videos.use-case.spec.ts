@@ -11,16 +11,16 @@ import { Tag, TagStatus } from '../../../tags/domain/entities/tag.entity';
 import { GetSubscribedVideosUseCase } from './get-subscribed-videos.use-case';
 
 describe('GetSubscribedVideosUseCase', () => {
-  const videoRepository = {
-    findByChannelIds: jest.fn(),
+  const videoQueryService = {
+    getPublicVideosByChannelIds: jest.fn(),
   };
   const channelAccessService = {
     getActiveMembershipChannelIds: jest.fn(),
   };
 
   const useCase = new GetSubscribedVideosUseCase(
-    videoRepository as never,
     channelAccessService as never,
+    videoQueryService as never,
   );
 
   beforeEach(() => {
@@ -29,7 +29,10 @@ describe('GetSubscribedVideosUseCase', () => {
 
   it('returns an empty list when the user has no active membership channels', async () => {
     channelAccessService.getActiveMembershipChannelIds.mockResolvedValue([]);
-    videoRepository.findByChannelIds.mockResolvedValue({ items: [], total: 0 });
+    videoQueryService.getPublicVideosByChannelIds.mockResolvedValue({
+      items: [],
+      pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
+    });
 
     await expect(
       useCase.execute({
@@ -45,7 +48,11 @@ describe('GetSubscribedVideosUseCase', () => {
     expect(
       channelAccessService.getActiveMembershipChannelIds,
     ).toHaveBeenCalledWith('user-1');
-    expect(videoRepository.findByChannelIds).toHaveBeenCalledWith([], 1, 20);
+    expect(videoQueryService.getPublicVideosByChannelIds).toHaveBeenCalledWith(
+      [],
+      1,
+      20,
+    );
   });
 
   it('loads recent videos from active membership-backed channels only', async () => {
@@ -53,12 +60,12 @@ describe('GetSubscribedVideosUseCase', () => {
       'channel-1',
       'channel-2',
     ]);
-    videoRepository.findByChannelIds.mockResolvedValue({
+    videoQueryService.getPublicVideosByChannelIds.mockResolvedValue({
       items: [
-        buildVideoEntity({ id: 'video-1', channelId: 'channel-1' }),
-        buildVideoEntity({ id: 'video-2', channelId: 'channel-2' }),
+        buildVideoListItem({ id: 'video-1', channelId: 'channel-1' }),
+        buildVideoListItem({ id: 'video-2', channelId: 'channel-2' }),
       ],
-      total: 2,
+      pagination: { page: 2, limit: 10, total: 2, totalPages: 1 },
     });
 
     await expect(
@@ -78,7 +85,7 @@ describe('GetSubscribedVideosUseCase', () => {
     expect(
       channelAccessService.getActiveMembershipChannelIds,
     ).toHaveBeenCalledWith('user-1');
-    expect(videoRepository.findByChannelIds).toHaveBeenCalledWith(
+    expect(videoQueryService.getPublicVideosByChannelIds).toHaveBeenCalledWith(
       ['channel-1', 'channel-2'],
       2,
       10,
@@ -90,10 +97,12 @@ function buildVideoListItem(
   overrides: Partial<{
     id: string;
     channelId: string;
+    channelName: string | null;
   }> = {},
 ): {
   id: string;
   channelId: string;
+  channelName: string | null;
   title: string;
   description: string;
   category: string;
@@ -102,6 +111,8 @@ function buildVideoListItem(
   price: number;
   requiredTierLevel: number | null;
   thumbnailUrl: string | null;
+  thumbnailSource: string;
+  thumbnailStatus: string;
   durationSeconds: number | null;
   resolutions: string[];
   errorMessage: string | null;
@@ -113,6 +124,7 @@ function buildVideoListItem(
   return {
     id: 'video-1',
     channelId: 'channel-1',
+    channelName: 'Cinema Labs',
     title: 'Video',
     description: 'Description',
     category: 'music',
@@ -121,6 +133,8 @@ function buildVideoListItem(
     price: 0,
     requiredTierLevel: null,
     thumbnailUrl: null,
+    thumbnailSource: 'auto',
+    thumbnailStatus: 'ready',
     durationSeconds: 120,
     resolutions: ['720p'],
     errorMessage: null,

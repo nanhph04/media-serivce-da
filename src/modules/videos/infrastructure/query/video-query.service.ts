@@ -7,8 +7,18 @@ import {
   type PaginatedResponse,
 } from '@shared/application/dtos/paginated.response';
 import { CacheService } from '@shared/infrastructure/cache/cache.service';
-import { Repository } from 'typeorm';
+import {
+  In,
+  Repository,
+  type ObjectLiteral,
+  type SelectQueryBuilder,
+} from 'typeorm';
 import type { ContinueWatchingItemResponse } from '../../application/dtos/continue-watching-item.response';
+import type { RankedVideoListItemResponse } from '../../application/dtos/ranked-video-list-item.response';
+import type {
+  GetRankedVideosQuery,
+  VideoRankingPeriod,
+} from '../../application/dtos/ranked-videos.query';
 import {
   mapVideoEntityToStudioListItem,
   type StudioVideoListItemResponse,
@@ -40,6 +50,8 @@ import {
   VideoVisibility,
 } from '../../domain/entities/video.entity';
 import { VIDEO_CACHE_KEYS, VIDEO_CACHE_TTL_SECONDS } from '../cache.constants';
+import { VideoPurchaseUnlockOrmEntity } from '../persistence/video-purchase-unlock.orm-entity';
+import { VideoViewDailyStatOrmEntity } from '../persistence/video-view-daily-stat.orm-entity';
 import { VideoWatchProgressOrmEntity } from '../persistence/video-watch-progress.orm-entity';
 import { VideoOrmEntity } from '../persistence/video.orm-entity';
 
@@ -203,7 +215,9 @@ export class VideoQueryService implements IVideoQueryService {
     }
 
     const result = await this.videoRepository.findLatestPublic(page, limit);
-    const items = result.items.map(mapVideoEntityToListItem);
+    const items = await this.withChannelNames(
+      result.items.map(mapVideoEntityToListItem),
+    );
 
     await this.setCachedValue(
       cacheKey,
@@ -216,6 +230,43 @@ export class VideoQueryService implements IVideoQueryService {
 
     return {
       items,
+      pagination: createPagination(page, limit, result.total),
+    };
+  }
+
+  async getRankedVideos(
+    query: GetRankedVideosQuery,
+  ): Promise<PaginatedResponse<RankedVideoListItemResponse>> {
+    const fromDate = this.getPeriodStartDate(query.period);
+    const result =
+      query.metric === 'purchases'
+        ? await this.getPurchasedVideoRankRows(fromDate, query.page, query.limit)
+        : await this.getViewedVideoRankRows(fromDate, query.page, query.limit);
+
+    const videoIds = result.rows.map((row) => row.videoId);
+    const items = await this.findRankedVideoItems(videoIds, result.rows);
+
+    return {
+      items,
+      pagination: createPagination(query.page, query.limit, result.total),
+    };
+  }
+
+  async getPublicVideosByChannelIds(
+    channelIds: string[],
+    page: number,
+    limit: number,
+  ): Promise<PaginatedResponse<VideoListItemResponse>> {
+    const result = await this.videoRepository.findByChannelIds(
+      channelIds,
+      page,
+      limit,
+    );
+
+    return {
+      items: await this.withChannelNames(
+        result.items.map(mapVideoEntityToListItem),
+      ),
       pagination: createPagination(page, limit, result.total),
     };
   }
@@ -273,7 +324,9 @@ export class VideoQueryService implements IVideoQueryService {
       page,
       limit,
     });
-    const items = result.items.map(mapVideoEntityToListItem);
+    const items = await this.withChannelNames(
+      result.items.map(mapVideoEntityToListItem),
+    );
 
     await this.setCachedValue(
       cacheKey,
@@ -317,7 +370,9 @@ export class VideoQueryService implements IVideoQueryService {
     }
 
     const result = await this.videoRepository.searchPublic(query);
-    const items = result.items.map(mapVideoEntityToListItem);
+    const items = await this.withChannelNames(
+      result.items.map(mapVideoEntityToListItem),
+    );
 
     await this.setCachedValue(
       cacheKey,
@@ -424,6 +479,243 @@ export class VideoQueryService implements IVideoQueryService {
       items,
       pagination: createPagination(page, limit, total),
     };
+  }
+
+  private async getPurchasedVideoRankRows(
+    fromDate: Date,
+    page: number,
+    limit: number,
+  ): Promise<{
+    rows: Array<{ videoId: string; metricCount: number }>;
+    total: number;
+  }> {
+    const baseQueryBuilder = this.watchProgressOrmRepository.manager
+      .createQueryBuilder(VideoPurchaseUnlockOrmEntity, 'unlock')
+      .innerJoin(VideoOrmEntity, 'video', 'video.id = unlock.video_id')
+      .innerJoin(ChannelOrmEntity, 'channel', 'channel.id = video.channel_id')
+      .where('unlock.created_at >= :fromDate', { fromDate })
+      .andWhere('video.status = :status', { status: VideoStatus.READY })
+      .andWhere('video.deletion_status = :deletionStatus', {
+        deletionStatus: VideoDeletionStatus.ACTIVE,
+      })
+      .andWhere('video.visibility = :visibility', {
+        visibility: VideoVisibility.PUBLIC,
+      })
+      .andWhere('channel.status = :channelStatus', {
+        channelStatus: ChannelStatus.ACTIVE,
+      });
+
+    return this.getRankRowsFromQueryBuilder(baseQueryBuilder, 'unlock.id', page, limit);
+  }
+
+  private async getViewedVideoRankRows(
+    fromDate: Date,
+    page: number,
+    limit: number,
+  ): Promise<{
+    rows: Array<{ videoId: string; metricCount: number }>;
+    total: number;
+  }> {
+    const baseQueryBuilder = this.watchProgressOrmRepository.manager
+      .createQueryBuilder(VideoViewDailyStatOrmEntity, 'stat')
+      .innerJoin(VideoOrmEntity, 'video', 'video.id = stat.video_id')
+      .innerJoin(ChannelOrmEntity, 'channel', 'channel.id = video.channel_id')
+      .where('stat.stat_date >= :fromDate', {
+        fromDate: this.toUtcDateString(fromDate),
+      })
+      .andWhere('video.status = :status', { status: VideoStatus.READY })
+      .andWhere('video.deletion_status = :deletionStatus', {
+        deletionStatus: VideoDeletionStatus.ACTIVE,
+      })
+      .andWhere('video.visibility = :visibility', {
+        visibility: VideoVisibility.PUBLIC,
+      })
+      .andWhere('channel.status = :channelStatus', {
+        channelStatus: ChannelStatus.ACTIVE,
+      });
+
+    return this.getRankRowsFromQueryBuilder(
+      baseQueryBuilder,
+      'stat.view_count',
+      page,
+      limit,
+      true,
+    );
+  }
+
+  private async getRankRowsFromQueryBuilder<T extends ObjectLiteral>(
+    queryBuilder: SelectQueryBuilder<T>,
+    metricExpression: string,
+    page: number,
+    limit: number,
+    shouldSumMetric = false,
+  ): Promise<{
+    rows: Array<{ videoId: string; metricCount: number }>;
+    total: number;
+  }> {
+    const totalRaw = await queryBuilder
+      .clone()
+      .select('COUNT(DISTINCT video.id)', 'total')
+      .getRawOne<{ total?: string | number | null }>();
+
+    const aggregationExpression = shouldSumMetric
+      ? `COALESCE(SUM(${metricExpression}), 0)`
+      : `COUNT(${metricExpression})`;
+
+    const rows = await queryBuilder
+      .clone()
+      .select('video.id', 'videoId')
+      .addSelect(aggregationExpression, 'metricCount')
+      .groupBy('video.id')
+      .addGroupBy('video.published_at')
+      .addGroupBy('video.created_at')
+      .orderBy('metricCount', 'DESC')
+      .addOrderBy('video.published_at', 'DESC')
+      .addOrderBy('video.created_at', 'DESC')
+      .offset((page - 1) * limit)
+      .limit(limit)
+      .getRawMany<{ videoId: string; metricCount: string | number }>();
+
+    return {
+      rows: rows.map((row) => ({
+        videoId: row.videoId,
+        metricCount: Number(row.metricCount),
+      })),
+      total: Number(totalRaw?.total ?? 0),
+    };
+  }
+
+  private async findRankedVideoItems(
+    videoIds: string[],
+    rankRows: Array<{ videoId: string; metricCount: number }>,
+  ): Promise<RankedVideoListItemResponse[]> {
+    if (videoIds.length === 0) {
+      return [];
+    }
+
+    const rows = await this.watchProgressOrmRepository.manager
+      .createQueryBuilder(VideoOrmEntity, 'video')
+      .leftJoinAndSelect('video.category', 'category')
+      .leftJoinAndSelect('video.videoTags', 'videoTag')
+      .leftJoinAndSelect('videoTag.tag', 'tag')
+      .innerJoin(ChannelOrmEntity, 'channel', 'channel.id = video.channel_id')
+      .addSelect('channel.name', 'channelName')
+      .where('video.id IN (:...videoIds)', { videoIds })
+      .getRawAndEntities();
+
+    const channelNameByVideoId = new Map(
+      rows.raw.map((row: { video_id: string; channelName: string | null }) => [
+        row.video_id,
+        row.channelName,
+      ]),
+    );
+    const videoById = new Map(rows.entities.map((video) => [video.id, video]));
+    const metricCountByVideoId = new Map(
+      rankRows.map((row) => [row.videoId, row.metricCount]),
+    );
+
+    return videoIds
+      .map((videoId) => {
+        const video = videoById.get(videoId);
+
+        if (!video) {
+          return null;
+        }
+
+        return {
+          ...this.mapVideoOrmToListItem(video),
+          channelName: channelNameByVideoId.get(videoId) ?? null,
+          metricCount: metricCountByVideoId.get(videoId) ?? 0,
+        };
+      })
+      .filter((item): item is RankedVideoListItemResponse => item !== null);
+  }
+
+  private mapVideoOrmToListItem(video: VideoOrmEntity): VideoListItemResponse {
+    const category = video.category;
+
+    if (!category) {
+      throw new Error(`Video ${video.id} is missing category relation`);
+    }
+
+    return {
+      id: video.id,
+      channelId: video.channelId,
+      channelName: null,
+      title: video.title,
+      description: video.description,
+      category: category.slug,
+      tags: (video.videoTags ?? []).map((item) => item.tag.slug),
+      status: video.status,
+      price: video.price,
+      requiredTierLevel: video.requiredTierLevel,
+      thumbnailUrl:
+        video.thumbnailStatus === VideoThumbnailStatus.READY &&
+        video.thumbnailObjectKey &&
+        video.thumbnailUrl
+          ? video.thumbnailUrl
+          : null,
+      thumbnailSource: video.thumbnailSource,
+      thumbnailStatus: video.thumbnailStatus,
+      durationSeconds: video.durationSeconds,
+      resolutions: video.resolutions,
+      errorMessage: video.errorMessage,
+      viewCount: video.viewCount,
+      publishedAt: video.publishedAt,
+      createdAt: video.createdAt,
+      updatedAt: video.updatedAt,
+    };
+  }
+
+  private async withChannelNames(
+    items: VideoListItemResponse[],
+  ): Promise<VideoListItemResponse[]> {
+    const channelIds = [
+      ...new Set(items.map((item) => item.channelId).filter(Boolean)),
+    ];
+
+    if (channelIds.length === 0) {
+      return items;
+    }
+
+    const channels = await this.channelOrmRepository.find({
+      select: {
+        id: true,
+        name: true,
+      },
+      where: {
+        id: In(channelIds),
+      },
+    });
+    const channelNameById = new Map(
+      channels.map((channel) => [channel.id, channel.name]),
+    );
+
+    return items.map((item) => ({
+      ...item,
+      channelName: channelNameById.get(item.channelId) ?? null,
+    }));
+  }
+
+  private getPeriodStartDate(period: VideoRankingPeriod): Date {
+    const now = new Date();
+    const start = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    );
+
+    if (period === 'week') {
+      start.setUTCDate(start.getUTCDate() - 6);
+    }
+
+    if (period === 'month') {
+      start.setUTCDate(start.getUTCDate() - 29);
+    }
+
+    return start;
+  }
+
+  private toUtcDateString(date: Date): string {
+    return date.toISOString().slice(0, 10);
   }
 
   private async getCachedValue<T>(key: string): Promise<T | null> {

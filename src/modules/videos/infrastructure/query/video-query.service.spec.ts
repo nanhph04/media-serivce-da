@@ -31,6 +31,7 @@ describe('VideoQueryService', () => {
     createQueryBuilder,
   };
   const channelOrmRepository = {
+    find: jest.fn(),
     findOne: jest.fn(),
   };
   const membershipTierOrmRepository = {
@@ -51,6 +52,7 @@ describe('VideoQueryService', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
+    channelOrmRepository.find.mockResolvedValue([buildChannelRow()]);
   });
 
   it('returns metadata from cache without querying database', async () => {
@@ -284,6 +286,7 @@ describe('VideoQueryService', () => {
         {
           id: 'video-1',
           channelId: 'channel-1',
+          channelName: 'Cinema Labs',
           title: 'Video',
           description: 'Description',
           category: 'music',
@@ -561,6 +564,7 @@ function buildVideo(
 function buildCachedListItem(): {
   id: string;
   channelId: string;
+  channelName: string | null;
   title: string;
   description: string;
   category: string;
@@ -582,6 +586,7 @@ function buildCachedListItem(): {
   return {
     id: 'video-1',
     channelId: 'channel-1',
+    channelName: 'Cinema Labs',
     title: 'Video',
     description: 'Description',
     category: 'music',

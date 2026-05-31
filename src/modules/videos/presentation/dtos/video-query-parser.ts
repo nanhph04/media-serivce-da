@@ -1,3 +1,8 @@
+import { BadRequestException } from '@shared/domain/exceptions/domain.exception';
+import type {
+  VideoRankingMetric,
+  VideoRankingPeriod,
+} from '../../application/dtos/ranked-videos.query';
 import {
   VideoStatus,
   VideoVisibility,
@@ -11,6 +16,26 @@ export function parseVideoLimit(limit?: string): number {
 export function parseVideoPage(page?: string): number {
   const parsed = Number(page) || 1;
   return Math.max(parsed, 1);
+}
+
+export function parseVideoRankingMetric(
+  metric?: string,
+): VideoRankingMetric {
+  if (metric === 'views' || metric === 'purchases') {
+    return metric;
+  }
+
+  throw new BadRequestException('Video ranking metric must be views or purchases');
+}
+
+export function parseVideoRankingPeriod(
+  period?: string,
+): VideoRankingPeriod {
+  if (period === 'day' || period === 'week' || period === 'month') {
+    return period;
+  }
+
+  throw new BadRequestException('Video ranking period must be day, week, or month');
 }
 
 export function parseVideoTags(tags?: string): string[] | undefined {

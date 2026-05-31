@@ -37,3 +37,16 @@ upload.
   - `uploaded_at`: when media service recorded the part.
 
 Migration: `1746250000000-create-video-upload-sessions.ts`.
+
+## video view daily stats
+
+Daily view counters are stored in `video_view_daily_stats` so discovery APIs can rank videos by views in a day/week/month period. Raw view events are still deduplicated and aggregated before updating `videos.view_count`; this table stores period-level counters for ranking only.
+
+- `video_id` (`varchar(36)`): video being counted.
+- `stat_date` (`date`): UTC date bucket for the view event timestamp.
+- `view_count` (`integer`, default `0`): number of accepted view events for the video/date.
+- `created_at`, `updated_at`: audit timestamps.
+- Primary key: (`video_id`, `stat_date`).
+- Index: `IDX_video_view_daily_stats_stat_date_view_count` on (`stat_date`, `view_count DESC`).
+
+Migration: `1746280000000-create-video-view-daily-stats.ts`.

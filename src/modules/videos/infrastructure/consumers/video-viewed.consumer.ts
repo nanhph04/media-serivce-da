@@ -24,6 +24,7 @@ export class VideoViewedConsumer implements OnModuleInit {
       async ({ value }) => {
         await this.handleVideoViewedUseCase.execute({
           eventId: value.eventId,
+          timestamp: value.timestamp,
           data: value.data,
         });
       },

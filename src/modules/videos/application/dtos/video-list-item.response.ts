@@ -4,6 +4,7 @@ import { buildPublicThumbnailUrl } from './thumbnail-url';
 export interface VideoListItemResponse {
   id: string;
   channelId: string;
+  channelName: string | null;
   title: string;
   description: string;
   category: string;
@@ -29,6 +30,7 @@ export function mapVideoEntityToListItem(
   return {
     id: video.id,
     channelId: video.channelId,
+    channelName: null,
     title: video.title,
     description: video.description,
     category: video.category.slug,

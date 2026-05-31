@@ -61,6 +61,7 @@ export class SearchController {
     return {
       id: video.id,
       channelId: video.channelId,
+      channelName: video.channelName,
       title: video.title,
       description: video.description,
       category: video.category,

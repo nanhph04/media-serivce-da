@@ -283,3 +283,34 @@ Data:
   "retryable": false
 }
 ```
+
+10. video.viewed
+
+---
+
+Purpose:
+
+- Published when a user view is accepted after dedupe.
+- Consumed by media-service to increment pending total views and `video_view_daily_stats` for ranking by day/week/month.
+- The event envelope `timestamp` is used as the UTC date bucket for daily stats.
+
+Topic:
+
+```text
+video.viewed
+```
+
+Data:
+
+```json
+{
+  "videoId": "video-id",
+  "userId": "user-id"
+}
+```
+
+Consumer rules:
+
+- Duplicate events are ignored by `eventId` via Redis aggregation.
+- Only accepted events increment `video_view_daily_stats`.
+- Total `videos.view_count` is still flushed asynchronously from Redis pending counters.

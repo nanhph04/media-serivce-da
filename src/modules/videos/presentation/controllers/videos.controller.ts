@@ -25,6 +25,7 @@ import { ConfirmVideoUploadUseCase } from '../../application/use-cases/confirm-v
 import { GetContinueWatchingUseCase } from '../../application/use-cases/get-continue-watching.use-case';
 import { GetLatestVideosUseCase } from '../../application/use-cases/get-latest-videos.use-case';
 import { GetPurchasedVideosUseCase } from '../../application/use-cases/get-purchased-videos.use-case';
+import { GetRankedVideosUseCase } from '../../application/use-cases/get-ranked-videos.use-case';
 import { GetStudioVideoDetailUseCase } from '../../application/use-cases/get-studio-video-detail.use-case';
 import { GetStudioVideosUseCase } from '../../application/use-cases/get-studio-videos.use-case';
 import { GetSubscribedVideosUseCase } from '../../application/use-cases/get-subscribed-videos.use-case';
@@ -67,6 +68,7 @@ import { DeleteFailedVideoResponseDto } from '../dtos/delete-failed-video.respon
 import { PlayVideoResponseDto } from '../dtos/play-video.response';
 import { PurchaseVideoResponseDto } from '../dtos/purchase-video.response';
 import { PurchasedVideoResponseDto } from '../dtos/purchased-video.response';
+import { RankedVideoListItemResponseDto } from '../dtos/ranked-video-list-item.response';
 import { RefreshPlaybackTokenResponseDto } from '../dtos/refresh-playback-token.response';
 import { UpdateVideoMetadataRequestDto } from '../dtos/update-video-metadata.request';
 import { UpdateVideoProgressRequestDto } from '../dtos/update-video-progress.request';
@@ -78,6 +80,8 @@ import { VideoMetadataResponseDto } from '../dtos/video-metadata.response';
 import {
   parseVideoLimit,
   parseVideoPage,
+  parseVideoRankingMetric,
+  parseVideoRankingPeriod,
   parseVideoStatuses,
   parseVideoTags,
   parseVideoVisibilities,
@@ -99,6 +103,7 @@ export class VideosController {
     private readonly getContinueWatchingUseCase: GetContinueWatchingUseCase,
     private readonly getLatestVideosUseCase: GetLatestVideosUseCase,
     private readonly getPurchasedVideosUseCase: GetPurchasedVideosUseCase,
+    private readonly getRankedVideosUseCase: GetRankedVideosUseCase,
     private readonly getStudioVideoDetailUseCase: GetStudioVideoDetailUseCase,
     private readonly getStudioVideosUseCase: GetStudioVideosUseCase,
     private readonly getVideosByCategoryUseCase: GetVideosByCategoryUseCase,
@@ -501,6 +506,35 @@ export class VideosController {
       rows.items.map((row) => VideoListItemResponseDto.fromApplicationDto(row)),
       undefined,
       rows.pagination,
+    );
+  }
+
+  @Get('videos/ranking')
+  @SkipInternalGatewayGuard()
+  @ApiQuery({ name: 'metric', required: true, enum: ['views', 'purchases'] })
+  @ApiQuery({ name: 'period', required: true, enum: ['day', 'week', 'month'] })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiSuccessResponse(RankedVideoListItemResponseDto, { isArray: true })
+  async ranking(
+    @Query('metric') metric?: string,
+    @Query('period') period?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ): Promise<ApiResponse<RankedVideoListItemResponseDto[]>> {
+    const result = await this.getRankedVideosUseCase.execute({
+      metric: parseVideoRankingMetric(metric),
+      period: parseVideoRankingPeriod(period),
+      page: parseVideoPage(page),
+      limit: parseVideoLimit(limit),
+    });
+
+    return ApiResponse.success(
+      result.items.map((row) =>
+        RankedVideoListItemResponseDto.fromApplicationDto(row),
+      ),
+      undefined,
+      result.pagination,
     );
   }
 

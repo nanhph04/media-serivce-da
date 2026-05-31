@@ -18,6 +18,7 @@ import { GetAdminVideoDetailUseCase } from './application/use-cases/get-admin-vi
 import { GetAdminVideoPreviewUseCase } from './application/use-cases/get-admin-video-preview.use-case';
 import { GetLatestVideosUseCase } from './application/use-cases/get-latest-videos.use-case';
 import { GetPurchasedVideosUseCase } from './application/use-cases/get-purchased-videos.use-case';
+import { GetRankedVideosUseCase } from './application/use-cases/get-ranked-videos.use-case';
 import { GetStudioVideoDetailUseCase } from './application/use-cases/get-studio-video-detail.use-case';
 import { GetStudioVideosUseCase } from './application/use-cases/get-studio-videos.use-case';
 import { GetSubscribedVideosUseCase } from './application/use-cases/get-subscribed-videos.use-case';
@@ -74,6 +75,8 @@ import { VideoPurchaseUnlockOrmEntity } from './infrastructure/persistence/video
 import { VideoCategoryOrmEntity } from './infrastructure/persistence/video-category.orm-entity';
 import { VideoPurchaseUnlockRepository } from './infrastructure/persistence/video-purchase-unlock.repository';
 import { VideoTagOrmEntity } from './infrastructure/persistence/video-tag.orm-entity';
+import { VideoViewDailyStatOrmEntity } from './infrastructure/persistence/video-view-daily-stat.orm-entity';
+import { VideoViewStatRepository } from './infrastructure/persistence/video-view-stat.repository';
 import { VideoOrmEntity } from './infrastructure/persistence/video.orm-entity';
 import { VideoRepository } from './infrastructure/persistence/video.repository';
 import { VideoOutboxTransactionService } from './infrastructure/persistence/video-outbox-transaction.service';
@@ -94,6 +97,7 @@ import { VIDEO_DELETE_REQUEST_PUBLISHER } from './application/interfaces/video-d
 import { VIDEO_QUERY_SERVICE } from './application/interfaces/video-query.service.interface';
 import { VIDEO_SEARCH_QUERY_SERVICE } from './application/interfaces/video-search-query.service.interface';
 import { VIDEO_VIEW_AGGREGATION } from './application/interfaces/video-view-aggregation.interface';
+import { VIDEO_VIEW_STAT_REPOSITORY } from './application/interfaces/video-view-stat.repository.interface';
 import { VIDEO_WATCHDOG_HEALTH_FAILURE_STORE } from './application/interfaces/video-watchdog-health-failure-store.interface';
 import { VIDEO_WORKER_HEALTH_CHECKER } from './application/interfaces/video-worker-health-checker.interface';
 import { VIDEO_STATUS_EVENT_PUBLISHER } from './application/interfaces/video-status-event-publisher.interface';
@@ -111,6 +115,7 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
       VideoCategoryOrmEntity,
       VideoTagOrmEntity,
       VideoPurchaseUnlockOrmEntity,
+      VideoViewDailyStatOrmEntity,
       VideoWatchProgressOrmEntity,
       VideoUploadSessionOrmEntity,
       VideoUploadPartOrmEntity,
@@ -126,6 +131,7 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
   providers: [
     VideoRepository,
     VideoPurchaseUnlockRepository,
+    VideoViewStatRepository,
     VideoWatchProgressRepository,
     VideoUploadSessionRepository,
     VideoQueryService,
@@ -166,6 +172,7 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
     UpdateVideoMetadataUseCase,
     GetLatestVideosUseCase,
     GetPurchasedVideosUseCase,
+    GetRankedVideosUseCase,
     GetStudioVideosUseCase,
     GetVideosByCategoryUseCase,
     GetSubscribedVideosUseCase,
@@ -233,6 +240,10 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
     {
       provide: VIDEO_VIEW_AGGREGATION,
       useExisting: VideoViewAggregationService,
+    },
+    {
+      provide: VIDEO_VIEW_STAT_REPOSITORY,
+      useExisting: VideoViewStatRepository,
     },
     {
       provide: VIDEO_MODERATION_REQUEST_PUBLISHER,

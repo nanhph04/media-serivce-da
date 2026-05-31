@@ -1,5 +1,7 @@
 import type { VideoListItemResponse } from '../dtos/video-list-item.response';
 import type { PaginatedResponse } from '@shared/application/dtos/paginated.response';
+import type { RankedVideoListItemResponse } from '../dtos/ranked-video-list-item.response';
+import type { GetRankedVideosQuery } from '../dtos/ranked-videos.query';
 import type { VideoMetadataResponse } from '../dtos/video-metadata.response';
 import type { ContinueWatchingItemResponse } from '../dtos/continue-watching-item.response';
 import type { StudioVideoListItemResponse } from '../dtos/studio-video-list-item.response';
@@ -32,6 +34,14 @@ export interface IVideoQueryService {
   ): Promise<ChannelVideoMembershipEligibilityMetrics>;
   getVideoMetadata(videoId: string): Promise<VideoMetadataResponse>;
   getLatestVideos(
+    page: number,
+    limit: number,
+  ): Promise<PaginatedResponse<VideoListItemResponse>>;
+  getRankedVideos(
+    query: GetRankedVideosQuery,
+  ): Promise<PaginatedResponse<RankedVideoListItemResponse>>;
+  getPublicVideosByChannelIds(
+    channelIds: string[],
     page: number,
     limit: number,
   ): Promise<PaginatedResponse<VideoListItemResponse>>;

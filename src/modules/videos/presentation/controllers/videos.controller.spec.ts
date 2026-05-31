@@ -36,6 +36,9 @@ describe('VideosController', () => {
   const getPurchasedVideosUseCase = {
     execute: jest.fn(),
   };
+  const getRankedVideosUseCase = {
+    execute: jest.fn(),
+  };
   const getStudioVideoDetailUseCase = {
     execute: jest.fn(),
   };
@@ -89,6 +92,7 @@ describe('VideosController', () => {
     getContinueWatchingUseCase as never,
     getLatestVideosUseCase as never,
     getPurchasedVideosUseCase as never,
+    getRankedVideosUseCase as never,
     getStudioVideoDetailUseCase as never,
     getStudioVideosUseCase as never,
     getVideosByCategoryUseCase as never,
@@ -112,6 +116,7 @@ describe('VideosController', () => {
   it('exposes canonical public, studio, and viewer video routes', () => {
     expect(getRoutePaths('searchVideos')).toEqual('videos');
     expect(getRoutePaths('latest')).toEqual('videos/latest');
+    expect(getRoutePaths('ranking')).toEqual('videos/ranking');
     expect(getRoutePaths('studioVideos')).toEqual('studio/videos');
     expect(getRoutePaths('studioVideoDetail')).toEqual('studio/videos/:id');
     expect(getRoutePaths('generateMetadataSuggestion')).toEqual(
