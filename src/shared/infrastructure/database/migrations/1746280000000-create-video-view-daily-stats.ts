@@ -1,8 +1,6 @@
 import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class CreateVideoViewDailyStats1746280000000
-  implements MigrationInterface
-{
+export class CreateVideoViewDailyStats1746280000000 implements MigrationInterface {
   public readonly name = 'CreateVideoViewDailyStats1746280000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

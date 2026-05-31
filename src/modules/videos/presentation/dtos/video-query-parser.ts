@@ -18,24 +18,24 @@ export function parseVideoPage(page?: string): number {
   return Math.max(parsed, 1);
 }
 
-export function parseVideoRankingMetric(
-  metric?: string,
-): VideoRankingMetric {
+export function parseVideoRankingMetric(metric?: string): VideoRankingMetric {
   if (metric === 'views' || metric === 'purchases') {
     return metric;
   }
 
-  throw new BadRequestException('Video ranking metric must be views or purchases');
+  throw new BadRequestException(
+    'Video ranking metric must be views or purchases',
+  );
 }
 
-export function parseVideoRankingPeriod(
-  period?: string,
-): VideoRankingPeriod {
+export function parseVideoRankingPeriod(period?: string): VideoRankingPeriod {
   if (period === 'day' || period === 'week' || period === 'month') {
     return period;
   }
 
-  throw new BadRequestException('Video ranking period must be day, week, or month');
+  throw new BadRequestException(
+    'Video ranking period must be day, week, or month',
+  );
 }
 
 export function parseVideoTags(tags?: string): string[] | undefined {
