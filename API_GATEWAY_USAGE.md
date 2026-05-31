@@ -175,6 +175,7 @@ PATCH  /api/media/admin/channels/:id/status
 GET    /api/media/admin/videos/summary
 GET    /api/media/admin/videos
 GET    /api/media/admin/videos/:id
+GET    /api/media/admin/videos/:id/preview
 PATCH  /api/media/admin/videos/:id/moderation
 ```
 

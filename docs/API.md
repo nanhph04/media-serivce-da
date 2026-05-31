@@ -1864,7 +1864,46 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
       - `total` (number)
       - `totalPages` (number)
 
-### 9.8 GET `/api/media/admin/videos/:id`
+#### 9.7A GET `/api/media/admin/videos?status=pending_manual_review&page=1&limit=20`
+
+- Muc dich: lay hang doi video can admin duyet tay sau khi moderation service day video vao `pending_manual_review`.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-user-role`: Bat buoc la `admin`
+  - `x-internal-secret`: He thong tu set
+- Query:
+  - `status=pending_manual_review`: bat buoc dung gia tri nay de lay queue duyet tay
+  - `page` (number, optional, default 1)
+  - `limit` (number, optional, default 20, max 100)
+- Response HTTP 200:
+  - Envelope `data.items`: danh sach admin video item. Moi item co `moderationDetails` neu moderation service gui ly do/diem tin cay/thoi diem evidence.
+  - Envelope `pagination`: `page`, `limit`, `total`, `totalPages`
+- Goi tiep:
+  - Dung `GET /api/media/admin/videos/:id/preview` de lay link xem raw video truoc khi duyet.
+  - Dung `PATCH /api/media/admin/videos/:id/moderation` de approve/reject.
+
+### 9.8 GET `/api/media/admin/videos/:id/preview`
+
+- Muc dich: tao preview URL tam thoi cho admin xem raw video truoc khi duyet tay.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-user-role`: Bat buoc la `admin`
+  - `x-internal-secret`: He thong tu set
+- Path param:
+  - `id` (string): videoId
+- Ghi chu:
+  - Ho tro preview cho video status `pending_manual_review`, `rejected`, `pending_moderation`, `processing`.
+  - Preview URL het han sau 15 phut.
+  - Neu raw object khong ton tai, service tra `NOT_FOUND`.
+- Response HTTP 200:
+  - Envelope `data`:
+    - `videoId` (string)
+    - `previewUrl` (string): signed/read URL tam thoi toi raw video
+    - `expiresAt` (string ISO)
+    - `evidenceTimestampSeconds` (number | null): moc thoi gian moderation can admin xem, neu co
+    - `moderationDetails` (object | null): ly do, confidence, label/score, thresholds neu moderation service co gui
+
+### 9.9 GET `/api/media/admin/videos/:id`
 
 - Muc dich: admin xem chi tiet video bat ky status, gom ca private/draft/rejected/deleted.
 - Header:
@@ -1876,7 +1915,7 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
 - Response HTTP 200:
   - Envelope `data`: admin video item, gom `ownerId`, `channelId`, metadata, processing/moderation fields, delete fields va timestamps.
 
-### 9.9 PATCH `/api/media/admin/videos/:id/moderation`
+### 9.10 PATCH `/api/media/admin/videos/:id/moderation`
 
 - Muc dich: admin approve/reject video dang cho manual review.
 - Header:
@@ -1905,7 +1944,8 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
 - Ghi chu:
   - Chi xu ly video co `status = pending_manual_review`.
   - `reject` bat buoc co `reason`.
-  - Approve chuyen video sang `ready`; reject chuyen video sang `rejected`.
+  - `approve` chuyen video sang `processing` va enqueue transcode job. Video chi sang `ready` sau khi media processing thanh cong.
+  - `reject` chuyen video sang `rejected` va luu moderation details voi reason cua admin.
 - Response HTTP 200:
   - Envelope `data`: admin video item sau khi cap nhat.
 
