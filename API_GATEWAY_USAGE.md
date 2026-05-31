@@ -143,6 +143,7 @@ PATCH  /api/media/memberships/:membershipId/auto-renew
 POST   /api/media/channels/:channelId/memberships/:tierId/purchase
 GET    /api/media/studio/videos
 GET    /api/media/studio/videos/:id
+POST   /api/media/studio/videos/metadata-suggestions
 POST   /api/media/studio/videos/uploads
 POST   /api/media/studio/videos/:videoId/uploads/:uploadId/part-urls
 POST   /api/media/studio/videos/:videoId/uploads/:uploadId/parts/:partNumber/completed

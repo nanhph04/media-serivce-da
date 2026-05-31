@@ -1012,7 +1012,77 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
     - `deleteReason` (string | null)
     - `updatedAt` (string ISO)
 
-### 4.11 PATCH `/api/media/studio/videos/:id/metadata`
+### 4.11 POST `/api/media/studio/videos/metadata-suggestions`
+
+- Muc dich: creator goi AI de goi y title, description, hashtag va tag phu hop
+  truoc khi publish/cap nhat video.
+- Header:
+  - `x-user-id`: Gateway verify JWT roi tu set
+  - `x-internal-secret`: Gateway/service noi bo tu set, client khong tu gui
+- Body:
+  - `title` (string, required, max 200): title hien tai/ban nhap cua video
+  - `description` (string, optional, default `""`, max 5000): mo ta hien tai/ban nhap
+  - `categoryId` (string, required): category phai ton tai va dang `active`
+  - `tagIds` (string[], optional, default `[]`): tag hien tai da chon; unique va tat ca tag phai dang `active`
+  - `language` (`vi` | `en`, optional, default `vi`): ngon ngu output mong muon
+  - `tone` (`natural` | `professional` | `seo`, optional, default `natural`): phong cach goi y
+  - `maxDescriptionLength` (number, optional, default `1200`, min 200, max 2000): gioi han do dai description goi y
+- Ghi chu:
+  - API nay khong update video; chi tra ve goi y de FE hien thi cho creator chon/ap dung.
+  - `suggestedTags` chi tra ve cac tag dang active trong he thong.
+  - `hashtags` duoc normalize co dau `#`, unique va toi da 10 item.
+- Request example:
+
+```json
+{
+  "title": "Huong dan quay video cinematic bang dien thoai",
+  "description": "Setup anh sang, goc may va chinh mau co ban khi quay bang smartphone.",
+  "categoryId": "category-uuid",
+  "tagIds": ["tag-uuid-1", "tag-uuid-2"],
+  "language": "vi",
+  "tone": "natural",
+  "maxDescriptionLength": 1200
+}
+```
+
+- Response HTTP 200:
+  - Envelope `data`:
+    - `title` (string): title goi y
+    - `description` (string): description goi y
+    - `hashtags` (string[]): danh sach hashtag goi y
+    - `suggestedTags` (array)
+      - `id` (string)
+      - `name` (string)
+      - `slug` (string)
+    - `provider` (string): AI provider da dung
+    - `model` (string): model da dung
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "data": {
+    "title": "Quay video cinematic bang dien thoai: setup anh sang va mau phim",
+    "description": "Tim hieu cach setup anh sang, chon goc may va chinh mau de tao cam giac cinematic khi quay bang smartphone.",
+    "hashtags": ["#cinematic", "#smartphone", "#videography"],
+    "suggestedTags": [
+      {
+        "id": "tag-uuid-1",
+        "name": "Cinematic",
+        "slug": "cinematic"
+      }
+    ],
+    "provider": "zai",
+    "model": "glm-4.5-flash"
+  }
+}
+```
+
+- Loi thuong gap:
+  - `BAD_REQUEST` / HTTP 400: thieu title/category, category/tag khong active hoac `maxDescriptionLength` ngoai khoang 200-2000.
+  - `UNAUTHORIZED` / HTTP 401: thieu identity tu gateway.
+
+### 4.12 PATCH `/api/media/studio/videos/:id/metadata`
 
 - Muc dich: creator cap nhat metadata cua video.
 - Header:

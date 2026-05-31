@@ -25,7 +25,7 @@ const VIDEO_METADATA_SUGGESTION_TONES = [
   'seo',
 ] as const;
 
-export class GenerateVideoMetadataSuggestionRequestDto {
+export class  GenerateVideoMetadataSuggestionRequestDto {
   @ApiProperty()
   @IsString()
   @IsNotEmpty()
