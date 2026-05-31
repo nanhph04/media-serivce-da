@@ -37,6 +37,7 @@ export interface PurchasedVideosPageResult {
 export interface IVideoPurchaseUnlockRepository {
   save(unlock: VideoPurchaseUnlockEntity): Promise<void>;
   exists(videoId: string, userId: string): Promise<boolean>;
+  countByVideoId(videoId: string): Promise<number>;
   findPurchasedByUserId(
     filters: PurchasedVideosPageFilters,
   ): Promise<PurchasedVideosPageResult>;

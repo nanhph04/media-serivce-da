@@ -115,13 +115,24 @@ describe('AdminVideoController', () => {
   it('maps admin video detail request to use case query', async () => {
     getAdminVideoDetailUseCase.execute.mockResolvedValue(buildAdminVideo());
 
-    await controller.getVideoDetail('admin-1', 'admin', 'video-1');
+    const result = await controller.getVideoDetail(
+      'admin-1',
+      'admin',
+      'video-1',
+    );
 
     expect(getAdminVideoDetailUseCase.execute).toHaveBeenCalledWith({
       adminId: 'admin-1',
       role: 'admin',
       videoId: 'video-1',
     });
+    expect(result).toEqual(
+      expect.objectContaining({
+        channelName: 'Channel',
+        categoryTitle: 'Music',
+        purchaseCount: 3,
+      }),
+    );
   });
 
   it('maps admin video preview request to use case query', async () => {
@@ -186,10 +197,12 @@ describe('AdminVideoController', () => {
 function buildAdminVideo(input?: { status?: VideoStatus }): {
   id: string;
   channelId: string;
+  channelName: string;
   ownerId: string;
   title: string;
   description: string;
   category: string;
+  categoryTitle: string;
   tags: string[];
   status: VideoStatus;
   visibility: VideoVisibility;
@@ -211,14 +224,17 @@ function buildAdminVideo(input?: { status?: VideoStatus }): {
   deleteReason: null;
   createdAt: Date;
   updatedAt: Date;
+  purchaseCount: number;
 } {
   return {
     id: 'video-1',
     channelId: 'channel-1',
+    channelName: 'Channel',
     ownerId: 'owner-1',
     title: 'Video',
     description: 'Description',
     category: 'music',
+    categoryTitle: 'Music',
     tags: ['action'],
     status: input?.status ?? VideoStatus.READY,
     visibility: VideoVisibility.PUBLIC,
@@ -240,5 +256,6 @@ function buildAdminVideo(input?: { status?: VideoStatus }): {
     deleteReason: null,
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
     updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+    purchaseCount: 3,
   };
 }

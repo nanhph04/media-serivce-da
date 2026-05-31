@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import type {
+  AdminVideoDetailResponse,
   AdminVideoListItemResponse,
   AdminVideosPageResponse,
 } from '../../application/dtos/admin-video.response';
@@ -151,6 +152,27 @@ export class AdminVideoListItemResponseDto {
     response.deleteReason = dto.deleteReason;
     response.createdAt = dto.createdAt.toISOString();
     response.updatedAt = dto.updatedAt.toISOString();
+
+    return response;
+  }
+}
+
+export class AdminVideoDetailResponseDto extends AdminVideoListItemResponseDto {
+  @ApiProperty()
+  categoryTitle!: string;
+
+  @ApiProperty()
+  purchaseCount!: number;
+
+  static fromDetailApplicationDto(
+    dto: AdminVideoDetailResponse,
+  ): AdminVideoDetailResponseDto {
+    const response = Object.assign(
+      new AdminVideoDetailResponseDto(),
+      AdminVideoListItemResponseDto.fromApplicationDto(dto),
+    );
+    response.categoryTitle = dto.categoryTitle;
+    response.purchaseCount = dto.purchaseCount;
 
     return response;
   }

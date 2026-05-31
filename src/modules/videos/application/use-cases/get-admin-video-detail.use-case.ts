@@ -7,9 +7,17 @@ import {
   NotFoundException,
 } from '@shared/domain/exceptions/domain.exception';
 import {
+  CHANNEL_REPOSITORY,
+  type IChannelRepository,
+} from '../../../channels/domain/repositories/channel.repository';
+import {
   VIDEO_REPOSITORY,
   type IVideoRepository,
 } from '../../domain/repositories/video.repository';
+import {
+  VIDEO_PURCHASE_UNLOCK_REPOSITORY,
+  type IVideoPurchaseUnlockRepository,
+} from '../../domain/repositories/video-purchase-unlock.repository';
 import type { AdminVideoDetailResponse } from '../dtos/admin-video.response';
 import type { GetAdminVideoDetailQuery } from '../dtos/get-admin-video-detail.query';
 import { mapVideoEntityToStudioListItem } from '../dtos/studio-video-list-item.response';
@@ -22,6 +30,10 @@ export class GetAdminVideoDetailUseCase extends BaseUseCase<
   constructor(
     @Inject(VIDEO_REPOSITORY)
     private readonly videoRepository: IVideoRepository,
+    @Inject(CHANNEL_REPOSITORY)
+    private readonly channelRepository: IChannelRepository,
+    @Inject(VIDEO_PURCHASE_UNLOCK_REPOSITORY)
+    private readonly unlockRepository: IVideoPurchaseUnlockRepository,
   ) {
     super();
   }
@@ -38,9 +50,17 @@ export class GetAdminVideoDetailUseCase extends BaseUseCase<
       throw new NotFoundException(ERROR_MESSAGES.VIDEO_NOT_FOUND);
     }
 
+    const [channel, purchaseCount] = await Promise.all([
+      this.channelRepository.findById(video.channelId),
+      this.unlockRepository.countByVideoId(video.id),
+    ]);
+
     return {
       ...mapVideoEntityToStudioListItem(video),
+      channelName: channel?.name ?? null,
       ownerId: video.ownerId,
+      categoryTitle: video.category.name,
+      purchaseCount,
     };
   }
 

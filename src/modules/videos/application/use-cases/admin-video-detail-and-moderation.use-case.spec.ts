@@ -8,6 +8,11 @@ import {
   Category,
   CategoryStatus,
 } from '../../../categories/domain/entities/category.entity';
+import {
+  ChannelEntity,
+  ChannelStatus,
+} from '../../../channels/domain/entities/channel.entity';
+import type { IChannelRepository } from '../../../channels/domain/repositories/channel.repository';
 import { Tag, TagStatus } from '../../../tags/domain/entities/tag.entity';
 import {
   VideoEntity,
@@ -17,6 +22,7 @@ import {
   VideoVisibility,
 } from '../../domain/entities/video.entity';
 import type { IVideoRepository } from '../../domain/repositories/video.repository';
+import type { IVideoPurchaseUnlockRepository } from '../../domain/repositories/video-purchase-unlock.repository';
 import { GetAdminVideoDetailUseCase } from './get-admin-video-detail.use-case';
 import { ModerateAdminVideoUseCase } from './moderate-admin-video.use-case';
 
@@ -52,7 +58,7 @@ describe('Admin video detail and moderation use cases', () => {
   });
 
   it('rejects admin video detail for non-admin callers', async () => {
-    const useCase = new GetAdminVideoDetailUseCase(createVideoRepository());
+    const useCase = createGetAdminVideoDetailUseCase();
 
     await expect(
       useCase.execute({
@@ -65,9 +71,7 @@ describe('Admin video detail and moderation use cases', () => {
 
   it('returns admin video detail including owner id', async () => {
     const video = buildVideo(VideoStatus.REJECTED);
-    const useCase = new GetAdminVideoDetailUseCase(
-      createVideoRepository({ video }),
-    );
+    const useCase = createGetAdminVideoDetailUseCase({ video });
 
     await expect(
       useCase.execute({
@@ -77,13 +81,16 @@ describe('Admin video detail and moderation use cases', () => {
       }),
     ).resolves.toMatchObject({
       id: 'video-1',
+      channelName: 'Channel',
       ownerId: 'owner-1',
+      categoryTitle: 'Music',
+      purchaseCount: 3,
       status: VideoStatus.REJECTED,
     });
   });
 
   it('rejects admin video detail when video does not exist', async () => {
-    const useCase = new GetAdminVideoDetailUseCase(createVideoRepository());
+    const useCase = createGetAdminVideoDetailUseCase();
 
     await expect(
       useCase.execute({
@@ -247,6 +254,34 @@ function createVideoRepository(input?: {
   } as unknown as IVideoRepository;
 }
 
+function createChannelRepository(input?: {
+  channel?: ChannelEntity | null;
+}): IChannelRepository {
+  return {
+    findById: jest.fn().mockResolvedValue(input?.channel ?? buildChannel()),
+  } as unknown as IChannelRepository;
+}
+
+function createUnlockRepository(input?: {
+  purchaseCount?: number;
+}): IVideoPurchaseUnlockRepository {
+  return {
+    countByVideoId: jest.fn().mockResolvedValue(input?.purchaseCount ?? 3),
+  } as unknown as IVideoPurchaseUnlockRepository;
+}
+
+function createGetAdminVideoDetailUseCase(input?: {
+  video?: VideoEntity;
+  channel?: ChannelEntity | null;
+  purchaseCount?: number;
+}): GetAdminVideoDetailUseCase {
+  return new GetAdminVideoDetailUseCase(
+    createVideoRepository({ video: input?.video }),
+    createChannelRepository({ channel: input?.channel }),
+    createUnlockRepository({ purchaseCount: input?.purchaseCount }),
+  );
+}
+
 function createModerateAdminVideoUseCase(input?: {
   video?: VideoEntity;
   save?: jest.Mock;
@@ -259,6 +294,22 @@ function createModerateAdminVideoUseCase(input?: {
     moderationOutcomePublisher,
     videoStatusEventPublisher,
   );
+}
+
+function buildChannel(): ChannelEntity {
+  return new ChannelEntity({
+    id: 'channel-1',
+    userId: 'owner-1',
+    name: 'Channel',
+    bio: 'Bio',
+    avatarUrl: '',
+    bannerUrl: '',
+    status: ChannelStatus.ACTIVE,
+    isEligibleForMembership: false,
+    isMembershipClosedByAdmin: false,
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+  });
 }
 
 function buildVideo(

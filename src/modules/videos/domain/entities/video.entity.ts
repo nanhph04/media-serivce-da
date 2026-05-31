@@ -22,11 +22,11 @@ export enum VideoVisibility {
   PRIVATE = 'private',
 }
 
-export enum VideoDeletionStatus {
-  ACTIVE = 'active',
-  PENDING_DELETE = 'pending_delete',
-  READY_FOR_HARD_DELETE = 'ready_for_hard_delete',
-}
+  export enum VideoDeletionStatus {
+    ACTIVE = 'active',
+    PENDING_DELETE = 'pending_delete',
+    READY_FOR_HARD_DELETE = 'ready_for_hard_delete',
+  }
 
 export enum VideoThumbnailSource {
   AUTO = 'auto',

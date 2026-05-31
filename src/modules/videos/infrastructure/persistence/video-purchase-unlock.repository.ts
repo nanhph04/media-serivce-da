@@ -42,6 +42,12 @@ export class VideoPurchaseUnlockRepository implements IVideoPurchaseUnlockReposi
     );
   }
 
+  async countByVideoId(videoId: string): Promise<number> {
+    return this.ormRepository.count({
+      where: { videoId },
+    });
+  }
+
   async findPurchasedByUserId(
     filters: PurchasedVideosPageFilters,
   ): Promise<PurchasedVideosPageResult> {

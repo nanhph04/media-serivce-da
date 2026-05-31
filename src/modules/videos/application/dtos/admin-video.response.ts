@@ -5,6 +5,11 @@ export interface AdminVideoListItemResponse extends StudioVideoListItemResponse 
   channelName?: string | null;
 }
 
+export interface AdminVideoDetailResponse extends AdminVideoListItemResponse {
+  categoryTitle: string;
+  purchaseCount: number;
+}
+
 export interface AdminVideosPageResponse {
   items: AdminVideoListItemResponse[];
   pagination: {
@@ -14,5 +19,3 @@ export interface AdminVideosPageResponse {
     totalPages: number;
   };
 }
-
-export type AdminVideoDetailResponse = AdminVideoListItemResponse;

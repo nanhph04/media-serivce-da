@@ -18,7 +18,7 @@ import {
   VIDEO_REPOSITORY,
   type IVideoRepository,
 } from '../../domain/repositories/video.repository';
-import type { AdminVideoDetailResponse } from '../dtos/admin-video.response';
+import type { AdminVideoListItemResponse } from '../dtos/admin-video.response';
 import type { ModerateAdminVideoCommand } from '../dtos/moderate-admin-video.command';
 import { mapVideoEntityToStudioListItem } from '../dtos/studio-video-list-item.response';
 import {
@@ -42,7 +42,7 @@ import {
 @Injectable()
 export class ModerateAdminVideoUseCase extends BaseUseCase<
   ModerateAdminVideoCommand,
-  AdminVideoDetailResponse
+  AdminVideoListItemResponse
 > {
   constructor(
     @Inject(VIDEO_REPOSITORY)
@@ -63,7 +63,7 @@ export class ModerateAdminVideoUseCase extends BaseUseCase<
 
   async execute(
     command: ModerateAdminVideoCommand,
-  ): Promise<AdminVideoDetailResponse> {
+  ): Promise<AdminVideoListItemResponse> {
     this.ensureNonEmpty(command.adminId, 'Admin id is required');
     this.ensureAdminRole(command.role);
     this.ensureNonEmpty(command.videoId, 'Video id is required');

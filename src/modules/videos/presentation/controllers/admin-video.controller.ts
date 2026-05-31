@@ -27,6 +27,7 @@ import { GetAdminVideoPreviewUseCase } from '../../application/use-cases/get-adm
 import { ModerateAdminVideoUseCase } from '../../application/use-cases/moderate-admin-video.use-case';
 import { AdminVideoQueryDto } from '../dtos/admin-video-query.dto';
 import {
+  AdminVideoDetailResponseDto,
   AdminVideoListItemResponseDto,
   AdminVideosResponseDto,
 } from '../dtos/admin-videos.response';
@@ -82,12 +83,12 @@ export class AdminVideoController {
   @ApiHeader({ name: 'x-user-id', required: true })
   @ApiHeader({ name: 'x-user-role', required: true })
   @ApiHeader({ name: 'x-internal-secret', required: true })
-  @ApiSuccessResponse(AdminVideoListItemResponseDto)
+  @ApiSuccessResponse(AdminVideoDetailResponseDto)
   async getVideoDetail(
     @CurrentUserId() adminId: string,
     @CurrentUserRole() role: string | undefined,
     @Param('id') videoId: string,
-  ): Promise<ApiResponse<AdminVideoListItemResponseDto>> {
+  ): Promise<ApiResponse<AdminVideoDetailResponseDto>> {
     const result = await this.getAdminVideoDetailUseCase.execute({
       adminId,
       role,
@@ -95,7 +96,7 @@ export class AdminVideoController {
     });
 
     return apiResponseContract(
-      AdminVideoListItemResponseDto.fromApplicationDto(result),
+      AdminVideoDetailResponseDto.fromDetailApplicationDto(result),
     );
   }
 
