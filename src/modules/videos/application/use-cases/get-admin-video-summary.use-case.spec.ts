@@ -8,6 +8,7 @@ import { GetAdminVideoSummaryUseCase } from './get-admin-video-summary.use-case'
 describe('GetAdminVideoSummaryUseCase', () => {
   it('returns video summary for admin callers', async () => {
     const getAdminVideoSummary = jest.fn().mockResolvedValue({
+      period: 'week',
       totalVideos: 10,
       readyVideos: 4,
       uploadingVideos: 2,
@@ -16,14 +17,18 @@ describe('GetAdminVideoSummaryUseCase', () => {
       failedVideos: 1,
       bannedVideos: 1,
       totalViews: 1234,
+      newVideos: 3,
+      newViews: 321,
+      newPurchases: 12,
     });
     const useCase = new GetAdminVideoSummaryUseCase(
       createVideoRepository({ getAdminVideoSummary }),
     );
 
     await expect(
-      useCase.execute({ adminId: 'admin-1', role: 'admin' }),
+      useCase.execute({ adminId: 'admin-1', period: 'week', role: 'admin' }),
     ).resolves.toEqual({
+      period: 'week',
       totalVideos: 10,
       readyVideos: 4,
       uploadingVideos: 2,
@@ -32,8 +37,43 @@ describe('GetAdminVideoSummaryUseCase', () => {
       failedVideos: 1,
       bannedVideos: 1,
       totalViews: 1234,
+      newVideos: 3,
+      newViews: 321,
+      newPurchases: 12,
     });
-    expect(getAdminVideoSummary).toHaveBeenCalledTimes(1);
+    expect(getAdminVideoSummary).toHaveBeenCalledWith('week');
+  });
+
+  it('defaults period to all', async () => {
+    const getAdminVideoSummary = jest.fn().mockResolvedValue({
+      period: 'all',
+      totalVideos: 0,
+      readyVideos: 0,
+      uploadingVideos: 0,
+      pendingManualReviewVideos: 0,
+      rejectedVideos: 0,
+      failedVideos: 0,
+      bannedVideos: 0,
+      totalViews: 0,
+      newVideos: 0,
+      newViews: 0,
+      newPurchases: 0,
+    });
+    const useCase = new GetAdminVideoSummaryUseCase(
+      createVideoRepository({ getAdminVideoSummary }),
+    );
+
+    await useCase.execute({ adminId: 'admin-1', role: 'admin' });
+
+    expect(getAdminVideoSummary).toHaveBeenCalledWith('all');
+  });
+
+  it('rejects invalid periods', async () => {
+    const useCase = new GetAdminVideoSummaryUseCase(createVideoRepository());
+
+    await expect(
+      useCase.execute({ adminId: 'admin-1', period: 'year', role: 'admin' }),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('rejects non-admin callers', async () => {
@@ -60,6 +100,7 @@ function createVideoRepository(input?: {
     getAdminVideoSummary:
       input?.getAdminVideoSummary ??
       jest.fn().mockResolvedValue({
+        period: 'all',
         totalVideos: 0,
         readyVideos: 0,
         uploadingVideos: 0,
@@ -68,6 +109,9 @@ function createVideoRepository(input?: {
         failedVideos: 0,
         bannedVideos: 0,
         totalViews: 0,
+        newVideos: 0,
+        newViews: 0,
+        newPurchases: 0,
       }),
   } as unknown as IVideoRepository;
 }

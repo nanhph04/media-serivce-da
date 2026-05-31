@@ -6,6 +6,7 @@ import {
   ForbiddenException,
 } from '@shared/domain/exceptions/domain.exception';
 import {
+  type AdminVideoSummaryPeriod,
   VIDEO_REPOSITORY,
   type IVideoRepository,
 } from '../../domain/repositories/video.repository';
@@ -13,6 +14,7 @@ import type { AdminVideoSummaryResponse } from '../dtos/admin-video.response';
 
 interface GetAdminVideoSummaryQuery {
   adminId: string;
+  period?: string;
   role?: string;
 }
 
@@ -34,7 +36,23 @@ export class GetAdminVideoSummaryUseCase extends BaseUseCase<
     this.ensureNonEmpty(query.adminId, 'Admin id is required');
     this.ensureAdminRole(query.role);
 
-    return this.videoRepository.getAdminVideoSummary();
+    return this.videoRepository.getAdminVideoSummary(
+      this.parsePeriod(query.period),
+    );
+  }
+
+  private parsePeriod(period?: string): AdminVideoSummaryPeriod {
+    if (period === undefined || period === 'all') {
+      return 'all';
+    }
+
+    if (period === 'day' || period === 'week' || period === 'month') {
+      return period;
+    }
+
+    throw new BadRequestException(
+      'Video summary period must be day, week, month, or all',
+    );
   }
 
   private ensureNonEmpty(value: string, message: string): void {

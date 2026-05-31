@@ -23,6 +23,7 @@ import { ChannelOrmEntity } from '../../../channels/infrastructure/persistence/c
 import type {
   AdminChannelVideoMetrics,
   AdminVideoSummary,
+  AdminVideoSummaryPeriod,
   PublicVideoSearchFilters,
   PublicVideosByCategoryPageFilters,
   PublicVideosByCategoryPageResult,
@@ -34,6 +35,7 @@ import type {
 } from '../../domain/repositories/video.repository';
 import { VideoPurchaseUnlockOrmEntity } from './video-purchase-unlock.orm-entity';
 import { VideoTagOrmEntity } from './video-tag.orm-entity';
+import { VideoViewDailyStatOrmEntity } from './video-view-daily-stat.orm-entity';
 import { VideoWatchProgressOrmEntity } from './video-watch-progress.orm-entity';
 import { VideoOrmEntity } from './video.orm-entity';
 
@@ -537,68 +539,150 @@ export class VideoRepository implements IVideoRepository {
     };
   }
 
-  async getAdminVideoSummary(): Promise<AdminVideoSummary> {
-    const row = await this.ormRepository
-      .createQueryBuilder('video')
-      .select('COUNT(*)', 'totalVideos')
-      .addSelect(
-        `COUNT(*) FILTER (WHERE video.status = :readyStatus)`,
-        'readyVideos',
-      )
-      .addSelect(
-        `COUNT(*) FILTER (WHERE video.status IN (:...uploadingStatuses))`,
-        'uploadingVideos',
-      )
-      .addSelect(
-        `COUNT(*) FILTER (WHERE video.status = :pendingManualReviewStatus)`,
-        'pendingManualReviewVideos',
-      )
-      .addSelect(
-        `COUNT(*) FILTER (WHERE video.status = :rejectedStatus)`,
-        'rejectedVideos',
-      )
-      .addSelect(
-        `COUNT(*) FILTER (WHERE video.status = :failedStatus)`,
-        'failedVideos',
-      )
-      .addSelect(
-        `COUNT(*) FILTER (WHERE video.status = :bannedStatus)`,
-        'bannedVideos',
-      )
-      .addSelect('COALESCE(SUM(video.viewCount), 0)', 'totalViews')
-      .setParameters({
-        bannedStatus: VideoStatus.BANNED,
-        failedStatus: VideoStatus.FAILED,
-        pendingManualReviewStatus: VideoStatus.PENDING_MANUAL_REVIEW,
-        readyStatus: VideoStatus.READY,
-        rejectedStatus: VideoStatus.REJECTED,
-        uploadingStatuses: [
-          VideoStatus.DRAFT,
-          VideoStatus.PENDING_MODERATION,
-          VideoStatus.PROCESSING,
-        ],
-      })
-      .getRawOne<{
-        totalVideos?: string | number | null;
-        readyVideos?: string | number | null;
-        uploadingVideos?: string | number | null;
-        pendingManualReviewVideos?: string | number | null;
-        rejectedVideos?: string | number | null;
-        failedVideos?: string | number | null;
-        bannedVideos?: string | number | null;
-        totalViews?: string | number | null;
-      }>();
+  async getAdminVideoSummary(
+    period: AdminVideoSummaryPeriod,
+  ): Promise<AdminVideoSummary> {
+    const periodStartDate = this.getSummaryPeriodStartDate(period);
+    const [summaryRow, newViews, newPurchases] = await Promise.all([
+      this.ormRepository
+        .createQueryBuilder('video')
+        .select('COUNT(*)', 'totalVideos')
+        .addSelect(
+          periodStartDate
+            ? `COUNT(*) FILTER (WHERE video.created_at >= :periodStartDate)`
+            : 'COUNT(*)',
+          'newVideos',
+        )
+        .addSelect(
+          `COUNT(*) FILTER (WHERE video.status = :readyStatus)`,
+          'readyVideos',
+        )
+        .addSelect(
+          `COUNT(*) FILTER (WHERE video.status IN (:...uploadingStatuses))`,
+          'uploadingVideos',
+        )
+        .addSelect(
+          `COUNT(*) FILTER (WHERE video.status = :pendingManualReviewStatus)`,
+          'pendingManualReviewVideos',
+        )
+        .addSelect(
+          `COUNT(*) FILTER (WHERE video.status = :rejectedStatus)`,
+          'rejectedVideos',
+        )
+        .addSelect(
+          `COUNT(*) FILTER (WHERE video.status = :failedStatus)`,
+          'failedVideos',
+        )
+        .addSelect(
+          `COUNT(*) FILTER (WHERE video.status = :bannedStatus)`,
+          'bannedVideos',
+        )
+        .addSelect('COALESCE(SUM(video.viewCount), 0)', 'totalViews')
+        .setParameters({
+          bannedStatus: VideoStatus.BANNED,
+          failedStatus: VideoStatus.FAILED,
+          periodStartDate,
+          pendingManualReviewStatus: VideoStatus.PENDING_MANUAL_REVIEW,
+          readyStatus: VideoStatus.READY,
+          rejectedStatus: VideoStatus.REJECTED,
+          uploadingStatuses: [
+            VideoStatus.DRAFT,
+            VideoStatus.PENDING_MODERATION,
+            VideoStatus.PROCESSING,
+          ],
+        })
+        .getRawOne<{
+          totalVideos?: string | number | null;
+          newVideos?: string | number | null;
+          readyVideos?: string | number | null;
+          uploadingVideos?: string | number | null;
+          pendingManualReviewVideos?: string | number | null;
+          rejectedVideos?: string | number | null;
+          failedVideos?: string | number | null;
+          bannedVideos?: string | number | null;
+          totalViews?: string | number | null;
+        }>(),
+      this.getNewViews(periodStartDate),
+      this.getNewPurchases(periodStartDate),
+    ]);
 
     return {
-      totalVideos: Number(row?.totalVideos ?? 0),
-      readyVideos: Number(row?.readyVideos ?? 0),
-      uploadingVideos: Number(row?.uploadingVideos ?? 0),
-      pendingManualReviewVideos: Number(row?.pendingManualReviewVideos ?? 0),
-      rejectedVideos: Number(row?.rejectedVideos ?? 0),
-      failedVideos: Number(row?.failedVideos ?? 0),
-      bannedVideos: Number(row?.bannedVideos ?? 0),
-      totalViews: Number(row?.totalViews ?? 0),
+      period,
+      newVideos: Number(summaryRow?.newVideos ?? 0),
+      totalVideos: Number(summaryRow?.totalVideos ?? 0),
+      readyVideos: Number(summaryRow?.readyVideos ?? 0),
+      uploadingVideos: Number(summaryRow?.uploadingVideos ?? 0),
+      pendingManualReviewVideos: Number(
+        summaryRow?.pendingManualReviewVideos ?? 0,
+      ),
+      rejectedVideos: Number(summaryRow?.rejectedVideos ?? 0),
+      failedVideos: Number(summaryRow?.failedVideos ?? 0),
+      bannedVideos: Number(summaryRow?.bannedVideos ?? 0),
+      totalViews: Number(summaryRow?.totalViews ?? 0),
+      newViews,
+      newPurchases,
     };
+  }
+
+  private async getNewViews(periodStartDate: Date | null): Promise<number> {
+    const queryBuilder = this.ormRepository.manager
+      .createQueryBuilder(VideoViewDailyStatOrmEntity, 'stat')
+      .select('COALESCE(SUM(stat.viewCount), 0)', 'newViews');
+
+    if (periodStartDate) {
+      queryBuilder.where('stat.stat_date >= :periodStartDate', {
+        periodStartDate: this.toUtcDateString(periodStartDate),
+      });
+    }
+
+    const row = await queryBuilder.getRawOne<{
+      newViews?: string | number | null;
+    }>();
+
+    return Number(row?.newViews ?? 0);
+  }
+
+  private async getNewPurchases(periodStartDate: Date | null): Promise<number> {
+    const queryBuilder = this.ormRepository.manager
+      .createQueryBuilder(VideoPurchaseUnlockOrmEntity, 'unlock')
+      .select('COUNT(*)', 'newPurchases');
+
+    if (periodStartDate) {
+      queryBuilder.where('unlock.created_at >= :periodStartDate', {
+        periodStartDate,
+      });
+    }
+
+    const row = await queryBuilder.getRawOne<{
+      newPurchases?: string | number | null;
+    }>();
+
+    return Number(row?.newPurchases ?? 0);
+  }
+
+  private getSummaryPeriodStartDate(
+    period: AdminVideoSummaryPeriod,
+  ): Date | null {
+    if (period === 'all') {
+      return null;
+    }
+
+    const start = new Date();
+    start.setUTCHours(0, 0, 0, 0);
+
+    if (period === 'week') {
+      start.setUTCDate(start.getUTCDate() - 6);
+    }
+
+    if (period === 'month') {
+      start.setUTCDate(start.getUTCDate() - 29);
+    }
+
+    return start;
+  }
+
+  private toUtcDateString(date: Date): string {
+    return date.toISOString().slice(0, 10);
   }
 
   async findAdminVideoById(id: string): Promise<VideoEntity | null> {

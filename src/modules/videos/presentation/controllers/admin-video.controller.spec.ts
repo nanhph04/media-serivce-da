@@ -118,6 +118,7 @@ describe('AdminVideoController', () => {
 
   it('maps admin video summary request to use case query', async () => {
     getAdminVideoSummaryUseCase.execute.mockResolvedValue({
+      period: 'month',
       totalVideos: 10,
       readyVideos: 4,
       uploadingVideos: 2,
@@ -126,15 +127,24 @@ describe('AdminVideoController', () => {
       failedVideos: 1,
       bannedVideos: 1,
       totalViews: 1234,
+      newVideos: 3,
+      newViews: 321,
+      newPurchases: 12,
     });
 
-    const result = await controller.getVideoSummary('admin-1', 'admin');
+    const result = await controller.getVideoSummary(
+      'admin-1',
+      'admin',
+      'month',
+    );
 
     expect(getAdminVideoSummaryUseCase.execute).toHaveBeenCalledWith({
       adminId: 'admin-1',
+      period: 'month',
       role: 'admin',
     });
     expect(result).toEqual({
+      period: 'month',
       totalVideos: 10,
       readyVideos: 4,
       uploadingVideos: 2,
@@ -143,6 +153,9 @@ describe('AdminVideoController', () => {
       failedVideos: 1,
       bannedVideos: 1,
       totalViews: 1234,
+      newVideos: 3,
+      newViews: 321,
+      newPurchases: 12,
     });
   });
 

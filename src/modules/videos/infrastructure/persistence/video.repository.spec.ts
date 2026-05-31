@@ -11,6 +11,7 @@ describe('VideoRepository', () => {
   const set = jest.fn();
   const update = jest.fn();
   const createQueryBuilder = jest.fn();
+  const managerCreateQueryBuilder = jest.fn();
   const findOne = jest.fn();
   const find = jest.fn();
   const findAndCount = jest.fn();
@@ -19,6 +20,9 @@ describe('VideoRepository', () => {
     find,
     findAndCount,
     findOne,
+    manager: {
+      createQueryBuilder: managerCreateQueryBuilder,
+    },
   };
   const manager = {
     delete: jest.fn(),
@@ -41,6 +45,7 @@ describe('VideoRepository', () => {
     set.mockReturnValue({ where });
     update.mockReturnValue({ set });
     createQueryBuilder.mockReturnValue({ update });
+    managerCreateQueryBuilder.mockReset();
     addSelect.mockReturnValue({
       where,
     });
@@ -293,11 +298,12 @@ describe('VideoRepository', () => {
     );
   });
 
-  it('aggregates admin video summary', async () => {
+  it('aggregates admin video summary for the selected period', async () => {
     const queryBuilder = {
       addSelect: jest.fn(),
       getRawOne: jest.fn().mockResolvedValue({
         totalVideos: '10',
+        newVideos: '3',
         readyVideos: '4',
         uploadingVideos: '2',
         pendingManualReviewVideos: '1',
@@ -309,12 +315,30 @@ describe('VideoRepository', () => {
       select: jest.fn(),
       setParameters: jest.fn(),
     };
+    const viewQueryBuilder = {
+      getRawOne: jest.fn().mockResolvedValue({ newViews: '321' }),
+      select: jest.fn(),
+      where: jest.fn(),
+    };
+    const purchaseQueryBuilder = {
+      getRawOne: jest.fn().mockResolvedValue({ newPurchases: '12' }),
+      select: jest.fn(),
+      where: jest.fn(),
+    };
     queryBuilder.select.mockReturnValue(queryBuilder);
     queryBuilder.addSelect.mockReturnValue(queryBuilder);
     queryBuilder.setParameters.mockReturnValue(queryBuilder);
+    viewQueryBuilder.select.mockReturnValue(viewQueryBuilder);
+    viewQueryBuilder.where.mockReturnValue(viewQueryBuilder);
+    purchaseQueryBuilder.select.mockReturnValue(purchaseQueryBuilder);
+    purchaseQueryBuilder.where.mockReturnValue(purchaseQueryBuilder);
     createQueryBuilder.mockReturnValue(queryBuilder);
+    managerCreateQueryBuilder
+      .mockReturnValueOnce(viewQueryBuilder)
+      .mockReturnValueOnce(purchaseQueryBuilder);
 
-    await expect(repository.getAdminVideoSummary()).resolves.toEqual({
+    await expect(repository.getAdminVideoSummary('week')).resolves.toEqual({
+      period: 'week',
       totalVideos: 10,
       readyVideos: 4,
       uploadingVideos: 2,
@@ -323,6 +347,9 @@ describe('VideoRepository', () => {
       failedVideos: 1,
       bannedVideos: 1,
       totalViews: 1234,
+      newVideos: 3,
+      newViews: 321,
+      newPurchases: 12,
     });
     expect(queryBuilder.select).toHaveBeenCalledWith('COUNT(*)', 'totalVideos');
     expect(queryBuilder.addSelect).toHaveBeenCalledWith(
@@ -338,6 +365,71 @@ describe('VideoRepository', () => {
         ],
       }),
     );
+    expect(viewQueryBuilder.where).toHaveBeenCalledWith(
+      'stat.stat_date >= :periodStartDate',
+      expect.objectContaining({
+        periodStartDate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/u),
+      }),
+    );
+    expect(purchaseQueryBuilder.where).toHaveBeenCalledWith(
+      'unlock.created_at >= :periodStartDate',
+      expect.objectContaining({ periodStartDate: expect.any(Date) }),
+    );
+  });
+
+  it('aggregates all-time admin video summary without period filters', async () => {
+    const queryBuilder = {
+      addSelect: jest.fn(),
+      getRawOne: jest.fn().mockResolvedValue({
+        totalVideos: '10',
+        newVideos: '10',
+        readyVideos: '4',
+        uploadingVideos: '2',
+        pendingManualReviewVideos: '1',
+        rejectedVideos: '1',
+        failedVideos: '1',
+        bannedVideos: '1',
+        totalViews: '1234',
+      }),
+      select: jest.fn(),
+      setParameters: jest.fn(),
+    };
+    const viewQueryBuilder = {
+      getRawOne: jest.fn().mockResolvedValue({ newViews: '1234' }),
+      select: jest.fn(),
+      where: jest.fn(),
+    };
+    const purchaseQueryBuilder = {
+      getRawOne: jest.fn().mockResolvedValue({ newPurchases: '25' }),
+      select: jest.fn(),
+      where: jest.fn(),
+    };
+    queryBuilder.select.mockReturnValue(queryBuilder);
+    queryBuilder.addSelect.mockReturnValue(queryBuilder);
+    queryBuilder.setParameters.mockReturnValue(queryBuilder);
+    viewQueryBuilder.select.mockReturnValue(viewQueryBuilder);
+    purchaseQueryBuilder.select.mockReturnValue(purchaseQueryBuilder);
+    createQueryBuilder.mockReturnValue(queryBuilder);
+    managerCreateQueryBuilder
+      .mockReturnValueOnce(viewQueryBuilder)
+      .mockReturnValueOnce(purchaseQueryBuilder);
+
+    await expect(repository.getAdminVideoSummary('all')).resolves.toEqual({
+      period: 'all',
+      totalVideos: 10,
+      readyVideos: 4,
+      uploadingVideos: 2,
+      pendingManualReviewVideos: 1,
+      rejectedVideos: 1,
+      failedVideos: 1,
+      bannedVideos: 1,
+      totalViews: 1234,
+      newVideos: 10,
+      newViews: 1234,
+      newPurchases: 25,
+    });
+    expect(viewQueryBuilder.where).not.toHaveBeenCalled();
+    expect(purchaseQueryBuilder.where).not.toHaveBeenCalled();
   });
 
   it('loads admin videos with filters, search, and pagination', async () => {

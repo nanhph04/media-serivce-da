@@ -180,6 +180,9 @@ export class AdminVideoDetailResponseDto extends AdminVideoListItemResponseDto {
 }
 
 export class AdminVideoSummaryResponseDto {
+  @ApiProperty({ enum: ['day', 'week', 'month', 'all'] })
+  period!: 'day' | 'week' | 'month' | 'all';
+
   @ApiProperty()
   totalVideos!: number;
 
@@ -204,10 +207,20 @@ export class AdminVideoSummaryResponseDto {
   @ApiProperty()
   totalViews!: number;
 
+  @ApiProperty()
+  newVideos!: number;
+
+  @ApiProperty()
+  newViews!: number;
+
+  @ApiProperty()
+  newPurchases!: number;
+
   static fromApplicationDto(
     dto: AdminVideoSummaryResponse,
   ): AdminVideoSummaryResponseDto {
     const response = new AdminVideoSummaryResponseDto();
+    response.period = dto.period;
     response.totalVideos = dto.totalVideos;
     response.readyVideos = dto.readyVideos;
     response.uploadingVideos = dto.uploadingVideos;
@@ -216,6 +229,9 @@ export class AdminVideoSummaryResponseDto {
     response.failedVideos = dto.failedVideos;
     response.bannedVideos = dto.bannedVideos;
     response.totalViews = dto.totalViews;
+    response.newVideos = dto.newVideos;
+    response.newViews = dto.newViews;
+    response.newPurchases = dto.newPurchases;
 
     return response;
   }

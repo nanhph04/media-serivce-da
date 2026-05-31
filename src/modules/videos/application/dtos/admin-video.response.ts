@@ -11,6 +11,7 @@ export interface AdminVideoDetailResponse extends AdminVideoListItemResponse {
 }
 
 export interface AdminVideoSummaryResponse {
+  period: 'day' | 'week' | 'month' | 'all';
   totalVideos: number;
   readyVideos: number;
   uploadingVideos: number;
@@ -19,6 +20,9 @@ export interface AdminVideoSummaryResponse {
   failedVideos: number;
   bannedVideos: number;
   totalViews: number;
+  newVideos: number;
+  newViews: number;
+  newPurchases: number;
 }
 
 export interface AdminVideosPageResponse {

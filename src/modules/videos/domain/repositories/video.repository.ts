@@ -45,6 +45,7 @@ export interface AdminChannelVideoMetrics {
 }
 
 export interface AdminVideoSummary {
+  period: AdminVideoSummaryPeriod;
   totalVideos: number;
   readyVideos: number;
   uploadingVideos: number;
@@ -53,7 +54,12 @@ export interface AdminVideoSummary {
   failedVideos: number;
   bannedVideos: number;
   totalViews: number;
+  newVideos: number;
+  newViews: number;
+  newPurchases: number;
 }
+
+export type AdminVideoSummaryPeriod = 'day' | 'week' | 'month' | 'all';
 
 export interface AdminVideoFilters {
   page: number;
@@ -106,7 +112,9 @@ export interface IVideoRepository {
     limit: number,
   ): Promise<VideoPageResult>;
   getAdminChannelVideoMetrics(now: Date): Promise<AdminChannelVideoMetrics>;
-  getAdminVideoSummary(): Promise<AdminVideoSummary>;
+  getAdminVideoSummary(
+    period: AdminVideoSummaryPeriod,
+  ): Promise<AdminVideoSummary>;
   findAdminVideoById(id: string): Promise<VideoEntity | null>;
   findAdminVideos(filters: AdminVideoFilters): Promise<AdminVideosPage>;
 }

@@ -1784,15 +1784,18 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
   - Public discovery/search/latest/detail khong tra video cua channel suspended.
   - Publish event `channel.status.changed` cho finance-service dat payout hold.
 
-### 9.6 GET `/api/media/admin/videos/summary`
+### 9.6 GET `/api/media/admin/videos/summary?period=month`
 
 - Muc dich: lay summary video cho admin dashboard.
 - Header:
   - `x-user-id`: He thong tu set
   - `x-user-role`: Bat buoc la `admin`
   - `x-internal-secret`: He thong tu set
+- Query:
+  - `period` optional: `day`, `week`, `month`, `all`; default `all`
 - Response HTTP 200:
   - Envelope `data`:
+    - `period` (`day` | `week` | `month` | `all`): moc dang ap dung cho cac field `new*`
     - `totalVideos` (number): tong video rows hien co trong DB
     - `readyVideos` (number): video status `ready`
     - `uploadingVideos` (number): video status `draft`, `pending_moderation`, hoac `processing`
@@ -1801,6 +1804,9 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
     - `failedVideos` (number): video status `failed`
     - `bannedVideos` (number): video status `banned`
     - `totalViews` (number): tong `viewCount` cua video rows
+    - `newVideos` (number): so video moi trong moc `period`
+    - `newViews` (number): so view moi trong moc `period`
+    - `newPurchases` (number): so luot mua moi trong moc `period`
 
 ### 9.7 GET `/api/media/admin/videos?page=1&limit=20&status=ready&visibility=public&channelId=...&ownerId=...&q=...`
 

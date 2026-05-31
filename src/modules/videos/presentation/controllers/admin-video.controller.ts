@@ -86,13 +86,20 @@ export class AdminVideoController {
   @ApiHeader({ name: 'x-user-id', required: true })
   @ApiHeader({ name: 'x-user-role', required: true })
   @ApiHeader({ name: 'x-internal-secret', required: true })
+  @ApiQuery({
+    name: 'period',
+    required: false,
+    enum: ['day', 'week', 'month', 'all'],
+  })
   @ApiSuccessResponse(AdminVideoSummaryResponseDto)
   async getVideoSummary(
     @CurrentUserId() adminId: string,
     @CurrentUserRole() role: string | undefined,
+    @Query('period') period?: string,
   ): Promise<ApiResponse<AdminVideoSummaryResponseDto>> {
     const summary = await this.getAdminVideoSummaryUseCase.execute({
       adminId,
+      period,
       role,
     });
 
