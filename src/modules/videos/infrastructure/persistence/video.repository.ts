@@ -22,6 +22,7 @@ import { ChannelStatus } from '../../../channels/domain/entities/channel.entity'
 import { ChannelOrmEntity } from '../../../channels/infrastructure/persistence/channel.orm-entity';
 import type {
   AdminChannelVideoMetrics,
+  AdminVideoSummary,
   PublicVideoSearchFilters,
   PublicVideosByCategoryPageFilters,
   PublicVideosByCategoryPageResult,
@@ -533,6 +534,70 @@ export class VideoRepository implements IVideoRepository {
     return {
       activeCreators30d: Number(row?.activeCreators30d ?? 0),
       uploadingNow: Number(row?.uploadingNow ?? 0),
+    };
+  }
+
+  async getAdminVideoSummary(): Promise<AdminVideoSummary> {
+    const row = await this.ormRepository
+      .createQueryBuilder('video')
+      .select('COUNT(*)', 'totalVideos')
+      .addSelect(
+        `COUNT(*) FILTER (WHERE video.status = :readyStatus)`,
+        'readyVideos',
+      )
+      .addSelect(
+        `COUNT(*) FILTER (WHERE video.status IN (:...uploadingStatuses))`,
+        'uploadingVideos',
+      )
+      .addSelect(
+        `COUNT(*) FILTER (WHERE video.status = :pendingManualReviewStatus)`,
+        'pendingManualReviewVideos',
+      )
+      .addSelect(
+        `COUNT(*) FILTER (WHERE video.status = :rejectedStatus)`,
+        'rejectedVideos',
+      )
+      .addSelect(
+        `COUNT(*) FILTER (WHERE video.status = :failedStatus)`,
+        'failedVideos',
+      )
+      .addSelect(
+        `COUNT(*) FILTER (WHERE video.status = :bannedStatus)`,
+        'bannedVideos',
+      )
+      .addSelect('COALESCE(SUM(video.viewCount), 0)', 'totalViews')
+      .setParameters({
+        bannedStatus: VideoStatus.BANNED,
+        failedStatus: VideoStatus.FAILED,
+        pendingManualReviewStatus: VideoStatus.PENDING_MANUAL_REVIEW,
+        readyStatus: VideoStatus.READY,
+        rejectedStatus: VideoStatus.REJECTED,
+        uploadingStatuses: [
+          VideoStatus.DRAFT,
+          VideoStatus.PENDING_MODERATION,
+          VideoStatus.PROCESSING,
+        ],
+      })
+      .getRawOne<{
+        totalVideos?: string | number | null;
+        readyVideos?: string | number | null;
+        uploadingVideos?: string | number | null;
+        pendingManualReviewVideos?: string | number | null;
+        rejectedVideos?: string | number | null;
+        failedVideos?: string | number | null;
+        bannedVideos?: string | number | null;
+        totalViews?: string | number | null;
+      }>();
+
+    return {
+      totalVideos: Number(row?.totalVideos ?? 0),
+      readyVideos: Number(row?.readyVideos ?? 0),
+      uploadingVideos: Number(row?.uploadingVideos ?? 0),
+      pendingManualReviewVideos: Number(row?.pendingManualReviewVideos ?? 0),
+      rejectedVideos: Number(row?.rejectedVideos ?? 0),
+      failedVideos: Number(row?.failedVideos ?? 0),
+      bannedVideos: Number(row?.bannedVideos ?? 0),
+      totalViews: Number(row?.totalViews ?? 0),
     };
   }
 

@@ -172,6 +172,7 @@ GET    /api/media/admin/channels
 GET    /api/media/admin/channels/membership-reviews
 PATCH  /api/media/admin/channels/:id/membership-review
 PATCH  /api/media/admin/channels/:id/status
+GET    /api/media/admin/videos/summary
 GET    /api/media/admin/videos
 GET    /api/media/admin/videos/:id
 PATCH  /api/media/admin/videos/:id/moderation

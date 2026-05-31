@@ -10,6 +10,17 @@ export interface AdminVideoDetailResponse extends AdminVideoListItemResponse {
   purchaseCount: number;
 }
 
+export interface AdminVideoSummaryResponse {
+  totalVideos: number;
+  readyVideos: number;
+  uploadingVideos: number;
+  pendingManualReviewVideos: number;
+  rejectedVideos: number;
+  failedVideos: number;
+  bannedVideos: number;
+  totalViews: number;
+}
+
 export interface AdminVideosPageResponse {
   items: AdminVideoListItemResponse[];
   pagination: {

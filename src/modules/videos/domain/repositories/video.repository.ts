@@ -44,6 +44,17 @@ export interface AdminChannelVideoMetrics {
   uploadingNow: number;
 }
 
+export interface AdminVideoSummary {
+  totalVideos: number;
+  readyVideos: number;
+  uploadingVideos: number;
+  pendingManualReviewVideos: number;
+  rejectedVideos: number;
+  failedVideos: number;
+  bannedVideos: number;
+  totalViews: number;
+}
+
 export interface AdminVideoFilters {
   page: number;
   limit: number;
@@ -95,6 +106,7 @@ export interface IVideoRepository {
     limit: number,
   ): Promise<VideoPageResult>;
   getAdminChannelVideoMetrics(now: Date): Promise<AdminChannelVideoMetrics>;
+  getAdminVideoSummary(): Promise<AdminVideoSummary>;
   findAdminVideoById(id: string): Promise<VideoEntity | null>;
   findAdminVideos(filters: AdminVideoFilters): Promise<AdminVideosPage>;
 }

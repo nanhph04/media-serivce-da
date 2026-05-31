@@ -8,6 +8,9 @@ describe('AdminVideoController', () => {
   const listAdminVideosUseCase = {
     execute: jest.fn(),
   };
+  const getAdminVideoSummaryUseCase = {
+    execute: jest.fn(),
+  };
   const getAdminVideoDetailUseCase = {
     execute: jest.fn(),
   };
@@ -19,6 +22,7 @@ describe('AdminVideoController', () => {
   };
   const controller = new AdminVideoController(
     listAdminVideosUseCase as never,
+    getAdminVideoSummaryUseCase as never,
     getAdminVideoDetailUseCase as never,
     getAdminVideoPreviewUseCase as never,
     moderateAdminVideoUseCase as never,
@@ -109,6 +113,36 @@ describe('AdminVideoController', () => {
         total: 1,
         totalPages: 1,
       },
+    });
+  });
+
+  it('maps admin video summary request to use case query', async () => {
+    getAdminVideoSummaryUseCase.execute.mockResolvedValue({
+      totalVideos: 10,
+      readyVideos: 4,
+      uploadingVideos: 2,
+      pendingManualReviewVideos: 1,
+      rejectedVideos: 1,
+      failedVideos: 1,
+      bannedVideos: 1,
+      totalViews: 1234,
+    });
+
+    const result = await controller.getVideoSummary('admin-1', 'admin');
+
+    expect(getAdminVideoSummaryUseCase.execute).toHaveBeenCalledWith({
+      adminId: 'admin-1',
+      role: 'admin',
+    });
+    expect(result).toEqual({
+      totalVideos: 10,
+      readyVideos: 4,
+      uploadingVideos: 2,
+      pendingManualReviewVideos: 1,
+      rejectedVideos: 1,
+      failedVideos: 1,
+      bannedVideos: 1,
+      totalViews: 1234,
     });
   });
 

@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import type {
   AdminVideoDetailResponse,
   AdminVideoListItemResponse,
+  AdminVideoSummaryResponse,
   AdminVideosPageResponse,
 } from '../../application/dtos/admin-video.response';
 
@@ -173,6 +174,48 @@ export class AdminVideoDetailResponseDto extends AdminVideoListItemResponseDto {
     );
     response.categoryTitle = dto.categoryTitle;
     response.purchaseCount = dto.purchaseCount;
+
+    return response;
+  }
+}
+
+export class AdminVideoSummaryResponseDto {
+  @ApiProperty()
+  totalVideos!: number;
+
+  @ApiProperty()
+  readyVideos!: number;
+
+  @ApiProperty()
+  uploadingVideos!: number;
+
+  @ApiProperty()
+  pendingManualReviewVideos!: number;
+
+  @ApiProperty()
+  rejectedVideos!: number;
+
+  @ApiProperty()
+  failedVideos!: number;
+
+  @ApiProperty()
+  bannedVideos!: number;
+
+  @ApiProperty()
+  totalViews!: number;
+
+  static fromApplicationDto(
+    dto: AdminVideoSummaryResponse,
+  ): AdminVideoSummaryResponseDto {
+    const response = new AdminVideoSummaryResponseDto();
+    response.totalVideos = dto.totalVideos;
+    response.readyVideos = dto.readyVideos;
+    response.uploadingVideos = dto.uploadingVideos;
+    response.pendingManualReviewVideos = dto.pendingManualReviewVideos;
+    response.rejectedVideos = dto.rejectedVideos;
+    response.failedVideos = dto.failedVideos;
+    response.bannedVideos = dto.bannedVideos;
+    response.totalViews = dto.totalViews;
 
     return response;
   }

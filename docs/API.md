@@ -1784,7 +1784,25 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
   - Public discovery/search/latest/detail khong tra video cua channel suspended.
   - Publish event `channel.status.changed` cho finance-service dat payout hold.
 
-### 9.6 GET `/api/media/admin/videos?page=1&limit=20&status=ready&visibility=public&channelId=...&ownerId=...&q=...`
+### 9.6 GET `/api/media/admin/videos/summary`
+
+- Muc dich: lay summary video cho admin dashboard.
+- Header:
+  - `x-user-id`: He thong tu set
+  - `x-user-role`: Bat buoc la `admin`
+  - `x-internal-secret`: He thong tu set
+- Response HTTP 200:
+  - Envelope `data`:
+    - `totalVideos` (number): tong video rows hien co trong DB
+    - `readyVideos` (number): video status `ready`
+    - `uploadingVideos` (number): video status `draft`, `pending_moderation`, hoac `processing`
+    - `pendingManualReviewVideos` (number): video status `pending_manual_review`
+    - `rejectedVideos` (number): video status `rejected`
+    - `failedVideos` (number): video status `failed`
+    - `bannedVideos` (number): video status `banned`
+    - `totalViews` (number): tong `viewCount` cua video rows
+
+### 9.7 GET `/api/media/admin/videos?page=1&limit=20&status=ready&visibility=public&channelId=...&ownerId=...&q=...`
 
 - Muc dich: admin lay danh sach tat ca video trong he thong, gom public/private/draft/processing/rejected/failed/ready va video da soft delete.
 - Header:
@@ -1840,7 +1858,7 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
       - `total` (number)
       - `totalPages` (number)
 
-### 9.7 GET `/api/media/admin/videos/:id`
+### 9.8 GET `/api/media/admin/videos/:id`
 
 - Muc dich: admin xem chi tiet video bat ky status, gom ca private/draft/rejected/deleted.
 - Header:
@@ -1852,7 +1870,7 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
 - Response HTTP 200:
   - Envelope `data`: admin video item, gom `ownerId`, `channelId`, metadata, processing/moderation fields, delete fields va timestamps.
 
-### 9.8 PATCH `/api/media/admin/videos/:id/moderation`
+### 9.9 PATCH `/api/media/admin/videos/:id/moderation`
 
 - Muc dich: admin approve/reject video dang cho manual review.
 - Header:

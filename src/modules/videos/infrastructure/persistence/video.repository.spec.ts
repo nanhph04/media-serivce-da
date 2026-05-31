@@ -293,6 +293,53 @@ describe('VideoRepository', () => {
     );
   });
 
+  it('aggregates admin video summary', async () => {
+    const queryBuilder = {
+      addSelect: jest.fn(),
+      getRawOne: jest.fn().mockResolvedValue({
+        totalVideos: '10',
+        readyVideos: '4',
+        uploadingVideos: '2',
+        pendingManualReviewVideos: '1',
+        rejectedVideos: '1',
+        failedVideos: '1',
+        bannedVideos: '1',
+        totalViews: '1234',
+      }),
+      select: jest.fn(),
+      setParameters: jest.fn(),
+    };
+    queryBuilder.select.mockReturnValue(queryBuilder);
+    queryBuilder.addSelect.mockReturnValue(queryBuilder);
+    queryBuilder.setParameters.mockReturnValue(queryBuilder);
+    createQueryBuilder.mockReturnValue(queryBuilder);
+
+    await expect(repository.getAdminVideoSummary()).resolves.toEqual({
+      totalVideos: 10,
+      readyVideos: 4,
+      uploadingVideos: 2,
+      pendingManualReviewVideos: 1,
+      rejectedVideos: 1,
+      failedVideos: 1,
+      bannedVideos: 1,
+      totalViews: 1234,
+    });
+    expect(queryBuilder.select).toHaveBeenCalledWith('COUNT(*)', 'totalVideos');
+    expect(queryBuilder.addSelect).toHaveBeenCalledWith(
+      'COALESCE(SUM(video.viewCount), 0)',
+      'totalViews',
+    );
+    expect(queryBuilder.setParameters).toHaveBeenCalledWith(
+      expect.objectContaining({
+        uploadingStatuses: [
+          VideoStatus.DRAFT,
+          VideoStatus.PENDING_MODERATION,
+          VideoStatus.PROCESSING,
+        ],
+      }),
+    );
+  });
+
   it('loads admin videos with filters, search, and pagination', async () => {
     const queryBuilder = {
       addOrderBy: jest.fn(),

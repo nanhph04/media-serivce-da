@@ -24,11 +24,13 @@ import {
 import { ListAdminVideosUseCase } from '../../application/use-cases/list-admin-videos.use-case';
 import { GetAdminVideoDetailUseCase } from '../../application/use-cases/get-admin-video-detail.use-case';
 import { GetAdminVideoPreviewUseCase } from '../../application/use-cases/get-admin-video-preview.use-case';
+import { GetAdminVideoSummaryUseCase } from '../../application/use-cases/get-admin-video-summary.use-case';
 import { ModerateAdminVideoUseCase } from '../../application/use-cases/moderate-admin-video.use-case';
 import { AdminVideoQueryDto } from '../dtos/admin-video-query.dto';
 import {
   AdminVideoDetailResponseDto,
   AdminVideoListItemResponseDto,
+  AdminVideoSummaryResponseDto,
   AdminVideosResponseDto,
 } from '../dtos/admin-videos.response';
 import { AdminVideoPreviewResponseDto } from '../dtos/admin-video-preview.response';
@@ -40,6 +42,7 @@ import { ModerateAdminVideoRequestDto } from '../dtos/moderate-admin-video.reque
 export class AdminVideoController {
   constructor(
     private readonly listAdminVideosUseCase: ListAdminVideosUseCase,
+    private readonly getAdminVideoSummaryUseCase: GetAdminVideoSummaryUseCase,
     private readonly getAdminVideoDetailUseCase: GetAdminVideoDetailUseCase,
     private readonly getAdminVideoPreviewUseCase: GetAdminVideoPreviewUseCase,
     private readonly moderateAdminVideoUseCase: ModerateAdminVideoUseCase,
@@ -76,6 +79,25 @@ export class AdminVideoController {
 
     return apiResponseContract(
       AdminVideosResponseDto.fromApplicationDto(result),
+    );
+  }
+
+  @Get('summary')
+  @ApiHeader({ name: 'x-user-id', required: true })
+  @ApiHeader({ name: 'x-user-role', required: true })
+  @ApiHeader({ name: 'x-internal-secret', required: true })
+  @ApiSuccessResponse(AdminVideoSummaryResponseDto)
+  async getVideoSummary(
+    @CurrentUserId() adminId: string,
+    @CurrentUserRole() role: string | undefined,
+  ): Promise<ApiResponse<AdminVideoSummaryResponseDto>> {
+    const summary = await this.getAdminVideoSummaryUseCase.execute({
+      adminId,
+      role,
+    });
+
+    return apiResponseContract(
+      AdminVideoSummaryResponseDto.fromApplicationDto(summary),
     );
   }
 

@@ -15,6 +15,7 @@ import { DeleteFailedVideoUseCase } from './application/use-cases/delete-failed-
 import { GetContinueWatchingUseCase } from './application/use-cases/get-continue-watching.use-case';
 import { GetAdminVideoDetailUseCase } from './application/use-cases/get-admin-video-detail.use-case';
 import { GetAdminVideoPreviewUseCase } from './application/use-cases/get-admin-video-preview.use-case';
+import { GetAdminVideoSummaryUseCase } from './application/use-cases/get-admin-video-summary.use-case';
 import { GetLatestVideosUseCase } from './application/use-cases/get-latest-videos.use-case';
 import { GetPurchasedVideosUseCase } from './application/use-cases/get-purchased-videos.use-case';
 import { GetRankedVideosUseCase } from './application/use-cases/get-ranked-videos.use-case';
@@ -159,6 +160,7 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
     UnlockVideoUseCase,
     GetAdminVideoDetailUseCase,
     GetAdminVideoPreviewUseCase,
+    GetAdminVideoSummaryUseCase,
     GetStudioVideoDetailUseCase,
     ListAdminVideosUseCase,
     ModerateAdminVideoUseCase,
