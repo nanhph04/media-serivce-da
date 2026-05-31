@@ -13,7 +13,6 @@ import { CleanupExpiredDraftUploadsUseCase } from './application/use-cases/clean
 import { CleanupHardDeletedVideosUseCase } from './application/use-cases/cleanup-hard-deleted-videos.use-case';
 import { DeleteFailedVideoUseCase } from './application/use-cases/delete-failed-video.use-case';
 import { GetContinueWatchingUseCase } from './application/use-cases/get-continue-watching.use-case';
-import { GetAdminReportsSummaryUseCase } from './application/use-cases/get-admin-reports-summary.use-case';
 import { GetAdminVideoDetailUseCase } from './application/use-cases/get-admin-video-detail.use-case';
 import { GetAdminVideoPreviewUseCase } from './application/use-cases/get-admin-video-preview.use-case';
 import { GetLatestVideosUseCase } from './application/use-cases/get-latest-videos.use-case';
@@ -38,7 +37,6 @@ import { CreateVideoUploadPartUrlsUseCase } from './application/use-cases/create
 import { GetVideoUploadStatusUseCase } from './application/use-cases/get-video-upload-status.use-case';
 import { RecordVideoUploadPartCompletedUseCase } from './application/use-cases/record-video-upload-part-completed.use-case';
 import { StartVideoUploadUseCase } from './application/use-cases/start-video-upload.use-case';
-import { ListAdminReportsUseCase } from './application/use-cases/list-admin-reports.use-case';
 import { ListAdminVideosUseCase } from './application/use-cases/list-admin-videos.use-case';
 import { ModerateAdminVideoUseCase } from './application/use-cases/moderate-admin-video.use-case';
 import { PlayVideoUseCase } from './application/use-cases/play-video.use-case';
@@ -159,11 +157,9 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
     SearchPublicVideosUseCase,
     UnpublishVideoUseCase,
     UnlockVideoUseCase,
-    GetAdminReportsSummaryUseCase,
     GetAdminVideoDetailUseCase,
     GetAdminVideoPreviewUseCase,
     GetStudioVideoDetailUseCase,
-    ListAdminReportsUseCase,
     ListAdminVideosUseCase,
     ModerateAdminVideoUseCase,
     GetContinueWatchingUseCase,

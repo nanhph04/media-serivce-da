@@ -1378,59 +1378,6 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
     - `viewCount` (number)
   - Envelope `pagination`: `page`, `limit`, `total`, `totalPages`
 
-### 4.18 POST `/api/media/videos/:id/reports`
-
-- Muc dich: user report video vi pham.
-- Header:
-  - `x-user-id`: He thong tu set
-  - `x-internal-secret`: He thong tu set
-- Body:
-
-```json
-{
-  "reason": "Noi dung vi pham chinh sach",
-  "evidenceTimestampSeconds": 42
-}
-```
-
-- Validation:
-  - `reason` bat buoc, khong rong, toi da 1000 ky tu.
-  - `evidenceTimestampSeconds` optional, integer >= 0.
-  - Neu video co duration thi `evidenceTimestampSeconds` khong duoc lon hon duration.
-- Response HTTP 201:
-  - Envelope `data`: content report vua tao, hoac pending report hien co neu user da report cung video va report do chua duoc xu ly.
-
-### 4.19 POST `/api/media/channels/:id/reports`
-
-- Muc dich: user report channel vi pham.
-- Header:
-  - `x-user-id`: He thong tu set
-  - `x-internal-secret`: He thong tu set
-- Body voi video id chinh xac:
-
-```json
-{
-  "reason": "Channel dang dang noi dung vi pham",
-  "reportedVideoId": "video-1"
-}
-```
-
-- Body voi ten video free-text:
-
-```json
-{
-  "reason": "Channel dang dang noi dung vi pham",
-  "reportedVideoTitle": "Ten video user thay vi pham"
-}
-```
-
-- Validation:
-  - `reason` bat buoc, khong rong, toi da 1000 ky tu.
-  - Neu co `reportedVideoId`, video phai ton tai va thuoc channel dang report.
-  - Neu co ca `reportedVideoId` va `reportedVideoTitle`, server uu tien `reportedVideoId` va snapshot title tu video that.
-- Response HTTP 201:
-  - Envelope `data`: content report vua tao, hoac pending report hien co neu user da report cung channel va report do chua duoc xu ly.
-
 ## 5. SEARCH APIs
 
 ### 5.1 GET `/api/media/search?q=...&category=...&page=1&limit=20`
@@ -1837,85 +1784,7 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
   - Public discovery/search/latest/detail khong tra video cua channel suspended.
   - Publish event `channel.status.changed` cho finance-service dat payout hold.
 
-### 9.6 GET `/api/media/admin/reports/summary`
-
-- Muc dich: lay summary moderation queue cho admin dashboard, gom user-submitted reports va synthetic reports tu video auto-moderation queue.
-- Header:
-  - `x-user-id`: He thong tu set
-  - `x-user-role`: Bat buoc la `admin`
-  - `x-internal-secret`: He thong tu set
-- Response HTTP 200:
-  - Envelope `data`:
-    - `pendingReports` (number): tong pending user reports + pending auto moderation reports
-    - `pendingManualReviewVideos` (number): video status `pending_manual_review`
-    - `autoFlaggedVideos` (number): video co `moderationDetails` va status pending/rejected
-    - `rejectedLast30d` (number): video rejected trong 30 ngay gan nhat
-    - `averageResolutionHours` (number | null): hien tai `null`
-    - `pendingUserReports` (number)
-    - `pendingVideoReports` (number)
-    - `pendingChannelReports` (number)
-    - `resolvedUserReports` (number)
-    - `dismissedUserReports` (number)
-
-### 9.7 GET `/api/media/admin/reports?status=pending&page=1&limit=5&source=user&targetType=video`
-
-- Muc dich: lay danh sach moderation report/queue item cho dashboard.
-- Header:
-  - `x-user-id`: He thong tu set
-  - `x-user-role`: Bat buoc la `admin`
-  - `x-internal-secret`: He thong tu set
-- Query:
-  - `status` (`pending` | `resolved` | `dismissed` | `rejected`, optional, default `pending`)
-  - `source` (`user` | `auto_moderation`, optional)
-  - `targetType` (`video` | `channel`, optional; chi ap dung cho user reports)
-  - `page` (number, optional, default 1, min 1)
-  - `limit` (number, optional, default 20, min 1, max 100)
-- Response HTTP 200:
-  - Envelope `data`:
-    - `items` (array), moi object gom:
-      - `id` (string)
-      - `source` (`user` | `auto_moderation`)
-      - `targetType` (`video` | `channel`)
-      - `targetVideoId` (string | null)
-      - `targetChannelId` (string | null)
-      - `title` (string)
-      - `reporterLabel` (string)
-      - `reporterUserId` (string | null)
-      - `reason` (string)
-      - `confidencePercent` (number | null)
-      - `evidenceTimestampSeconds` (number | null)
-      - `contextVideoId` (string | null)
-      - `contextVideoTitle` (string | null)
-      - `status` (`pending` | `resolved` | `dismissed` | `rejected`)
-      - `createdAt` (string ISO): thoi diem video vao status moderation hien tai
-      - `priority` (`low` | `medium` | `high` | `critical`)
-    - `pagination`:
-      - `page` (number)
-      - `limit` (number)
-      - `total` (number)
-      - `totalPages` (number)
-
-### 9.8 PATCH `/api/media/admin/reports/:id/status`
-
-- Muc dich: admin mark user-submitted report la `resolved` hoac `dismissed`.
-- Header:
-  - `x-user-id`: He thong tu set
-  - `x-user-role`: Bat buoc la `admin`
-  - `x-internal-secret`: He thong tu set
-- Body:
-
-```json
-{
-  "status": "resolved"
-}
-```
-
-- Response HTTP 200:
-  - Envelope `data`: content report sau khi cap nhat status.
-- Ghi chu:
-  - Endpoint nay chi ap dung cho user-submitted reports, khong cap nhat synthetic auto moderation report.
-
-### 9.9 GET `/api/media/admin/videos?page=1&limit=20&status=ready&visibility=public&channelId=...&ownerId=...&q=...`
+### 9.6 GET `/api/media/admin/videos?page=1&limit=20&status=ready&visibility=public&channelId=...&ownerId=...&q=...`
 
 - Muc dich: admin lay danh sach tat ca video trong he thong, gom public/private/draft/processing/rejected/failed/ready va video da soft delete.
 - Header:
@@ -1971,7 +1840,7 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
       - `total` (number)
       - `totalPages` (number)
 
-### 9.10 GET `/api/media/admin/videos/:id`
+### 9.7 GET `/api/media/admin/videos/:id`
 
 - Muc dich: admin xem chi tiet video bat ky status, gom ca private/draft/rejected/deleted.
 - Header:
@@ -1983,7 +1852,7 @@ Public/list/metadata/studio response deu tra URL public truc tiep trong `thumbna
 - Response HTTP 200:
   - Envelope `data`: admin video item, gom `ownerId`, `channelId`, metadata, processing/moderation fields, delete fields va timestamps.
 
-### 9.11 PATCH `/api/media/admin/videos/:id/moderation`
+### 9.8 PATCH `/api/media/admin/videos/:id/moderation`
 
 - Muc dich: admin approve/reject video dang cho manual review.
 - Header:

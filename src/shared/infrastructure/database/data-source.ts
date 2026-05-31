@@ -5,7 +5,6 @@ import { CategoryOrmEntity } from '../../../modules/categories/infrastructure/pe
 import { ChannelMembershipOrmEntity } from '../../../modules/channels/infrastructure/persistence/channel-membership.orm-entity';
 import { ChannelOrmEntity } from '../../../modules/channels/infrastructure/persistence/channel.orm-entity';
 import { MembershipTierOrmEntity } from '../../../modules/channels/infrastructure/persistence/membership-tier.orm-entity';
-import { ContentReportOrmEntity } from '../../../modules/reports/infrastructure/persistence/content-report.orm-entity';
 import { TagOrmEntity } from '../../../modules/tags/infrastructure/persistence/tag.orm-entity';
 import { VideoCategoryOrmEntity } from '../../../modules/videos/infrastructure/persistence/video-category.orm-entity';
 import { VideoPurchaseUnlockOrmEntity } from '../../../modules/videos/infrastructure/persistence/video-purchase-unlock.orm-entity';
@@ -69,7 +68,6 @@ export default new DataSource({
     MembershipTierOrmEntity,
     CategoryOrmEntity,
     TagOrmEntity,
-    ContentReportOrmEntity,
     VideoOrmEntity,
     VideoPurchaseUnlockOrmEntity,
     VideoCategoryOrmEntity,

@@ -44,25 +44,6 @@ export interface AdminChannelVideoMetrics {
   uploadingNow: number;
 }
 
-export interface AdminReportsSummary {
-  pendingReports: number;
-  pendingManualReviewVideos: number;
-  autoFlaggedVideos: number;
-  rejectedLast30d: number;
-  averageResolutionHours: number | null;
-}
-
-export interface AdminReportsFilters {
-  status: VideoStatus;
-  page: number;
-  limit: number;
-}
-
-export interface AdminReportsPage {
-  items: VideoEntity[];
-  total: number;
-}
-
 export interface AdminVideoFilters {
   page: number;
   limit: number;
@@ -114,8 +95,6 @@ export interface IVideoRepository {
     limit: number,
   ): Promise<VideoPageResult>;
   getAdminChannelVideoMetrics(now: Date): Promise<AdminChannelVideoMetrics>;
-  getAdminReportsSummary(now: Date): Promise<AdminReportsSummary>;
-  findAdminReports(filters: AdminReportsFilters): Promise<AdminReportsPage>;
   findAdminVideoById(id: string): Promise<VideoEntity | null>;
   findAdminVideos(filters: AdminVideoFilters): Promise<AdminVideosPage>;
 }
