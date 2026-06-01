@@ -21,7 +21,7 @@ describe('toChannelDetailResponseDto', () => {
         bannerUrl: '',
         status: 'active',
         createdAt: new Date('2026-01-01T00:00:00.000Z'),
-        updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-01-02T00:00:00.000Z'),
       },
       membershipEligibility: {
         isEligible: false,
@@ -39,6 +39,8 @@ describe('toChannelDetailResponseDto', () => {
     expect(result.isMembershipClosedByAdmin).toBe(true);
     expect(result.membershipReviewStatus).toBe('pending');
     expect(result.membershipRequestedAt).toBe('2026-01-01T01:00:00.000Z');
+    expect(result.createdAt).toBe('2026-01-01T00:00:00.000Z');
+    expect(result.updatedAt).toBe('2026-01-02T00:00:00.000Z');
     expect(result.membershipEligibility).toEqual({
       isEligible: false,
       readyVideoCount: 4,

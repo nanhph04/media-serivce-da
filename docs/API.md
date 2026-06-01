@@ -1,6 +1,6 @@
 # Media Service API
 
-**Last updated:** 31/05/2026
+**Last updated:** 01/06/2026
 
 **Base URL:** `/api/media`
 
@@ -143,7 +143,9 @@
 - Form data:
   - `file` (binary, bat buoc): anh JPEG, PNG, hoac WebP. Gioi han 5MB.
 - Ghi chu:
-  - Backend upload object vao `MINIO_PUBLIC_BUCKET`.
+  - Upload di qua backend: `Client -> API Gateway/Media Service -> MinIO`.
+  - Client gui file bang `multipart/form-data`; backend nhan file va upload object vao `MINIO_PUBLIC_BUCKET`.
+  - Endpoint nay khong tra presigned PUT URL va client khong upload truc tiep len MinIO.
   - Response `avatarUrl` la URL MinIO public co dinh, khong phai presigned GET URL.
   - Client dung truc tiep URL nay de render anh.
 - Response HTTP 200:
@@ -159,7 +161,9 @@
 - Form data:
   - `file` (binary, bat buoc): anh JPEG, PNG, hoac WebP. Gioi han 10MB.
 - Ghi chu:
-  - Backend upload object vao `MINIO_PUBLIC_BUCKET`.
+  - Upload di qua backend: `Client -> API Gateway/Media Service -> MinIO`.
+  - Client gui file bang `multipart/form-data`; backend nhan file va upload object vao `MINIO_PUBLIC_BUCKET`.
+  - Endpoint nay khong tra presigned PUT URL va client khong upload truc tiep len MinIO.
   - Response `bannerUrl` la URL MinIO public co dinh, khong phai presigned GET URL.
   - Client dung truc tiep URL nay de render anh.
 - Response HTTP 200:
@@ -190,6 +194,8 @@
     - `avatarUrl` (string)
     - `bannerUrl` (string)
     - `status` (string)
+    - `createdAt` (string ISO): ngay tao channel
+    - `updatedAt` (string ISO): ngay cap nhat channel gan nhat
     - `membershipEligibility` (object)
       - `isEligible` (boolean)
       - `readyVideoCount` (number)

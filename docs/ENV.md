@@ -69,7 +69,10 @@ reach MinIO.
 
 Stored in `MINIO_PUBLIC_BUCKET`:
 
-- Channel avatar and banner uploads. Responses store permanent public object URLs.
+- Channel avatar and banner uploads. Clients send multipart files to
+  media-service through the gateway; media-service uploads the objects to MinIO
+  and stores permanent public object URLs. These uploads do not use presigned
+  PUT URLs.
 - Custom video thumbnails uploaded by clients through presigned PUT URLs.
 - Auto video thumbnails written by media-processing-service to the public bucket
   passed in the transcode job.

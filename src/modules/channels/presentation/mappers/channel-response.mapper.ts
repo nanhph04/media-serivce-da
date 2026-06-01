@@ -165,6 +165,8 @@ export function toChannelDetailResponseDto(
     avatarUrl: source.channel.avatarUrl,
     bannerUrl: source.channel.bannerUrl,
     status: source.channel.status,
+    createdAt: source.channel.createdAt.toISOString(),
+    updatedAt: source.channel.updatedAt.toISOString(),
     membershipEligibility: source.membershipEligibility,
     membershipTiers: source.membershipTiers.map(toMembershipTierResponseDto),
     publicVideos: source.publicVideos.map(toPublicVideoResponseDto),

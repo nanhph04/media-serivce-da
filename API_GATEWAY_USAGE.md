@@ -1,6 +1,6 @@
 # Media Service - API Gateway Usage
 
-Last updated: 2026-05-22
+Last updated: 2026-06-01
 
 ## Purpose
 
@@ -268,8 +268,17 @@ returns a presigned PUT URL for a custom thumbnail in `MINIO_PUBLIC_BUCKET`.
 After submit, video responses expose the permanent public `thumbnailUrl`; the
 client should not use the presigned PUT URL for rendering.
 
-Channel avatar/banner upload routes accept multipart `file`, upload the object
-to `MINIO_PUBLIC_BUCKET`, and return permanent public `avatarUrl`/`bannerUrl`.
+Channel avatar/banner upload routes accept multipart `file` through the gateway
+and backend:
+
+```text
+Client -> api_gateway -> media_service -> MinIO public bucket
+```
+
+These routes do not return presigned PUT URLs and clients do not upload channel
+images directly to MinIO. Media service receives the file bytes, uploads the
+object to `MINIO_PUBLIC_BUCKET`, and returns permanent public
+`avatarUrl`/`bannerUrl`.
 
 ## Error Shape
 

@@ -60,6 +60,8 @@ export class UploadChannelImageUseCase extends BaseUseCase<
       throw new ForbiddenException(ERROR_MESSAGES.CHANNEL_NOT_ACTIVE);
     }
 
+    const previousImageUrl =
+      command.imageType === 'avatar' ? channel.avatarUrl : channel.bannerUrl;
     const objectKey = `channels/${channel.id}/${command.imageType}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
     const imageUrl = await this.objectStorageService.uploadObject({
       bucket: 'public',
@@ -76,6 +78,11 @@ export class UploadChannelImageUseCase extends BaseUseCase<
     }
 
     await this.channelRepository.update(channel);
+    await this.deletePreviousImageIfNeeded(
+      command.imageType,
+      previousImageUrl,
+      imageUrl,
+    );
 
     return {
       id: channel.id,
@@ -124,5 +131,28 @@ export class UploadChannelImageUseCase extends BaseUseCase<
     }
 
     return extension;
+  }
+
+  private async deletePreviousImageIfNeeded(
+    imageType: UploadChannelImageCommand['imageType'],
+    previousImageUrl: string,
+    currentImageUrl: string,
+  ): Promise<void> {
+    if (!previousImageUrl || previousImageUrl === currentImageUrl) {
+      return;
+    }
+
+    try {
+      await this.objectStorageService.deleteObjectByUrl(
+        'public',
+        previousImageUrl,
+      );
+    } catch (error) {
+      this.logger.logWarn('Failed to delete previous channel image', {
+        imageType,
+        previousImageUrl,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
   }
 }

@@ -84,6 +84,12 @@ export class ChannelDetailResponseDto {
   @ApiProperty()
   status!: string;
 
+  @ApiProperty()
+  createdAt!: string;
+
+  @ApiProperty()
+  updatedAt!: string;
+
   @ApiProperty({ type: ChannelMembershipEligibilityDto })
   membershipEligibility!: ChannelMembershipEligibilityDto;
 

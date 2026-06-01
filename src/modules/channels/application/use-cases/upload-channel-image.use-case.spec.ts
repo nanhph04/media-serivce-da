@@ -16,6 +16,7 @@ describe('UploadChannelImageUseCase', () => {
   };
   const objectStorageService = {
     uploadObject: jest.fn(),
+    deleteObjectByUrl: jest.fn(),
   };
 
   const useCase = new UploadChannelImageUseCase(
@@ -30,6 +31,7 @@ describe('UploadChannelImageUseCase', () => {
     objectStorageService.uploadObject.mockResolvedValue(
       'http://localhost:9000/media-public/channels/channel-1/avatar/image.jpg',
     );
+    objectStorageService.deleteObjectByUrl.mockResolvedValue(true);
   });
 
   it('uploads an avatar to public MinIO bucket and stores the public URL', async () => {
@@ -55,6 +57,7 @@ describe('UploadChannelImageUseCase', () => {
     expect(result.avatarUrl).toBe(
       'http://localhost:9000/media-public/channels/channel-1/avatar/image.jpg',
     );
+    expect(objectStorageService.deleteObjectByUrl).not.toHaveBeenCalled();
   });
 
   it('uploads a banner and stores the public URL without creating a presigned URL', async () => {
@@ -77,6 +80,78 @@ describe('UploadChannelImageUseCase', () => {
     );
     expect(result.bannerUrl).toBe(
       'http://localhost:9000/media-public/channels/channel-1/banner/image.webp',
+    );
+  });
+
+  it('deletes the previous avatar after storing the new avatar URL', async () => {
+    channelRepository.findByUserId.mockResolvedValue(
+      buildChannel({
+        avatarUrl:
+          'http://localhost:9000/media-public/channels/channel-1/avatar/old.jpg',
+      }),
+    );
+
+    await useCase.execute({
+      userId: 'user-1',
+      imageType: 'avatar',
+      file: buildFile(),
+    });
+
+    expect(channelRepository.update).toHaveBeenCalled();
+    expect(objectStorageService.deleteObjectByUrl).toHaveBeenCalledWith(
+      'public',
+      'http://localhost:9000/media-public/channels/channel-1/avatar/old.jpg',
+    );
+    expect(channelRepository.update.mock.invocationCallOrder[0]).toBeLessThan(
+      objectStorageService.deleteObjectByUrl.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('deletes the previous banner after storing the new banner URL', async () => {
+    channelRepository.findByUserId.mockResolvedValue(
+      buildChannel({
+        bannerUrl:
+          'http://localhost:9000/media-public/channels/channel-1/banner/old.webp',
+      }),
+    );
+    objectStorageService.uploadObject.mockResolvedValue(
+      'http://localhost:9000/media-public/channels/channel-1/banner/new.webp',
+    );
+
+    await useCase.execute({
+      userId: 'user-1',
+      imageType: 'banner',
+      file: buildFile({ contentType: 'image/webp' }),
+    });
+
+    expect(objectStorageService.deleteObjectByUrl).toHaveBeenCalledWith(
+      'public',
+      'http://localhost:9000/media-public/channels/channel-1/banner/old.webp',
+    );
+  });
+
+  it('keeps the upload successful when deleting the previous image fails', async () => {
+    channelRepository.findByUserId.mockResolvedValue(
+      buildChannel({
+        avatarUrl:
+          'http://localhost:9000/media-public/channels/channel-1/avatar/old.jpg',
+      }),
+    );
+    objectStorageService.deleteObjectByUrl.mockRejectedValue(
+      new Error('delete failed'),
+    );
+
+    await expect(
+      useCase.execute({
+        userId: 'user-1',
+        imageType: 'avatar',
+        file: buildFile(),
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        avatarUrl:
+          'http://localhost:9000/media-public/channels/channel-1/avatar/image.jpg',
+      }),
     );
   });
 
@@ -138,15 +213,19 @@ function buildFile(
 }
 
 function buildChannel(
-  overrides: Partial<{ status: ChannelStatus }> = {},
+  overrides: Partial<{
+    status: ChannelStatus;
+    avatarUrl: string;
+    bannerUrl: string;
+  }> = {},
 ): ChannelEntity {
   return new ChannelEntity({
     id: 'channel-1',
     userId: 'user-1',
     name: 'Creator Channel',
     bio: 'Channel bio',
-    avatarUrl: '',
-    bannerUrl: '',
+    avatarUrl: overrides.avatarUrl ?? '',
+    bannerUrl: overrides.bannerUrl ?? '',
     status: overrides.status ?? ChannelStatus.ACTIVE,
     isEligibleForMembership: false,
     isMembershipClosedByAdmin: false,

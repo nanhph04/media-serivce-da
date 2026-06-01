@@ -64,6 +64,7 @@ export interface IObjectStorageService {
     destinationObjectKey: string,
   ): Promise<void>;
   deleteObject(bucket: StorageBucket, objectKey: string): Promise<void>;
+  deleteObjectByUrl(bucket: StorageBucket, objectUrl: string): Promise<boolean>;
   getObjectMetadata(
     bucket: StorageBucket,
     objectKey: string,

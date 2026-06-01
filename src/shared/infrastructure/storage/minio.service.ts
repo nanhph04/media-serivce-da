@@ -261,6 +261,19 @@ export class MinioService implements OnModuleInit, IObjectStorageService {
     await this.client.removeObject(this.getBucketName(bucket), objectKey);
   }
 
+  async deleteObjectByUrl(
+    bucket: StorageBucket,
+    objectUrl: string,
+  ): Promise<boolean> {
+    const objectKey = this.resolveObjectKeyFromUrl(bucket, objectUrl);
+    if (!objectKey) {
+      return false;
+    }
+
+    await this.deleteObject(bucket, objectKey);
+    return true;
+  }
+
   async getObjectMetadata(
     bucket: StorageBucket,
     objectKey: string,
@@ -347,6 +360,32 @@ export class MinioService implements OnModuleInit, IObjectStorageService {
     }
 
     return parsedUrl.toString();
+  }
+
+  private resolveObjectKeyFromUrl(
+    bucket: StorageBucket,
+    objectUrl: string,
+  ): string | null {
+    if (!objectUrl.trim()) {
+      return null;
+    }
+
+    try {
+      const parsedUrl = new URL(objectUrl);
+      const pathParts = parsedUrl.pathname
+        .split('/')
+        .filter(Boolean)
+        .map((part) => decodeURIComponent(part));
+      const bucketName = this.getBucketName(bucket);
+
+      if (pathParts[0] !== bucketName || pathParts.length < 2) {
+        return null;
+      }
+
+      return pathParts.slice(1).join('/');
+    } catch {
+      return null;
+    }
   }
 
   private getMultipartClient(): MinioMultipartClient {

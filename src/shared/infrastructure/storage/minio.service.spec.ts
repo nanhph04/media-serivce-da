@@ -215,6 +215,33 @@ describe('MinioService', () => {
     expect(removeObject).toHaveBeenCalledWith('media-raw', 'draft/video.mp4');
   });
 
+  it('deletes objects from a permanent public object URL', async () => {
+    removeObject.mockResolvedValue(undefined);
+
+    await expect(
+      service.deleteObjectByUrl(
+        'public',
+        'http://localhost:9000/media-public/channels/channel-1/avatar/image.jpg',
+      ),
+    ).resolves.toBe(true);
+
+    expect(removeObject).toHaveBeenCalledWith(
+      'media-public',
+      'channels/channel-1/avatar/image.jpg',
+    );
+  });
+
+  it('ignores object URLs outside the requested bucket', async () => {
+    await expect(
+      service.deleteObjectByUrl(
+        'public',
+        'http://localhost:9000/media-raw/channels/channel-1/avatar/image.jpg',
+      ),
+    ).resolves.toBe(false);
+
+    expect(removeObject).not.toHaveBeenCalled();
+  });
+
   it('fails fast when a required MinIO bucket config is missing', () => {
     configService.getOrThrow.mockImplementation((key: string) => {
       if (key === 'MINIO_RAW_BUCKET') {
