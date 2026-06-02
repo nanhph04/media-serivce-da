@@ -25,6 +25,20 @@ KAFKA_VIDEO_THUMBNAIL_FAILED_TOPIC=video.thumbnail.failed
 When `KAFKA_AUTO_CREATE_TOPICS=true`, include these topics in
 `KAFKA_TOPICS_TO_CREATE`.
 
+Video moderation topic partitioning:
+
+```text
+KAFKA_VIDEO_MODERATION_REQUESTED_TOPIC=video.moderation.requested
+KAFKA_VIDEO_MODERATION_REQUESTED_PARTITIONS=1
+```
+
+- `KAFKA_VIDEO_MODERATION_REQUESTED_PARTITIONS` controls the desired partition
+  count when media-service initializes `video.moderation.requested`. Existing
+  topics are increased when the configured value is higher; they are not
+  decreased because Kafka does not support partition reduction.
+- Set this value at least as high as `MODERATION_WORKER_CONCURRENCY` when
+  `moderation-service` parallel processing is enabled.
+
 Finance internal payment charge:
 
 ```text

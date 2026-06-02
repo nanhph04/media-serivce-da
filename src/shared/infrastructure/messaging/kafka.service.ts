@@ -10,6 +10,9 @@ import type { IKafkaModuleOptions } from '../../application/interfaces/kafka-con
 import { LoggerService } from '../logger/logger.service';
 import type { IEventPublisher } from '../../application/interfaces/event-publisher.interface';
 
+const DEFAULT_TOPIC_PARTITIONS = 1;
+const DEFAULT_MODERATION_REQUESTED_TOPIC = 'video.moderation.requested';
+
 @Injectable()
 export class KafkaService
   implements
@@ -313,24 +316,24 @@ export class KafkaService
         (topic) => !existingTopics.has(topic),
       );
 
-      if (missingTopics.length === 0) {
+      if (missingTopics.length > 0) {
+        await this.admin.createTopics({
+          waitForLeaders: true,
+          topics: missingTopics.map((topic) => ({
+            topic,
+            numPartitions: this.getDesiredPartitionCount(topic),
+            replicationFactor: 1,
+          })),
+        });
+
         this.logger.setContext('KafkaService');
-        this.logger.logInfo('Kafka topics already initialized');
-        return;
+        this.logger.logInfo(
+          `Kafka topics initialized: ${missingTopics.join(', ')}`,
+        );
       }
 
-      await this.admin.createTopics({
-        waitForLeaders: true,
-        topics: missingTopics.map((topic) => ({
-          topic,
-          numPartitions: 1,
-          replicationFactor: 1,
-        })),
-      });
-
-      this.logger.setContext('KafkaService');
-      this.logger.logInfo(
-        `Kafka topics initialized: ${missingTopics.join(', ')}`,
+      await this.ensureTopicPartitionCounts(
+        topics.filter((topic) => !missingTopics.includes(topic)),
       );
     } catch (error: unknown) {
       this.logger.setContext('KafkaService');
@@ -340,6 +343,82 @@ export class KafkaService
           error instanceof Error ? error.message : 'Unknown Kafka admin error',
       });
     }
+  }
+
+  private async ensureTopicPartitionCounts(topics: string[]): Promise<void> {
+    if (!this.admin || topics.length === 0) {
+      return;
+    }
+
+    const metadata = await this.admin.fetchTopicMetadata({ topics });
+    const topicPartitions = metadata.topics
+      .map((topicMetadata) => {
+        const desiredPartitionCount = this.getDesiredPartitionCount(
+          topicMetadata.name,
+        );
+        const currentPartitionCount = topicMetadata.partitions.length;
+
+        if (currentPartitionCount > desiredPartitionCount) {
+          this.logger.setContext('KafkaService');
+          this.logger.logInfo(
+            `Kafka topic ${topicMetadata.name} already has ${currentPartitionCount} partitions; configured desired count is ${desiredPartitionCount}`,
+          );
+          return null;
+        }
+
+        if (currentPartitionCount === desiredPartitionCount) {
+          return null;
+        }
+
+        return {
+          topic: topicMetadata.name,
+          count: desiredPartitionCount,
+        };
+      })
+      .filter(
+        (
+          topicPartition,
+        ): topicPartition is {
+          topic: string;
+          count: number;
+        } => topicPartition !== null,
+      );
+
+    if (topicPartitions.length === 0) {
+      this.logger.setContext('KafkaService');
+      this.logger.logInfo('Kafka topics already initialized');
+      return;
+    }
+
+    await this.admin.createPartitions({ topicPartitions });
+
+    this.logger.setContext('KafkaService');
+    this.logger.logInfo(
+      `Kafka topic partitions increased: ${topicPartitions
+        .map(
+          (topicPartition) => `${topicPartition.topic}=${topicPartition.count}`,
+        )
+        .join(', ')}`,
+    );
+  }
+
+  private getDesiredPartitionCount(topic: string): number {
+    const moderationRequestedTopic =
+      process.env.KAFKA_VIDEO_MODERATION_REQUESTED_TOPIC ??
+      DEFAULT_MODERATION_REQUESTED_TOPIC;
+
+    if (topic !== moderationRequestedTopic) {
+      return DEFAULT_TOPIC_PARTITIONS;
+    }
+
+    const parsed = Number(
+      process.env.KAFKA_VIDEO_MODERATION_REQUESTED_PARTITIONS,
+    );
+    if (!Number.isFinite(parsed)) {
+      return DEFAULT_TOPIC_PARTITIONS;
+    }
+
+    return Math.max(Math.trunc(parsed), DEFAULT_TOPIC_PARTITIONS);
   }
 
   private isEnabled(): boolean {
