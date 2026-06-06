@@ -97,6 +97,7 @@ export const ERROR_MESSAGES = {
   VIDEO_READY_REQUIRED_FOR_UNPUBLISH: 'Only ready videos can be unpublished',
   VIDEO_DELETE_ALREADY_REQUESTED: 'Video delete has already been requested',
   VIDEO_NOT_PENDING_DELETE: 'Video is not pending delete',
+  VIDEO_NOT_READY_FOR_STORAGE_DELETE: 'Video is not ready for storage delete',
   VIDEO_PRICE_NEGATIVE: 'Video price cannot be negative',
   VIDEO_PRICE_DIVISIBLE_BY_10: 'Video price must be divisible by 10',
   VIDEO_TITLE_REQUIRED_MAX_LENGTH:

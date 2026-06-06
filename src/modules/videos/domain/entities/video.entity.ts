@@ -26,6 +26,7 @@ export enum VideoDeletionStatus {
   ACTIVE = 'active',
   PENDING_DELETE = 'pending_delete',
   READY_FOR_HARD_DELETE = 'ready_for_hard_delete',
+  STORAGE_DELETED = 'storage_deleted',
 }
 
 export enum VideoThumbnailSource {
@@ -89,6 +90,7 @@ export interface VideoProps {
   deleteRequestedAt?: Date | null;
   refundCompletedAt?: Date | null;
   refundSummary?: Record<string, unknown> | null;
+  storageDeletedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
   statusChangedAt?: Date;
@@ -235,12 +237,20 @@ export class VideoEntity {
     return this.props.refundSummary ?? null;
   }
 
+  get storageDeletedAt(): Date | null {
+    return this.props.storageDeletedAt ?? null;
+  }
+
   get isDeletePending(): boolean {
     return this.deletionStatus === VideoDeletionStatus.PENDING_DELETE;
   }
 
   get isReadyForHardDelete(): boolean {
     return this.deletionStatus === VideoDeletionStatus.READY_FOR_HARD_DELETE;
+  }
+
+  get isStorageDeleted(): boolean {
+    return this.deletionStatus === VideoDeletionStatus.STORAGE_DELETED;
   }
 
   get isAvailableForPlayback(): boolean {
@@ -309,6 +319,7 @@ export class VideoEntity {
       deleteRequestedAt: null,
       refundCompletedAt: null,
       refundSummary: null,
+      storageDeletedAt: null,
       createdAt: now,
       updatedAt: now,
       statusChangedAt: now,
@@ -594,6 +605,22 @@ export class VideoEntity {
     this.props.deletionStatus = VideoDeletionStatus.READY_FOR_HARD_DELETE;
     this.props.refundCompletedAt = input.completedAt;
     this.props.refundSummary = input.summary;
+    this.touch();
+  }
+
+  markStorageDeleted(deletedAt: Date = new Date()): void {
+    if (this.deletionStatus === VideoDeletionStatus.STORAGE_DELETED) {
+      return;
+    }
+
+    if (this.deletionStatus !== VideoDeletionStatus.READY_FOR_HARD_DELETE) {
+      throw new ConflictException(
+        ERROR_MESSAGES.VIDEO_NOT_READY_FOR_STORAGE_DELETE,
+      );
+    }
+
+    this.props.deletionStatus = VideoDeletionStatus.STORAGE_DELETED;
+    this.props.storageDeletedAt = deletedAt;
     this.touch();
   }
 

@@ -41,12 +41,15 @@ export class CleanupHardDeletedVideosUseCase extends BaseUseCase<void, void> {
         if (video.thumbnailObjectKey) {
           await this.deleteObjectIfExists('public', video.thumbnailObjectKey);
         }
-        await this.videoRepository.hardDeleteById(video.id);
-        this.loggerService.logInfo('Hard deleted refunded video', {
-          videoId: video.id,
-        });
+        await this.videoRepository.markStorageDeletedById(video.id, new Date());
+        this.loggerService.logInfo(
+          'Deleted refunded video storage and kept metadata',
+          {
+            videoId: video.id,
+          },
+        );
       } catch (error: unknown) {
-        this.loggerService.logWarn('Failed to hard delete refunded video', {
+        this.loggerService.logWarn('Failed to delete refunded video storage', {
           videoId: video.id,
           error: error instanceof Error ? error.message : 'Unknown error',
         });

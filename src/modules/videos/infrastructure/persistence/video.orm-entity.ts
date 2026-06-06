@@ -127,13 +127,13 @@ export class VideoOrmEntity {
   @Column({ type: 'int', name: 'view_count', default: 0 })
   viewCount!: number;
 
-  @Column({ type: 'timestamp', name: 'published_at', nullable: true })
+  @Column({ type: 'timestamptz', name: 'published_at', nullable: true })
   publishedAt!: Date | null;
 
   @Column({ type: 'boolean', name: 'is_deleted', default: false })
   isDeleted!: boolean;
 
-  @Column({ type: 'timestamp', name: 'deleted_at', nullable: true })
+  @Column({ type: 'timestamptz', name: 'deleted_at', nullable: true })
   deletedAt!: Date | null;
 
   @Column({ type: 'varchar', length: 36, name: 'deleted_by', nullable: true })
@@ -155,23 +155,26 @@ export class VideoOrmEntity {
   })
   deletionStatus!: VideoDeletionStatus;
 
-  @Column({ type: 'timestamp', name: 'delete_requested_at', nullable: true })
+  @Column({ type: 'timestamptz', name: 'delete_requested_at', nullable: true })
   deleteRequestedAt!: Date | null;
 
-  @Column({ type: 'timestamp', name: 'refund_completed_at', nullable: true })
+  @Column({ type: 'timestamptz', name: 'refund_completed_at', nullable: true })
   refundCompletedAt!: Date | null;
 
   @Column({ type: 'jsonb', name: 'refund_summary', nullable: true })
   refundSummary!: Record<string, unknown> | null;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @Column({ type: 'timestamptz', name: 'storage_deleted_at', nullable: true })
+  storageDeletedAt!: Date | null;
+
+  @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })
   createdAt!: Date;
 
-  @UpdateDateColumn({ name: 'updated_at' })
+  @UpdateDateColumn({ type: 'timestamptz', name: 'updated_at' })
   updatedAt!: Date;
 
   @Column({
-    type: 'timestamp',
+    type: 'timestamptz',
     name: 'status_changed_at',
     default: () => 'now()',
   })

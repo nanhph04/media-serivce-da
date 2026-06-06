@@ -29,12 +29,12 @@ export class CreateOutboxMessages1745670000000 implements MigrationInterface {
         "payload" jsonb NOT NULL,
         "status" "public"."outbox_messages_status_enum" NOT NULL DEFAULT 'pending',
         "attempt_count" integer NOT NULL DEFAULT 0,
-        "next_attempt_at" TIMESTAMP NOT NULL,
-        "locked_at" TIMESTAMP,
-        "published_at" TIMESTAMP,
+        "next_attempt_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
+        "locked_at" TIMESTAMPTZ,
+        "published_at" TIMESTAMPTZ,
         "last_error" text,
-        "created_at" TIMESTAMP NOT NULL DEFAULT now(),
-        "updated_at" TIMESTAMP NOT NULL DEFAULT now(),
+        "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
+        "updated_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
         CONSTRAINT "PK_outbox_messages_id" PRIMARY KEY ("id")
       )
     `);

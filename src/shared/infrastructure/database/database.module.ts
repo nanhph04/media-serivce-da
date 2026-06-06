@@ -20,6 +20,9 @@ import { ConfigService } from '../config/config.service';
         synchronize: configService.getBoolean('DB_SYNCHRONIZE', false),
         migrationsRun: configService.getBoolean('DB_MIGRATIONS_RUN', false),
         migrations: [join(__dirname, 'migrations', '*.{ts,js}')],
+        extra: {
+          options: '-c timezone=UTC',
+        },
       }),
     }),
   ],

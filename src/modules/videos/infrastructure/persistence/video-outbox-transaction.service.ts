@@ -58,6 +58,7 @@ export class VideoOutboxTransactionService implements IVideoOutboxTransaction {
         deleteRequestedAt: video.deleteRequestedAt,
         refundCompletedAt: video.refundCompletedAt,
         refundSummary: video.refundSummary,
+        storageDeletedAt: video.storageDeletedAt,
         createdAt: video.createdAt,
         updatedAt: video.updatedAt,
         statusChangedAt: video.statusChangedAt,

@@ -83,6 +83,7 @@ export interface IVideoRepository {
   deleteDraftById(id: string): Promise<void>;
   deleteFailedById(id: string): Promise<void>;
   hardDeleteById(id: string): Promise<void>;
+  markStorageDeletedById(id: string, storageDeletedAt: Date): Promise<void>;
   findExpiredDrafts(cutoffDate: Date, limit: number): Promise<VideoEntity[]>;
   findReadyForHardDelete(limit: number): Promise<VideoEntity[]>;
   findStaleByStatus(

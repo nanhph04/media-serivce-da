@@ -86,6 +86,7 @@ export class VideoRepository implements IVideoRepository {
         deleteRequestedAt: video.deleteRequestedAt,
         refundCompletedAt: video.refundCompletedAt,
         refundSummary: video.refundSummary,
+        storageDeletedAt: video.storageDeletedAt,
         createdAt: video.createdAt,
         updatedAt: video.updatedAt,
         statusChangedAt: video.statusChangedAt,
@@ -156,6 +157,23 @@ export class VideoRepository implements IVideoRepository {
         deletionStatus: VideoDeletionStatus.READY_FOR_HARD_DELETE,
       });
     });
+  }
+
+  async markStorageDeletedById(
+    id: string,
+    storageDeletedAt: Date,
+  ): Promise<void> {
+    await this.ormRepository.update(
+      {
+        id,
+        deletionStatus: VideoDeletionStatus.READY_FOR_HARD_DELETE,
+      },
+      {
+        deletionStatus: VideoDeletionStatus.STORAGE_DELETED,
+        storageDeletedAt,
+        updatedAt: () => 'CURRENT_TIMESTAMP',
+      },
+    );
   }
 
   async findExpiredDrafts(
@@ -820,6 +838,7 @@ export class VideoRepository implements IVideoRepository {
       deleteRequestedAt: row.deleteRequestedAt ?? row.deletedAt ?? null,
       refundCompletedAt: row.refundCompletedAt ?? null,
       refundSummary: row.refundSummary ?? null,
+      storageDeletedAt: row.storageDeletedAt ?? null,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
       statusChangedAt: row.statusChangedAt,

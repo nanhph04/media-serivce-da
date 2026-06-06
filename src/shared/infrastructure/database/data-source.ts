@@ -1,3 +1,5 @@
+process.env.TZ = 'UTC';
+
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { DataSource } from 'typeorm';
@@ -78,4 +80,7 @@ export default new DataSource({
     OutboxMessageOrmEntity,
   ],
   migrations: [join(__dirname, 'migrations', '*.{ts,js}')],
+  extra: {
+    options: '-c timezone=UTC',
+  },
 });

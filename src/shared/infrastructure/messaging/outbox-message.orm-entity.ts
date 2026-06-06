@@ -38,13 +38,13 @@ export class OutboxMessageOrmEntity {
   @Column({ type: 'integer', name: 'attempt_count', default: 0 })
   attemptCount!: number;
 
-  @Column({ type: 'timestamp', name: 'next_attempt_at' })
+  @Column({ type: 'timestamptz', name: 'next_attempt_at' })
   nextAttemptAt!: Date;
 
-  @Column({ type: 'timestamp', name: 'locked_at', nullable: true })
+  @Column({ type: 'timestamptz', name: 'locked_at', nullable: true })
   lockedAt!: Date | null;
 
-  @Column({ type: 'timestamp', name: 'published_at', nullable: true })
+  @Column({ type: 'timestamptz', name: 'published_at', nullable: true })
   publishedAt!: Date | null;
 
   @Column({ type: 'text', name: 'last_error', nullable: true })
