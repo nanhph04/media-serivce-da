@@ -1,0 +1,79 @@
+@startuml
+title Sequence Diagram - Xem video
+autonumber
+autoactivate on
+
+actor "Viewer" as Viewer
+participant "Frontend" as FE
+participant "API Gateway" as GW
+participant "Media Service" as MS
+database "Object Storage" as Storage
+
+Viewer -> FE: Chon xem video
+FE -> GW: Gui yeu cau phat video
+GW -> GW: Kiem tra phien dang nhap
+
+alt Chua dang nhap
+  GW --> FE: Tu choi yeu cau
+  FE --> Viewer: Hien thi yeu cau dang nhap
+else Da dang nhap
+  GW -> MS: Chuyen tiep yeu cau phat video
+  MS -> MS: Tim video
+
+  alt Video khong ton tai hoac chua san sang
+    MS --> GW: Thong bao khong the phat video
+    GW --> FE: Tra ket qua
+    FE --> Viewer: Hien thi loi video
+  else Video san sang
+    MS -> MS: Kiem tra kenh va quyen xem
+
+    alt Khong co quyen xem
+      MS --> GW: Thong bao khong co quyen xem
+      GW --> FE: Tra ket qua
+      FE --> Viewer: Hien thi yeu cau mo khoa hoac dang ky hoi vien
+    else Duoc phep xem
+      MS -> MS: Tao playback token
+      MS -> MS: Lay tien do xem gan nhat
+      MS --> GW: Tra thong tin phat video
+      GW --> FE: Tra ket qua
+      FE --> Viewer: Hien thi trinh phat video
+
+      FE -> GW: Yeu cau playlist phat video
+      GW -> MS: Chuyen tiep yeu cau streaming
+      MS -> MS: Kiem tra playback token
+
+      alt Playback token khong hop le
+        MS --> GW: Tu choi phat video
+        GW --> FE: Tra ket qua
+        FE --> Viewer: Hien thi loi phat video
+      else Playback token hop le
+        MS -> Storage: Lay playlist video
+        Storage --> MS: Tra playlist
+        MS -> MS: Dieu chinh duong dan segment
+        MS --> GW: Tra playlist
+        GW --> FE: Tra playlist
+
+        loop Trong khi viewer xem video
+          FE -> GW: Yeu cau segment video
+          GW -> MS: Chuyen tiep yeu cau segment
+          MS -> MS: Kiem tra playback token
+          MS -> Storage: Lay segment video
+          Storage --> MS: Tra segment
+          MS --> GW: Tra segment
+          GW --> FE: Tra segment
+          FE --> Viewer: Phat video
+
+          FE -> GW: Cap nhat tien do xem
+          GW -> MS: Chuyen tiep tien do xem
+          MS -> MS: Luu tien do xem
+
+          opt Dat nguong tinh luot xem
+            MS -> MS: Ghi nhan luot xem
+          end
+        end
+      end
+    end
+  end
+end
+
+@enduml

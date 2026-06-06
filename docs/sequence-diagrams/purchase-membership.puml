@@ -1,0 +1,99 @@
+@startuml
+title Sequence Diagram - Dang ky hoi vien
+autonumber
+autoactivate on
+
+actor "Viewer" as Viewer
+participant "Frontend" as FE
+participant "API Gateway" as GW
+participant "Media Service" as MS
+database "Channel Store" as ChannelStore
+database "Tier Store" as TierStore
+database "Membership Store" as MembershipStore
+participant "Finance Service" as FS
+
+Viewer -> FE: Chon goi hoi vien
+FE -> FE: Hien thi gia va xac nhan dang ky
+FE -> GW: Gui yeu cau dang ky hoi vien
+GW -> GW: Kiem tra phien dang nhap
+
+alt Chua dang nhap
+  GW --> FE: Tu choi yeu cau
+  FE --> Viewer: Hien thi yeu cau dang nhap
+else Da dang nhap
+  GW -> MS: Chuyen tiep yeu cau dang ky
+  MS -> ChannelStore: Lay thong tin kenh
+
+  alt Kenh khong ton tai
+    ChannelStore --> MS: Khong tim thay kenh
+    MS --> GW: Thong bao kenh khong ton tai
+    GW --> FE: Tra ket qua
+    FE --> Viewer: Hien thi loi dang ky
+  else Kenh ton tai
+    ChannelStore --> MS: Tra thong tin kenh
+    MS -> MS: Kiem tra chu kenh va trang thai hoi vien cua kenh
+
+    alt Khong du dieu kien dang ky kenh
+      MS --> GW: Tu choi dang ky hoi vien
+      GW --> FE: Tra ket qua
+      FE --> Viewer: Hien thi loi dang ky
+    else Kenh cho phep dang ky
+      MS -> TierStore: Lay thong tin goi hoi vien
+
+      alt Goi khong ton tai hoac khong thuoc kenh
+        TierStore --> MS: Khong tim thay goi hop le
+        MS --> GW: Thong bao goi khong ton tai
+        GW --> FE: Tra ket qua
+        FE --> Viewer: Hien thi loi dang ky
+      else Goi ton tai
+        TierStore --> MS: Tra thong tin goi
+        MS -> MS: Kiem tra goi co nhan thanh vien moi
+
+        alt Goi da dong dang ky
+          MS --> GW: Thong bao goi da dong
+          GW --> FE: Tra ket qua
+          FE --> Viewer: Hien thi loi dang ky
+        else Goi con nhan thanh vien
+          MS -> MembershipStore: Kiem tra hoi vien hien tai
+
+          alt Da la hoi vien dang hoat dong
+            MembershipStore --> MS: Co membership dang hoat dong
+            MS --> GW: Thong bao da la hoi vien
+            GW --> FE: Tra ket qua
+            FE --> Viewer: Hien thi trang thai hoi vien
+          else Chua co membership hoat dong
+            MembershipStore --> MS: Chua co membership hop le
+
+            alt Goi co phi
+              MS -> FS: Yeu cau tru tien dang ky hoi vien
+
+              alt Thanh toan that bai
+                FS --> MS: Tra ket qua that bai
+                MS --> GW: Thong bao thanh toan that bai
+                GW --> FE: Tra ket qua
+                FE --> Viewer: Hien thi loi thanh toan
+              else Thanh toan thanh cong
+                FS --> MS: Tra thong tin giao dich
+                MS -> MS: Xu ly ket qua thanh toan
+                MS -> MembershipStore: Tao hoac cap nhat membership
+                MembershipStore --> MS: Da ghi nhan
+                MS --> GW: Tra ket qua dang ky thanh cong
+                GW --> FE: Tra ket qua
+                FE --> Viewer: Hien thi quyen loi hoi vien
+              end
+            else Goi mien phi
+              MS -> MS: Tao su kien dang ky mien phi
+              MS -> MembershipStore: Tao hoac cap nhat membership
+              MembershipStore --> MS: Da ghi nhan
+              MS --> GW: Tra ket qua dang ky thanh cong
+              GW --> FE: Tra ket qua
+              FE --> Viewer: Hien thi quyen loi hoi vien
+            end
+          end
+        end
+      end
+    end
+  end
+end
+
+@enduml

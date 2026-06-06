@@ -1,0 +1,77 @@
+@startuml
+title Activity Diagram - Go video
+
+|Creator|
+start
+:Mo man hinh quan ly video;
+:Chon video can go;
+:Xac nhan go video;
+
+|Frontend|
+:Gui yeu cau go video;
+
+|He thong|
+:API Gateway kiem tra phien dang nhap;
+
+if (Creator da dang nhap?) then (Co)
+  :Media Service tiep nhan yeu cau;
+else (Khong)
+  :Tu choi yeu cau;
+  |Frontend|
+  :Hien thi yeu cau dang nhap;
+  |Creator|
+  :Xem thong bao;
+  stop
+endif
+
+|He thong|
+:Tim thong tin video;
+
+if (Video ton tai?) then (Co)
+  :Kiem tra quyen so huu video;
+else (Khong)
+  :Tra thong bao video khong ton tai;
+  |Frontend|
+  :Hien thi loi go video;
+  |Creator|
+  :Xem thong bao loi;
+  stop
+endif
+
+|He thong|
+if (Dung chu so huu?) then (Co)
+  :Kiem tra trang thai video;
+else (Khong)
+  :Tu choi go video;
+  |Frontend|
+  :Hien thi loi khong co quyen;
+  |Creator|
+  :Xem thong bao loi;
+  stop
+endif
+
+|He thong|
+if (Video dang loi hoac bi tu choi?) then (Co)
+  :Xoa file raw neu con ton tai;
+  :Xoa ban ghi video loi;
+  :Tra ket qua xoa thanh cong;
+else (Khong)
+  if (Video da o trang thai cho go?) then (Co)
+    :Giu nguyen trang thai cho go;
+  else (Khong)
+    :Danh dau video da bi go;
+    :An video khoi danh sach cong khai;
+  endif
+  :Phat su kien yeu cau xu ly sau khi go video;
+  :Tra ket qua go video thanh cong;
+endif
+
+|Frontend|
+:Cap nhat danh sach video cua creator;
+:Thong bao thao tac thanh cong;
+
+|Creator|
+:Xem trang thai video da go;
+stop
+
+@enduml

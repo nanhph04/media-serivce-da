@@ -1,0 +1,96 @@
+@startuml
+title Sequence Diagram - Quan ly goi hoi vien
+autonumber
+autoactivate on
+
+actor "Creator" as Creator
+participant "Frontend" as FE
+participant "API Gateway" as GW
+participant "Media Service" as MS
+database "Channel Store" as ChannelStore
+database "Membership Tier Store" as TierStore
+participant "Eligibility Service" as Eligibility
+
+Creator -> FE: Chon thao tac quan ly goi
+FE -> GW: Gui yeu cau quan ly goi hoi vien
+GW -> GW: Kiem tra phien dang nhap
+
+alt Chua dang nhap
+  GW --> FE: Tu choi yeu cau
+  FE --> Creator: Hien thi yeu cau dang nhap
+else Da dang nhap
+  GW -> MS: Chuyen tiep yeu cau
+  MS -> ChannelStore: Tim kenh theo ma kenh
+
+  alt Khong tim thay kenh hoac khong phai chu so huu
+    ChannelStore --> MS: Khong hop le
+    MS --> GW: Tra thong bao khong co quyen quan ly
+    GW --> FE: Tra ket qua
+    FE --> Creator: Hien thi loi quan ly goi
+  else Kenh hop le
+    ChannelStore --> MS: Tra thong tin kenh
+    MS -> MS: Kiem tra kenh dang hoat dong
+
+    alt Kenh khong hoat dong
+      MS --> GW: Tra thong bao kenh khong hoat dong
+      GW --> FE: Tra ket qua
+      FE --> Creator: Hien thi loi quan ly goi
+    else Kenh dang hoat dong
+      alt Tao goi moi
+        MS -> TierStore: Lay danh sach goi cua kenh
+        TierStore --> MS: Tra danh sach goi
+        MS -> Eligibility: Kiem tra dieu kien mo hoi vien neu can
+        Eligibility --> MS: Tra ket qua dieu kien
+        MS -> MS: Kiem tra cap goi, gia goi va trang thai duyet hoi vien
+
+        alt Khong du dieu kien tao goi
+          MS --> GW: Tra thong bao khong tao duoc goi
+          GW --> FE: Tra ket qua
+          FE --> Creator: Hien thi loi quan ly goi
+        else Du dieu kien tao goi
+          MS -> TierStore: Tao goi hoi vien moi
+          TierStore --> MS: Da tao goi
+          MS --> GW: Tra thong tin goi moi
+          GW --> FE: Tra ket qua
+          FE --> Creator: Hien thi goi moi
+        end
+
+      else Cap nhat goi
+        MS -> TierStore: Tim goi can cap nhat
+        TierStore --> MS: Tra thong tin goi
+        MS -> MS: Kiem tra gia goi va trang thai nhan dang ky
+
+        alt Goi khong hop le hoac khong duoc cap nhat
+          MS --> GW: Tra thong bao khong cap nhat duoc goi
+          GW --> FE: Tra ket qua
+          FE --> Creator: Hien thi loi quan ly goi
+        else Hop le
+          MS -> TierStore: Cap nhat thong tin goi
+          TierStore --> MS: Da cap nhat
+          MS --> GW: Tra thong tin goi sau cap nhat
+          GW --> FE: Tra ket qua
+          FE --> Creator: Hien thi goi da cap nhat
+        end
+
+      else An goi
+        MS -> TierStore: Tim goi can an
+
+        alt Khong tim thay goi trong kenh
+          TierStore --> MS: Khong co goi hop le
+          MS --> GW: Tra thong bao khong tim thay goi
+          GW --> FE: Tra ket qua
+          FE --> Creator: Hien thi loi quan ly goi
+        else Tim thay goi
+          TierStore --> MS: Tra thong tin goi
+          MS -> TierStore: Chuyen goi sang khong nhan dang ky moi
+          TierStore --> MS: Da cap nhat
+          MS --> GW: Tra thong tin goi sau khi an
+          GW --> FE: Tra ket qua
+          FE --> Creator: Hien thi danh sach goi da cap nhat
+        end
+      end
+    end
+  end
+end
+
+@enduml

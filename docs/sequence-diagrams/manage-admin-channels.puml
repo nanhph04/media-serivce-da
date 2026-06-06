@@ -1,0 +1,82 @@
+@startuml
+title Sequence Diagram - Quan ly kenh (Admin)
+autonumber
+autoactivate on
+
+actor "Admin" as Admin
+participant "Frontend" as FE
+participant "API Gateway" as GW
+participant "Media Service" as MS
+database "Channel Store" as ChannelStore
+database "Membership Store" as MembershipStore
+database "Outbox Store" as OutboxStore
+participant "Outbox Worker" as OutboxWorker
+queue "Message Broker" as Broker
+
+Admin -> FE: Mo man hinh quan ly kenh
+FE -> GW: Yeu cau danh sach kenh
+GW -> GW: Kiem tra phien dang nhap va quyen admin
+
+alt Khong phai admin
+  GW --> FE: Tu choi yeu cau
+  FE --> Admin: Hien thi thong bao khong co quyen
+else La admin
+  GW -> MS: Chuyen tiep yeu cau danh sach kenh
+  MS -> ChannelStore: Lay danh sach kenh theo bo loc
+  ChannelStore --> MS: Tra danh sach kenh
+  MS --> GW: Tra danh sach kenh
+  GW --> FE: Tra ket qua
+  FE --> Admin: Hien thi danh sach kenh
+end
+
+Admin -> FE: Chon khoa hoac mo khoa kenh
+FE -> GW: Gui yeu cau cap nhat trang thai kenh
+GW -> GW: Kiem tra phien dang nhap va quyen admin
+
+alt Khong phai admin
+  GW --> FE: Tu choi yeu cau
+  FE --> Admin: Hien thi thong bao khong co quyen
+else La admin
+  GW -> MS: Chuyen tiep yeu cau cap nhat trang thai
+  MS -> ChannelStore: Tim kenh theo ma kenh
+
+  alt Khong tim thay kenh
+    ChannelStore --> MS: Khong co kenh
+    MS --> GW: Tra thong bao khong tim thay kenh
+    GW --> FE: Tra ket qua
+    FE --> Admin: Hien thi loi cap nhat kenh
+  else Tim thay kenh
+    ChannelStore --> MS: Tra thong tin kenh
+    MS -> MS: Xac dinh trang thai moi
+
+    alt Khoa kenh
+      MS -> ChannelStore: Luu trang thai suspended
+      ChannelStore --> MS: Da cap nhat kenh
+      MS -> MembershipStore: Tat tu dong gia han hoi vien cua kenh
+      MembershipStore --> MS: Da cap nhat hoi vien
+    else Mo khoa kenh
+      MS -> ChannelStore: Luu trang thai active
+      ChannelStore --> MS: Da cap nhat kenh
+    end
+
+    alt Trang thai co thay doi
+      MS -> OutboxStore: Ghi su kien channel.status.changed
+      OutboxStore --> MS: Da luu su kien cho phat
+    else Trang thai khong doi
+      MS -> MS: Khong tao su kien moi
+    end
+
+    MS --> GW: Tra thong tin kenh sau cap nhat
+    GW --> FE: Tra ket qua
+    FE --> Admin: Hien thi trang thai kenh moi
+  end
+end
+
+OutboxWorker -> OutboxStore: Lay su kien dang cho phat
+OutboxStore --> OutboxWorker: Tra su kien channel.status.changed
+OutboxWorker ->> Broker: Phat su kien thay doi trang thai kenh
+Broker --> OutboxWorker: Xac nhan da nhan
+OutboxWorker -> OutboxStore: Danh dau su kien da phat
+OutboxStore --> OutboxWorker: Da cap nhat trang thai su kien
+
+@enduml

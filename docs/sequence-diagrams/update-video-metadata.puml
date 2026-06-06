@@ -1,0 +1,69 @@
+@startuml
+title Sequence Diagram - Cap nhat thong tin video
+autonumber
+autoactivate on
+
+actor "Creator" as Creator
+participant "Frontend" as FE
+participant "API Gateway" as GW
+participant "Media Service" as MS
+database "Video Store" as VideoStore
+database "Category Store" as CategoryStore
+database "Tag Store" as TagStore
+database "Cache Store" as CacheStore
+
+Creator -> FE: Nhap thong tin video moi
+FE -> FE: Kiem tra thong tin tren form
+
+alt Thong tin form khong hop le
+  FE --> Creator: Hien thi loi nhap lieu
+else Thong tin form hop le
+  FE -> GW: Gui yeu cau cap nhat video
+  GW -> GW: Kiem tra phien dang nhap
+
+  alt Chua dang nhap
+    GW --> FE: Tu choi yeu cau
+    FE --> Creator: Hien thi yeu cau dang nhap
+  else Da dang nhap
+    GW -> MS: Chuyen tiep yeu cau cap nhat
+    MS -> VideoStore: Lay thong tin video
+
+    alt Video khong ton tai
+      VideoStore --> MS: Khong tim thay video
+      MS --> GW: Thong bao video khong ton tai
+      GW --> FE: Tra ket qua
+      FE --> Creator: Hien thi loi cap nhat
+    else Video ton tai
+      VideoStore --> MS: Tra thong tin video
+      MS -> MS: Kiem tra quyen so huu
+
+      alt Khong phai chu so huu
+        MS --> GW: Tu choi cap nhat
+        GW --> FE: Tra ket qua
+        FE --> Creator: Hien thi loi khong co quyen
+      else Dung chu so huu
+        MS -> CategoryStore: Kiem tra danh muc neu co
+        CategoryStore --> MS: Tra ket qua kiem tra
+        MS -> TagStore: Kiem tra tag neu co
+        TagStore --> MS: Tra ket qua kiem tra
+        MS -> MS: Kiem tra che do hien thi, gia va goi hoi vien
+
+        alt Thong tin cap nhat khong hop le
+          MS --> GW: Thong bao cap nhat that bai
+          GW --> FE: Tra ket qua
+          FE --> Creator: Hien thi loi cap nhat
+        else Thong tin cap nhat hop le
+          MS -> VideoStore: Luu metadata video moi
+          VideoStore --> MS: Da cap nhat
+          MS -> CacheStore: Xoa cache metadata video
+          CacheStore --> MS: Da xoa cache
+          MS --> GW: Tra thong tin video da cap nhat
+          GW --> FE: Tra ket qua
+          FE --> Creator: Hien thi thong tin video moi
+        end
+      end
+    end
+  end
+end
+
+@enduml

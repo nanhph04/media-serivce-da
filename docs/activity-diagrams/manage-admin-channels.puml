@@ -1,0 +1,96 @@
+@startuml
+title Activity Diagram - Quan ly kenh (Admin)
+
+|Admin|
+start
+:Mo man hinh quan ly kenh;
+:Nhap dieu kien tim kiem hoac bo loc;
+
+|Frontend|
+:Gui yeu cau lay danh sach kenh;
+
+|He thong|
+:API Gateway kiem tra phien dang nhap va quyen admin;
+
+if (La admin hop le?) then (Co)
+  :Media Service lay danh sach kenh;
+else (Khong)
+  :Tu choi yeu cau;
+  |Frontend|
+  :Hien thi thong bao khong co quyen;
+  |Admin|
+  :Xem thong bao;
+  stop
+endif
+
+|He thong|
+:Tra danh sach kenh ve frontend;
+
+|Frontend|
+:Hien thi danh sach kenh;
+
+|Admin|
+:Chon kenh can quan ly;
+:Chon thao tac khoa hoac mo khoa kenh;
+:Nhap ly do neu can;
+:Xac nhan thao tac;
+
+|Frontend|
+:Gui yeu cau cap nhat trang thai kenh;
+
+|He thong|
+:API Gateway kiem tra lai quyen admin;
+
+if (La admin hop le?) then (Co)
+  :Media Service tiep nhan yeu cau;
+else (Khong)
+  :Tu choi yeu cau;
+  |Frontend|
+  :Hien thi thong bao khong co quyen;
+  |Admin|
+  :Xem thong bao;
+  stop
+endif
+
+|He thong|
+:Tim thong tin kenh;
+
+if (Kenh ton tai?) then (Co)
+  :Ghi nhan trang thai hien tai cua kenh;
+else (Khong)
+  :Tra thong bao khong tim thay kenh;
+  |Frontend|
+  :Hien thi loi cap nhat kenh;
+  |Admin|
+  :Xem thong bao loi;
+  stop
+endif
+
+|He thong|
+if (Thao tac la khoa kenh?) then (Co)
+  :Chuyen kenh sang trang thai bi khoa;
+  :Tat tu dong gia han hoi vien cua kenh;
+else (Mo khoa kenh)
+  :Chuyen kenh sang trang thai hoat dong;
+endif
+
+if (Trang thai co thay doi?) then (Co)
+  :Luu trang thai kenh;
+  :Ghi su kien thay doi trang thai kenh vao outbox;
+else (Khong)
+  :Giu nguyen thong tin kenh;
+endif
+
+:Tra ket qua cap nhat ve frontend;
+
+|Frontend|
+:Cap nhat trang thai kenh tren man hinh;
+
+|Admin|
+:Xem ket qua quan ly kenh;
+
+|He thong|
+:Outbox worker phat su kien thay doi trang thai kenh;
+stop
+
+@enduml

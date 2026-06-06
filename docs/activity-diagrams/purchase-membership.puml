@@ -1,0 +1,133 @@
+@startuml
+title Activity Diagram - Dang ky hoi vien
+
+|Viewer|
+start
+:Mo trang kenh;
+:Chon goi hoi vien;
+:Xac nhan dang ky;
+
+|Frontend|
+:Hien thi thong tin goi va gia;
+:Gui yeu cau dang ky hoi vien;
+
+|He thong|
+:API Gateway kiem tra phien dang nhap;
+
+if (Da dang nhap?) then (Co)
+  :Media Service tiep nhan yeu cau;
+else (Khong)
+  :Tu choi yeu cau;
+  |Frontend|
+  :Hien thi yeu cau dang nhap;
+  |Viewer|
+  :Xem thong bao;
+  stop
+endif
+
+|He thong|
+:Tim thong tin kenh;
+
+if (Kenh ton tai?) then (Co)
+  :Kiem tra nguoi mua co phai chu kenh khong;
+else (Khong)
+  :Tra thong bao kenh khong ton tai;
+  |Frontend|
+  :Hien thi loi dang ky;
+  |Viewer|
+  :Xem thong bao loi;
+  stop
+endif
+
+|He thong|
+if (La chu kenh?) then (Co)
+  :Tu choi dang ky hoi vien kenh cua chinh minh;
+  |Frontend|
+  :Hien thi thong bao khong hop le;
+  |Viewer|
+  :Xem thong bao;
+  stop
+else (Khong)
+  :Kiem tra trang thai dang ky hoi vien cua kenh;
+endif
+
+|He thong|
+if (Kenh cho phep dang ky hoi vien?) then (Co)
+  :Tim thong tin goi hoi vien;
+else (Khong)
+  :Tra thong bao kenh chua mo dang ky hoi vien;
+  |Frontend|
+  :Hien thi loi dang ky;
+  |Viewer|
+  :Xem thong bao loi;
+  stop
+endif
+
+|He thong|
+if (Goi hoi vien hop le?) then (Co)
+  :Kiem tra goi co nhan thanh vien moi khong;
+else (Khong)
+  :Tra thong bao goi hoi vien khong ton tai;
+  |Frontend|
+  :Hien thi loi dang ky;
+  |Viewer|
+  :Xem thong bao loi;
+  stop
+endif
+
+|He thong|
+if (Goi con nhan thanh vien moi?) then (Co)
+  :Kiem tra trang thai hoi vien hien tai;
+else (Khong)
+  :Tra thong bao goi da dong dang ky;
+  |Frontend|
+  :Hien thi loi dang ky;
+  |Viewer|
+  :Xem thong bao loi;
+  stop
+endif
+
+|He thong|
+if (Da la hoi vien dang hoat dong?) then (Co)
+  :Tu choi dang ky trung;
+  |Frontend|
+  :Hien thi thong bao da la hoi vien;
+  |Viewer|
+  :Xem thong bao;
+  stop
+else (Khong)
+  :Tao yeu cau thanh toan neu goi co phi;
+endif
+
+|He thong|
+if (Can thanh toan?) then (Co)
+  :Gui yeu cau tru tien sang Finance Service;
+  if (Thanh toan thanh cong?) then (Co)
+    :Ghi nhan giao dich thanh toan;
+  else (Khong)
+    :Tra thong bao thanh toan that bai;
+    |Frontend|
+    :Hien thi loi thanh toan;
+    |Viewer|
+    :Xem thong bao loi;
+    stop
+  endif
+else (Khong)
+  :Ghi nhan goi mien phi;
+endif
+
+|He thong|
+:Xu ly ket qua thanh toan;
+:Tao hoac cap nhat hoi vien;
+:Thiet lap ngay het han va tu dong gia han;
+:Tra ket qua dang ky thanh cong;
+
+|Frontend|
+:Cap nhat trang thai hoi vien;
+:Hien thi quyen loi hoi vien;
+
+|Viewer|
+:Su dung noi dung danh cho hoi vien;
+stop
+
+@enduml

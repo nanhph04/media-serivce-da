@@ -1,0 +1,85 @@
+@startuml
+title Activity Diagram - Cap nhat thong tin video
+
+|Creator|
+start
+:Mo man hinh quan ly video;
+:Chon video can cap nhat;
+:Nhap thong tin moi;
+:Chon luu thay doi;
+
+|Frontend|
+:Kiem tra thong tin tren form;
+
+if (Thong tin form hop le?) then (Co)
+  :Gui yeu cau cap nhat video;
+else (Khong)
+  :Hien thi loi nhap lieu;
+  |Creator|
+  :Sua lai thong tin;
+  stop
+endif
+
+|He thong|
+:API Gateway kiem tra phien dang nhap;
+
+if (Creator da dang nhap?) then (Co)
+  :Media Service tiep nhan yeu cau;
+else (Khong)
+  :Tu choi yeu cau;
+  |Frontend|
+  :Hien thi yeu cau dang nhap;
+  |Creator|
+  :Xem thong bao;
+  stop
+endif
+
+|He thong|
+:Tim thong tin video;
+
+if (Video ton tai?) then (Co)
+  :Kiem tra quyen so huu video;
+else (Khong)
+  :Tra thong bao video khong ton tai;
+  |Frontend|
+  :Hien thi loi cap nhat;
+  |Creator|
+  :Xem thong bao loi;
+  stop
+endif
+
+|He thong|
+if (Dung chu so huu?) then (Co)
+  :Kiem tra danh muc, tag va che do hien thi;
+else (Khong)
+  :Tu choi cap nhat video;
+  |Frontend|
+  :Hien thi loi khong co quyen;
+  |Creator|
+  :Xem thong bao loi;
+  stop
+endif
+
+|He thong|
+if (Thong tin cap nhat hop le?) then (Co)
+  :Cap nhat metadata video;
+  :Luu thay doi;
+  :Xoa cache metadata video;
+else (Khong)
+  :Tra thong bao thong tin khong hop le;
+  |Frontend|
+  :Hien thi loi cap nhat;
+  |Creator|
+  :Sua lai thong tin;
+  stop
+endif
+
+|Frontend|
+:Cap nhat thong tin hien thi;
+:Thong bao cap nhat thanh cong;
+
+|Creator|
+:Xem thong tin video da cap nhat;
+stop
+
+@enduml

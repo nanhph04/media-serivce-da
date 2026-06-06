@@ -1,0 +1,104 @@
+@startuml
+title Activity Diagram - Xem video
+
+|Viewer|
+start
+:Mo trang chi tiet video;
+:Chon xem video;
+
+|Frontend|
+:Gui yeu cau phat video;
+
+|He thong|
+:API Gateway kiem tra phien dang nhap;
+
+if (Da dang nhap?) then (Co)
+  :Media Service tim thong tin video;
+else (Khong)
+  :Tu choi yeu cau;
+  |Frontend|
+  :Hien thi yeu cau dang nhap;
+  |Viewer|
+  :Xem thong bao;
+  stop
+endif
+
+|He thong|
+if (Video ton tai?) then (Co)
+  :Kiem tra trang thai video va kenh;
+else (Khong)
+  :Tra thong bao video khong ton tai;
+  |Frontend|
+  :Hien thi loi video;
+  |Viewer|
+  :Xem thong bao loi;
+  stop
+endif
+
+|He thong|
+if (Video san sang de phat?) then (Co)
+  :Kiem tra quyen xem video;
+else (Khong)
+  :Tra thong bao video chua san sang;
+  |Frontend|
+  :Hien thi loi video;
+  |Viewer|
+  :Xem thong bao loi;
+  stop
+endif
+
+|He thong|
+if (Duoc phep xem?) then (Co)
+  :Tao playback token;
+  :Lay tien do xem gan nhat;
+  :Tra thong tin phat video;
+else (Khong)
+  :Tra thong bao khong co quyen xem;
+  |Frontend|
+  :Hien thi yeu cau mo khoa hoac dang ky hoi vien;
+  |Viewer|
+  :Xem thong bao;
+  stop
+endif
+
+|Frontend|
+:Khoi tao trinh phat video;
+:Yeu cau playlist phat video;
+
+|He thong|
+:Kiem tra playback token;
+
+if (Token hop le?) then (Co)
+  :Doc playlist;
+  :Chuan bi duong dan segment;
+  :Tra playlist cho frontend;
+else (Khong)
+  :Tra thong bao khong the phat video;
+  |Frontend|
+  :Hien thi loi phat video;
+  |Viewer|
+  :Xem thong bao loi;
+  stop
+endif
+
+|Frontend|
+:Tai cac segment video;
+:Phat video tu vi tri phu hop;
+
+while (Viewer con xem video?) is (Co)
+  :Gui tien do xem dinh ky;
+  |He thong|
+  :Luu tien do xem;
+  if (Dat nguong tinh luot xem?) then (Co)
+    :Ghi nhan luot xem;
+  else (Khong)
+  endif
+  |Frontend|
+  :Tiep tuc phat video;
+endwhile (Khong)
+
+|Viewer|
+:Dung xem video;
+stop
+
+@enduml

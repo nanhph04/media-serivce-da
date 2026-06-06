@@ -1,0 +1,123 @@
+@startuml
+title Sequence Diagram - Duyet video (Admin)
+autonumber
+autoactivate on
+
+actor "Admin" as Admin
+participant "Frontend" as FE
+participant "API Gateway" as GW
+participant "Media Service" as MS
+database "Video Store" as VideoStore
+participant "Object Storage" as Storage
+participant "Video Status Stream" as StatusStream
+queue "Processing Queue" as ProcessingQueue
+queue "Message Broker" as Broker
+participant "Cache" as Cache
+
+Admin -> FE: Mo man hinh video can duyet
+FE -> GW: Yeu cau danh sach video can duyet
+GW -> GW: Kiem tra phien dang nhap va quyen admin
+
+alt Khong phai admin
+  GW --> FE: Tu choi yeu cau
+  FE --> Admin: Hien thi thong bao khong co quyen
+else La admin
+  GW -> MS: Chuyen tiep yeu cau danh sach
+  MS -> MS: Kiem tra quyen admin
+  MS -> VideoStore: Lay video trang thai can duyet thu cong
+  VideoStore --> MS: Tra danh sach video
+  MS --> GW: Tra danh sach video
+  GW --> FE: Tra ket qua
+  FE --> Admin: Hien thi danh sach video
+end
+
+Admin -> FE: Chon video can xem
+FE -> GW: Yeu cau preview video
+GW -> GW: Kiem tra phien dang nhap va quyen admin
+GW -> MS: Chuyen tiep yeu cau preview
+MS -> MS: Kiem tra quyen admin
+MS -> VideoStore: Tim video theo ma video
+
+alt Khong tim thay video
+  VideoStore --> MS: Khong co video
+  MS --> GW: Tra thong bao khong tim thay
+  GW --> FE: Tra ket qua
+  FE --> Admin: Hien thi loi preview
+else Tim thay video
+  VideoStore --> MS: Tra thong tin video
+  MS -> MS: Kiem tra video co the xem preview
+
+  alt Khong the xem preview
+    MS --> GW: Tra thong bao khong xem duoc preview
+    GW --> FE: Tra ket qua
+    FE --> Admin: Hien thi loi preview
+  else Co the xem preview
+    MS -> Storage: Kiem tra file goc cua video
+
+    alt Khong co file goc
+      Storage --> MS: Khong tim thay file
+      MS --> GW: Tra thong bao thieu file preview
+      GW --> FE: Tra ket qua
+      FE --> Admin: Hien thi loi preview
+    else Co file goc
+      Storage --> MS: File ton tai
+      MS -> Storage: Tao duong dan xem tam thoi
+      Storage --> MS: Tra duong dan preview
+      MS --> GW: Tra preview va thong tin moderation
+      GW --> FE: Tra ket qua
+      FE --> Admin: Hien thi preview video
+    end
+  end
+end
+
+Admin -> FE: Chon duyet hoac tu choi
+FE -> GW: Gui quyet dinh duyet video
+GW -> GW: Kiem tra phien dang nhap va quyen admin
+
+alt Khong phai admin
+  GW --> FE: Tu choi yeu cau
+  FE --> Admin: Hien thi thong bao khong co quyen
+else La admin
+  GW -> MS: Chuyen tiep quyet dinh duyet
+  MS -> MS: Kiem tra du lieu va quyen admin
+  MS -> VideoStore: Tim video can duyet
+
+  alt Khong tim thay video
+    VideoStore --> MS: Khong co video
+    MS --> GW: Tra thong bao khong tim thay
+    GW --> FE: Tra ket qua
+    FE --> Admin: Hien thi loi duyet video
+  else Tim thay video
+    VideoStore --> MS: Tra thong tin video
+    MS -> MS: Kiem tra trang thai can duyet thu cong
+
+    alt Video khong con cho duyet thu cong
+      MS --> GW: Tra thong bao khong the duyet
+      GW --> FE: Tra ket qua
+      FE --> Admin: Hien thi loi duyet video
+    else Video dang cho duyet thu cong
+      alt Duyet video
+        MS -> VideoStore: Chuyen video sang dang xu ly
+        VideoStore --> MS: Da luu trang thai video
+        MS ->> StatusStream: Thong bao trang thai video thay doi
+        MS ->> ProcessingQueue: Dua video vao hang doi xu ly
+        MS ->> Broker: Phat su kien video.moderation.outcome
+        MS -> Cache: Xoa cache video va danh sach kham pha
+        Cache --> MS: Da xoa cache
+        MS --> GW: Tra ket qua video dang xu ly
+        GW --> FE: Tra ket qua
+        FE --> Admin: Hien thi video da duoc duyet
+      else Tu choi video
+        MS -> VideoStore: Chuyen video sang bi tu choi
+        VideoStore --> MS: Da luu trang thai va ly do
+        MS -> Cache: Xoa cache video va danh sach kham pha
+        Cache --> MS: Da xoa cache
+        MS --> GW: Tra ket qua video bi tu choi
+        GW --> FE: Tra ket qua
+        FE --> Admin: Hien thi video da bi tu choi
+      end
+    end
+  end
+end
+
+@enduml

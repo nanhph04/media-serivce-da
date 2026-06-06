@@ -1,0 +1,63 @@
+@startuml
+title Sequence Diagram - Go video
+autonumber
+autoactivate on
+
+actor "Creator" as Creator
+participant "Frontend" as FE
+participant "API Gateway" as GW
+participant "Media Service" as MS
+database "Video Store" as VideoStore
+participant "Object Storage" as Storage
+queue "Outbox / Message Broker" as Broker
+participant "Background Consumers" as Consumers
+
+Creator -> FE: Xac nhan go video
+FE -> GW: Gui yeu cau go video
+GW -> GW: Kiem tra phien dang nhap
+
+alt Chua dang nhap
+  GW --> FE: Tu choi yeu cau
+  FE --> Creator: Hien thi yeu cau dang nhap
+else Da dang nhap
+  GW -> MS: Chuyen tiep yeu cau go video
+  MS -> VideoStore: Lay thong tin video
+
+  alt Video khong ton tai
+    VideoStore --> MS: Khong tim thay video
+    MS --> GW: Thong bao video khong ton tai
+    GW --> FE: Tra ket qua
+    FE --> Creator: Hien thi loi go video
+  else Video ton tai
+    VideoStore --> MS: Tra thong tin video
+    MS -> MS: Kiem tra quyen so huu
+
+    alt Khong phai chu so huu
+      MS --> GW: Tu choi go video
+      GW --> FE: Tra ket qua
+      FE --> Creator: Hien thi loi khong co quyen
+    else Dung chu so huu
+      MS -> MS: Kiem tra trang thai video
+
+      alt Video loi hoac bi tu choi
+        MS -> Storage: Xoa file raw neu con ton tai
+        Storage --> MS: Da xu ly file raw
+        MS -> VideoStore: Xoa ban ghi video loi
+        VideoStore --> MS: Da xoa
+        MS --> GW: Tra ket qua xoa thanh cong
+        GW --> FE: Tra ket qua
+        FE --> Creator: Cap nhat danh sach video
+      else Video thong thuong
+        MS -> VideoStore: Danh dau video da bi go
+        VideoStore --> MS: Da cap nhat
+        MS ->> Broker: Phat su kien video.delete.requested
+        Broker ->> Consumers: Xu ly sau khi go video
+        MS --> GW: Tra ket qua go video thanh cong
+        GW --> FE: Tra ket qua
+        FE --> Creator: Hien thi trang thai video da go
+      end
+    end
+  end
+end
+
+@enduml

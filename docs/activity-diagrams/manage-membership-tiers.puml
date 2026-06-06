@@ -1,0 +1,118 @@
+@startuml
+title Activity Diagram - Quan ly goi hoi vien
+
+|Creator|
+start
+:Mo man hinh quan ly goi hoi vien;
+:Chon thao tac voi goi hoi vien;
+
+if (Thao tac?) then (Tao goi moi)
+  :Nhap ten goi, cap goi va gia coin;
+elseif (Cap nhat goi)
+  :Chon goi can sua;
+  :Cap nhat ten goi, gia coin hoac trang thai nhan dang ky;
+else (An goi)
+  :Chon goi can an khoi nguoi mua moi;
+endif
+
+:Xac nhan thao tac;
+
+|Frontend|
+:Gui yeu cau quan ly goi hoi vien;
+
+|He thong|
+:API Gateway kiem tra phien dang nhap;
+
+if (Da dang nhap?) then (Co)
+  :Media Service tiep nhan yeu cau;
+else (Khong)
+  :Tu choi yeu cau;
+  |Frontend|
+  :Hien thi yeu cau dang nhap;
+  |Creator|
+  :Xem thong bao;
+  stop
+endif
+
+|He thong|
+:Tim kenh cua creator;
+
+if (Kenh ton tai va dung chu so huu?) then (Co)
+  :Kiem tra trang thai kenh;
+else (Khong)
+  :Tra thong bao khong co quyen quan ly kenh;
+  |Frontend|
+  :Hien thi loi quan ly goi;
+  |Creator|
+  :Xem thong bao loi;
+  stop
+endif
+
+|He thong|
+if (Kenh dang hoat dong?) then (Co)
+  :Kiem tra thao tac duoc chon;
+else (Khong)
+  :Tra thong bao kenh khong hoat dong;
+  |Frontend|
+  :Hien thi loi quan ly goi;
+  |Creator|
+  :Xem thong bao loi;
+  stop
+endif
+
+|He thong|
+if (Tao goi moi?) then (Co)
+  :Kiem tra dieu kien mo hoi vien cua kenh;
+  :Kiem tra cap goi, gia goi va trung cap goi;
+
+  if (Thong tin tao goi hop le?) then (Co)
+    :Tao goi hoi vien moi;
+  else (Khong)
+    :Tra thong bao khong tao duoc goi;
+    |Frontend|
+    :Hien thi loi quan ly goi;
+    |Creator|
+    :Xem thong bao loi;
+    stop
+  endif
+elseif (Cap nhat goi?) then (Co)
+  :Tim goi hoi vien can cap nhat;
+  :Kiem tra gia goi va trang thai nhan dang ky;
+
+  if (Thong tin cap nhat hop le?) then (Co)
+    :Cap nhat thong tin goi hoi vien;
+  else (Khong)
+    :Tra thong bao khong cap nhat duoc goi;
+    |Frontend|
+    :Hien thi loi quan ly goi;
+    |Creator|
+    :Xem thong bao loi;
+    stop
+  endif
+else (An goi)
+  :Tim goi hoi vien can an;
+
+  if (Goi ton tai trong kenh?) then (Co)
+    :Chuyen goi sang trang thai khong nhan dang ky moi;
+  else (Khong)
+    :Tra thong bao khong tim thay goi;
+    |Frontend|
+    :Hien thi loi quan ly goi;
+    |Creator|
+    :Xem thong bao loi;
+    stop
+  endif
+endif
+
+|He thong|
+:Luu thay doi goi hoi vien;
+:Tra ket qua ve frontend;
+
+|Frontend|
+:Cap nhat danh sach goi hoi vien;
+
+|Creator|
+:Xem ket qua quan ly goi;
+stop
+
+@enduml

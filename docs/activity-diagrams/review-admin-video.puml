@@ -1,0 +1,133 @@
+@startuml
+title Activity Diagram - Duyet video (Admin)
+
+|He thong|
+start
+:Video duoc danh dau can duyet thu cong;
+
+|Admin|
+:Mo man hinh duyet video;
+:Loc danh sach video can duyet;
+
+|Frontend|
+:Gui yeu cau lay danh sach video;
+
+|He thong|
+:API Gateway kiem tra phien dang nhap va quyen admin;
+
+if (La admin hop le?) then (Co)
+  :Media Service lay danh sach video can duyet;
+else (Khong)
+  :Tu choi yeu cau;
+  |Frontend|
+  :Hien thi thong bao khong co quyen;
+  |Admin|
+  :Xem thong bao;
+  stop
+endif
+
+|He thong|
+:Tra danh sach video ve frontend;
+
+|Frontend|
+:Hien thi danh sach video can duyet;
+
+|Admin|
+:Chon video can xem xet;
+
+|Frontend|
+:Gui yeu cau lay thong tin preview;
+
+|He thong|
+:Kiem tra quyen admin;
+:Tim video va file goc;
+
+if (Co the xem preview?) then (Co)
+  :Tao duong dan xem preview tam thoi;
+else (Khong)
+  :Tra thong bao khong xem duoc preview;
+  |Frontend|
+  :Hien thi loi preview;
+  |Admin|
+  :Xem thong bao loi;
+  stop
+endif
+
+|Frontend|
+:Hien thi preview va ket qua moderation tu dong;
+
+|Admin|
+:Xem video va bang chung moderation;
+
+if (Quyet dinh?) then (Duyet)
+  :Xac nhan duyet video;
+else (Tu choi)
+  :Nhap ly do tu choi;
+  :Xac nhan tu choi video;
+endif
+
+|Frontend|
+:Gui yeu cau duyet video;
+
+|He thong|
+:API Gateway kiem tra lai quyen admin;
+
+if (La admin hop le?) then (Co)
+  :Media Service tiep nhan yeu cau;
+else (Khong)
+  :Tu choi yeu cau;
+  |Frontend|
+  :Hien thi thong bao khong co quyen;
+  |Admin|
+  :Xem thong bao;
+  stop
+endif
+
+|He thong|
+:Tim video can duyet;
+
+if (Video ton tai?) then (Co)
+  :Kiem tra trang thai video;
+else (Khong)
+  :Tra thong bao khong tim thay video;
+  |Frontend|
+  :Hien thi loi duyet video;
+  |Admin|
+  :Xem thong bao loi;
+  stop
+endif
+
+|He thong|
+if (Video dang cho duyet thu cong?) then (Co)
+  if (Admin chon duyet?) then (Co)
+    :Chuyen video sang trang thai dang xu ly;
+    :Luu thay doi video;
+    :Gui thong bao trang thai video;
+    :Dua video vao hang doi xu ly tiep;
+    :Phat su kien ket qua moderation;
+  else (Tu choi)
+    :Chuyen video sang trang thai bi tu choi;
+    :Luu ly do tu choi;
+    :Luu thay doi video;
+  endif
+else (Khong)
+  :Tra thong bao video khong con cho duyet;
+  |Frontend|
+  :Hien thi loi duyet video;
+  |Admin|
+  :Xem thong bao loi;
+  stop
+endif
+
+|He thong|
+:Xoa cache thong tin video va danh sach kham pha;
+:Tra ket qua duyet ve frontend;
+
+|Frontend|
+:Cap nhat trang thai video tren man hinh;
+
+|Admin|
+:Xem ket qua duyet video;
+stop
+
+@enduml
