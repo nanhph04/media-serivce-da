@@ -1,0 +1,47 @@
+@startuml
+title Sequence Diagram - Them danh muc moi
+autonumber
+autoactivate on
+
+actor "Admin" as Admin
+participant "Frontend" as FE
+participant "API Gateway" as GW
+participant "Media Service" as MS
+database "Category Store" as CategoryStore
+
+Admin -> FE: Nhap thong tin danh muc moi
+FE -> GW: Gui yeu cau them danh muc
+GW -> GW: Kiem tra phien dang nhap va quyen admin
+
+alt Khong phai admin
+  GW --> FE: Tu choi yeu cau
+  FE --> Admin: Hien thi thong bao khong co quyen
+else La admin
+  GW -> MS: Chuyen tiep yeu cau them danh muc
+  MS -> MS: Kiem tra ten, mo ta va thu tu hien thi
+
+  alt Thong tin khong hop le
+    MS --> GW: Tra thong bao thong tin khong hop le
+    GW --> FE: Tra ket qua
+    FE --> Admin: Hien thi loi tao danh muc
+  else Thong tin hop le
+    MS -> MS: Chuan hoa ten va tao slug
+    MS -> CategoryStore: Tim danh muc theo slug
+
+    alt Danh muc da ton tai
+      CategoryStore --> MS: Tra danh muc trung
+      MS --> GW: Tra thong bao danh muc da ton tai
+      GW --> FE: Tra ket qua
+      FE --> Admin: Hien thi loi tao danh muc
+    else Chua ton tai
+      CategoryStore --> MS: Khong co danh muc trung
+      MS -> CategoryStore: Luu danh muc moi
+      CategoryStore --> MS: Da luu danh muc
+      MS --> GW: Tra thong tin danh muc moi
+      GW --> FE: Tra ket qua
+      FE --> Admin: Hien thi danh muc vua tao
+    end
+  end
+end
+
+@enduml

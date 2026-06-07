@@ -1,0 +1,98 @@
+@startuml
+title Sequence Diagram - Xem video - Chi tiet 2: Tai playlist va segment
+autonumber
+autoactivate on
+hide footbox
+
+skinparam maxMessageSize 80
+skinparam ParticipantPadding 12
+skinparam BoxPadding 8
+
+participant "Frontend" as FE
+participant "API Gateway" as GW
+
+box "Media Service" #F5F5F5
+  participant "StreamingController" as SC
+  participant "StreamingUseCase" as StreamUC
+  participant "PlaybackTokenService" as Token
+  participant "Cache" as Cache
+  database "Media DB" as DB
+end box
+
+participant "Object Storage" as Storage
+
+== Tai master playlist ==
+
+FE -> GW: Yeu cau master playlist
+GW -> SC: Chuyen tiep yeu cau playlist
+SC -> StreamUC: Xu ly playlist
+StreamUC -> Token: Kiem tra playback token
+
+alt Token khong hop le
+  Token --> StreamUC: Tu choi token
+  StreamUC --> SC: Tra ket qua khong the phat
+  SC --> GW: Tra ket qua
+  GW --> FE: Hien thi loi phat video
+else Token hop le
+  Token --> StreamUC: Token hop le
+  StreamUC -> Cache: Tim master playlist key
+
+  alt Chua co trong cache
+    Cache --> StreamUC: Khong co du lieu
+    StreamUC -> DB: Lay master playlist key
+    DB --> StreamUC: Tra master playlist key
+    StreamUC -> Cache: Luu master playlist key
+  else Co trong cache
+    Cache --> StreamUC: Tra master playlist key
+  end
+
+  StreamUC -> Cache: Tim playlist da gan token
+
+  alt Chua co playlist cache
+    Cache --> StreamUC: Khong co playlist
+    StreamUC -> Storage: Doc playlist goc
+    Storage --> StreamUC: Tra playlist goc
+    StreamUC -> StreamUC: Gan token vao duong dan segment
+    StreamUC -> Cache: Luu playlist da gan token
+  else Co playlist cache
+    Cache --> StreamUC: Tra playlist da gan token
+  end
+
+  StreamUC --> SC: Tra playlist
+  SC --> GW: Tra playlist
+  GW --> FE: Tra playlist cho trinh phat
+end
+
+== Tai segment trong khi xem ==
+
+loop Moi lan trinh phat can them du lieu
+  FE -> GW: Yeu cau segment hoac playlist con
+  GW -> SC: Chuyen tiep yeu cau streaming
+  SC -> StreamUC: Xu ly du lieu phat
+  StreamUC -> Token: Kiem tra playback token
+
+  alt Token khong hop le
+    Token --> StreamUC: Tu choi token
+    StreamUC --> SC: Tra ket qua khong the phat
+    SC --> GW: Tra ket qua
+    GW --> FE: Hien thi loi phat video
+  else Token hop le
+    Token --> StreamUC: Token hop le
+
+    alt La playlist con
+      StreamUC -> Storage: Doc playlist con
+      Storage --> StreamUC: Tra playlist con
+      StreamUC -> StreamUC: Gan token vao playlist con
+      StreamUC --> SC: Tra playlist con
+    else La segment media
+      StreamUC -> Storage: Doc segment video
+      Storage --> StreamUC: Tra stream segment
+      StreamUC --> SC: Tra segment video
+    end
+
+    SC --> GW: Tra du lieu phat
+    GW --> FE: Tra du lieu cho trinh phat
+  end
+end
+
+@enduml

@@ -1,0 +1,92 @@
+@startuml
+title Activity Diagram - Cap nhat danh muc
+
+|Admin|
+start
+:Mo man hinh quan ly danh muc;
+:Tim va chon danh muc can cap nhat;
+
+if (Thao tac?) then (Sua thong tin)
+  :Cap nhat ten, mo ta, danh muc cha hoac thu tu hien thi;
+elseif (Doi trang thai)
+  :Chon trang thai moi cho danh muc;
+else (Xoa mem)
+  :Chon an hoac xoa mem danh muc;
+endif
+
+:Xac nhan cap nhat;
+
+|Frontend|
+:Gui yeu cau cap nhat danh muc;
+
+|He thong|
+:API Gateway kiem tra phien dang nhap va quyen admin;
+
+if (La admin hop le?) then (Co)
+  :Media Service tiep nhan yeu cau;
+else (Khong)
+  :Tu choi yeu cau;
+  |Frontend|
+  :Hien thi thong bao khong co quyen;
+  |Admin|
+  :Xem thong bao;
+  stop
+endif
+
+|He thong|
+:Tim danh muc can cap nhat;
+
+if (Danh muc ton tai?) then (Co)
+  :Kiem tra noi dung cap nhat;
+else (Khong)
+  :Tra thong bao khong tim thay danh muc;
+  |Frontend|
+  :Hien thi loi cap nhat danh muc;
+  |Admin|
+  :Xem thong bao loi;
+  stop
+endif
+
+|He thong|
+if (Co doi ten danh muc?) then (Co)
+  :Tao lai ma dinh danh hien thi;
+  :Kiem tra trung voi danh muc khac;
+
+  if (Bi trung danh muc?) then (Co)
+    :Tra thong bao danh muc da ton tai;
+    |Frontend|
+    :Hien thi loi cap nhat danh muc;
+    |Admin|
+    :Xem thong bao loi;
+    stop
+  else (Khong)
+    :Chap nhan ten moi;
+  endif
+else (Khong)
+  :Giu nguyen ten hien tai;
+endif
+
+|He thong|
+if (Trang thai hop le?) then (Co)
+  :Cap nhat thong tin va trang thai danh muc;
+else (Khong)
+  :Tra thong bao trang thai khong hop le;
+  |Frontend|
+  :Hien thi loi cap nhat danh muc;
+  |Admin|
+  :Xem thong bao loi;
+  stop
+endif
+
+|He thong|
+:Luu thay doi danh muc;
+:Tra ket qua ve frontend;
+
+|Frontend|
+:Cap nhat danh sach danh muc;
+
+|Admin|
+:Xem danh muc sau cap nhat;
+stop
+
+@enduml

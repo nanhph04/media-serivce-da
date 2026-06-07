@@ -1,0 +1,68 @@
+@startuml
+title Activity Diagram - Them danh muc moi
+
+|Admin|
+start
+:Mo man hinh quan ly danh muc;
+:Chon them danh muc moi;
+:Nhap ten, mo ta, danh muc cha va thu tu hien thi;
+:Xac nhan tao danh muc;
+
+|Frontend|
+:Gui yeu cau them danh muc;
+
+|He thong|
+:API Gateway kiem tra phien dang nhap va quyen admin;
+
+if (La admin hop le?) then (Co)
+  :Media Service tiep nhan yeu cau;
+else (Khong)
+  :Tu choi yeu cau;
+  |Frontend|
+  :Hien thi thong bao khong co quyen;
+  |Admin|
+  :Xem thong bao;
+  stop
+endif
+
+|He thong|
+:Kiem tra thong tin danh muc;
+
+if (Thong tin hop le?) then (Co)
+  :Chuan hoa ten danh muc;
+  :Tao ma dinh danh hien thi cua danh muc;
+else (Khong)
+  :Tra thong bao thong tin khong hop le;
+  |Frontend|
+  :Hien thi loi tao danh muc;
+  |Admin|
+  :Xem thong bao loi;
+  stop
+endif
+
+|He thong|
+:Kiem tra danh muc da ton tai hay chua;
+
+if (Bi trung danh muc?) then (Co)
+  :Tra thong bao danh muc da ton tai;
+  |Frontend|
+  :Hien thi loi tao danh muc;
+  |Admin|
+  :Xem thong bao loi;
+  stop
+else (Khong)
+  :Tao danh muc o trang thai hoat dong;
+endif
+
+|He thong|
+:Luu danh muc moi;
+:Tra ket qua ve frontend;
+
+|Frontend|
+:Cap nhat danh sach danh muc;
+
+|Admin|
+:Xem danh muc vua tao;
+stop
+
+@enduml

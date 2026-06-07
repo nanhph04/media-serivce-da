@@ -1,0 +1,76 @@
+@startuml
+title Sequence Diagram - Xem video - Chi tiet 3: Cap nhat tien do va luot xem
+autonumber
+autoactivate on
+hide footbox
+
+skinparam maxMessageSize 80
+skinparam ParticipantPadding 12
+skinparam BoxPadding 8
+
+actor "Viewer" as Viewer
+participant "Frontend" as FE
+participant "API Gateway" as GW
+
+box "Media Service" #F5F5F5
+  participant "VideosController" as VC
+  participant "UpdateProgressUseCase" as ProgressUC
+  participant "VideoWatchAccessService" as Access
+  participant "RecordVideoViewUseCase" as ViewUC
+  database "Media DB" as DB
+  participant "Idempotency Cache" as Idempotency
+end box
+
+queue "Message Broker" as Broker
+
+loop Dinh ky khi viewer dang xem
+  Viewer -> FE: Tiep tuc xem video
+  FE -> GW: Gui tien do xem hien tai
+  GW -> GW: Kiem tra phien dang nhap
+
+  alt Chua dang nhap
+    GW --> FE: Tu choi yeu cau
+    FE --> Viewer: Hien thi thong bao dang nhap lai
+  else Da dang nhap
+    GW -> VC: Chuyen tiep tien do xem
+    VC -> ProgressUC: Xu ly cap nhat tien do
+    ProgressUC -> DB: Lay video va tien do hien co
+    DB --> ProgressUC: Tra du lieu can thiet
+    ProgressUC -> Access: Kiem tra lai quyen xem
+    Access -> DB: Lay trang thai kenh, hoi vien va mo khoa
+
+    alt Khong con quyen xem
+      DB --> Access: Khong thoa dieu kien
+      Access --> ProgressUC: Tu choi cap nhat
+      ProgressUC --> VC: Tra ket qua khong hop le
+      VC --> GW: Tra ket qua
+      GW --> FE: Tra ket qua
+      FE --> Viewer: Hien thi thong bao phu hop
+    else Con quyen xem
+      DB --> Access: Thoa dieu kien
+      Access --> ProgressUC: Cho phep cap nhat
+      ProgressUC -> DB: Luu tien do moi
+      DB --> ProgressUC: Da luu tien do
+
+      opt Dat nguong tinh luot xem
+        ProgressUC -> ViewUC: Ghi nhan luot xem
+        ViewUC -> Idempotency: Kiem tra trung lap theo viewer va video
+
+        alt Chua ghi nhan gan day
+          Idempotency --> ViewUC: Cho phep ghi nhan
+          ViewUC ->> Broker: Phat su kien video.viewed
+        else Da ghi nhan gan day
+          Idempotency --> ViewUC: Bo qua ghi nhan trung
+        end
+
+        ViewUC --> ProgressUC: Hoan tat
+      end
+
+      ProgressUC --> VC: Tra ket qua cap nhat tien do
+      VC --> GW: Tra ket qua
+      GW --> FE: Tra ket qua
+    end
+  end
+end
+
+@enduml

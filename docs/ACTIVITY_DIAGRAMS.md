@@ -24,3 +24,5 @@ Gateway public path hien tai:
 | 7 | Quan ly goi hoi vien | `docs/activity-diagrams/manage-membership-tiers.puml` |
 | 8 | Quan ly kenh (Admin) | `docs/activity-diagrams/manage-admin-channels.puml` |
 | 9 | Duyet video (Admin) | `docs/activity-diagrams/review-admin-video.puml` |
+| 10 | Them danh muc moi | `docs/activity-diagrams/create-category.puml` |
+| 11 | Cap nhat danh muc | `docs/activity-diagrams/update-category.puml` |

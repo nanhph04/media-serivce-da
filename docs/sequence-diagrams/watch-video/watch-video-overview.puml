@@ -1,0 +1,78 @@
+@startuml
+title Sequence Diagram - Xem video Viewer - Tong quat luong du lieu
+autonumber
+autoactivate on
+
+actor "Viewer" as Viewer
+participant "Frontend" as FE
+participant "API Gateway" as GW
+participant "Media Service" as MS
+participant "Object Storage" as Storage
+queue "Message Broker" as Broker
+
+Viewer -> FE: Chon xem video
+FE -> GW: Gui yeu cau bat dau phat video
+GW -> GW: Kiem tra phien dang nhap
+
+alt Chua dang nhap
+  GW --> FE: Tu choi yeu cau
+  FE --> Viewer: Hien thi yeu cau dang nhap
+else Da dang nhap
+  ref over FE, GW, MS
+    Chi tiet 1: Khoi tao phien phat
+    File: watch-video-detail-01-playback-session.puml
+  end ref
+
+  GW -> MS: Chuyen tiep yeu cau phat video
+  MS -> MS: Kiem tra video, kenh, quyen xem va tien do xem
+
+  alt Video khong kha dung hoac viewer khong co quyen
+    MS --> GW: Tra ket qua khong the phat video
+    GW --> FE: Tra ket qua
+    FE --> Viewer: Hien thi thong bao phu hop
+  else Duoc phep xem
+    MS --> GW: Tra playback token, duong dan phat va vi tri xem gan nhat
+    GW --> FE: Tra thong tin phat video
+    FE --> Viewer: Mo trinh phat video
+
+    ref over FE, GW, MS, Storage
+      Chi tiet 2: Tai playlist va segment
+      File: watch-video-detail-02-streaming-data.puml
+    end ref
+
+    FE -> GW: Yeu cau master playlist
+    GW -> MS: Chuyen tiep yeu cau playlist
+    MS -> Storage: Doc playlist da xu ly
+    Storage --> MS: Tra playlist
+    MS --> GW: Tra playlist da gan token
+    GW --> FE: Tra playlist cho trinh phat
+
+    loop Trong khi viewer xem video
+      FE -> GW: Yeu cau segment video
+      GW -> MS: Chuyen tiep yeu cau segment
+      MS -> Storage: Doc segment tu kho luu tru
+      Storage --> MS: Tra segment video
+      MS --> GW: Tra segment video
+      GW --> FE: Tra segment cho trinh phat
+      FE --> Viewer: Phat noi dung video
+
+      ref over FE, GW, MS, Broker
+        Chi tiet 3: Cap nhat tien do va luot xem
+        File: watch-video-detail-03-progress-view-event.puml
+      end ref
+
+      FE -> GW: Gui tien do xem dinh ky
+      GW -> MS: Chuyen tiep tien do xem
+      MS -> MS: Luu tien do va xet dieu kien tinh luot xem
+
+      opt Dat nguong tinh luot xem
+        MS ->> Broker: Phat su kien video.viewed
+      end
+
+      MS --> GW: Tra ket qua cap nhat tien do
+      GW --> FE: Tra ket qua
+    end
+  end
+end
+
+@enduml

@@ -19,12 +19,17 @@ Gateway public path hien tai:
 
 | STT | Chuc nang | File |
 | --- | --- | --- |
-| 1 | Xem video | `docs/sequence-diagrams/watch-video.puml` |
-| 2 | Mo khoa video | `docs/sequence-diagrams/unlock-video.puml` |
-| 3 | Dang ky hoi vien | `docs/sequence-diagrams/purchase-membership.puml` |
-| 4 | Tao video moi / Upload video | `docs/sequence-diagrams/upload-video.puml` |
-| 5 | Cap nhat thong tin video | `docs/sequence-diagrams/update-video-metadata.puml` |
-| 6 | Go video | `docs/sequence-diagrams/unpublish-video.puml` |
-| 7 | Quan ly goi hoi vien | `docs/sequence-diagrams/manage-membership-tiers.puml` |
-| 8 | Quan ly kenh (Admin) | `docs/sequence-diagrams/manage-admin-channels.puml` |
-| 9 | Duyet video (Admin) | `docs/sequence-diagrams/review-admin-video.puml` |
+| 1 | Xem video - tong quat | `docs/sequence-diagrams/watch-video/watch-video-overview.puml` |
+| 2 | Xem video - chi tiet khoi tao phien phat | `docs/sequence-diagrams/watch-video/watch-video-detail-01-playback-session.puml` |
+| 3 | Xem video - chi tiet tai playlist va segment | `docs/sequence-diagrams/watch-video/watch-video-detail-02-streaming-data.puml` |
+| 4 | Xem video - chi tiet cap nhat tien do va luot xem | `docs/sequence-diagrams/watch-video/watch-video-detail-03-progress-view-event.puml` |
+| 5 | Mo khoa video | `docs/sequence-diagrams/unlock-video.puml` |
+| 6 | Dang ky hoi vien | `docs/sequence-diagrams/purchase-membership.puml` |
+| 7 | Tao video moi / Upload video | `docs/sequence-diagrams/upload-video.puml` |
+| 8 | Cap nhat thong tin video | `docs/sequence-diagrams/update-video-metadata.puml` |
+| 9 | Go video | `docs/sequence-diagrams/unpublish-video.puml` |
+| 10 | Quan ly goi hoi vien | `docs/sequence-diagrams/manage-membership-tiers.puml` |
+| 11 | Quan ly kenh (Admin) | `docs/sequence-diagrams/manage-admin-channels.puml` |
+| 12 | Duyet video (Admin) | `docs/sequence-diagrams/review-admin-video.puml` |
+| 13 | Them danh muc moi | `docs/sequence-diagrams/create-category.puml` |
+| 14 | Cap nhat danh muc | `docs/sequence-diagrams/update-category.puml` |

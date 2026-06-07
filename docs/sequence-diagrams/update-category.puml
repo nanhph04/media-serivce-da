@@ -1,0 +1,69 @@
+@startuml
+title Sequence Diagram - Cap nhat danh muc
+autonumber
+autoactivate on
+
+actor "Admin" as Admin
+participant "Frontend" as FE
+participant "API Gateway" as GW
+participant "Media Service" as MS
+database "Category Store" as CategoryStore
+
+Admin -> FE: Chon danh muc va thao tac cap nhat
+FE -> GW: Gui yeu cau cap nhat danh muc
+GW -> GW: Kiem tra phien dang nhap va quyen admin
+
+alt Khong phai admin
+  GW --> FE: Tu choi yeu cau
+  FE --> Admin: Hien thi thong bao khong co quyen
+else La admin
+  GW -> MS: Chuyen tiep yeu cau cap nhat
+  MS -> CategoryStore: Tim danh muc theo ma danh muc
+
+  alt Khong tim thay danh muc
+    CategoryStore --> MS: Khong co danh muc
+    MS --> GW: Tra thong bao khong tim thay
+    GW --> FE: Tra ket qua
+    FE --> Admin: Hien thi loi cap nhat
+  else Tim thay danh muc
+    CategoryStore --> MS: Tra thong tin danh muc
+
+    alt Co doi ten danh muc
+      MS -> MS: Chuan hoa ten va tao slug moi
+      MS -> CategoryStore: Kiem tra slug co trung khong
+
+      alt Trung voi danh muc khac
+        CategoryStore --> MS: Tra danh muc trung
+        MS --> GW: Tra thong bao danh muc da ton tai
+        GW --> FE: Tra ket qua
+        FE --> Admin: Hien thi loi cap nhat
+      else Khong trung
+        CategoryStore --> MS: Khong co danh muc trung
+        MS -> MS: Chap nhan ten va slug moi
+      end
+    else Khong doi ten
+      MS -> MS: Giu nguyen ten va slug hien tai
+    end
+
+    MS -> MS: Kiem tra trang thai va thu tu hien thi
+
+    alt Trang thai hoac du lieu khong hop le
+      MS --> GW: Tra thong bao cap nhat khong hop le
+      GW --> FE: Tra ket qua
+      FE --> Admin: Hien thi loi cap nhat
+    else Hop le
+      alt Xoa mem hoac an danh muc
+        MS -> CategoryStore: Cap nhat trang thai inactive hoac deleted
+      else Sua thong tin / kich hoat lai
+        MS -> CategoryStore: Cap nhat thong tin danh muc
+      end
+
+      CategoryStore --> MS: Da luu thay doi
+      MS --> GW: Tra danh muc sau cap nhat
+      GW --> FE: Tra ket qua
+      FE --> Admin: Hien thi danh muc sau cap nhat
+    end
+  end
+end
+
+@enduml

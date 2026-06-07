@@ -1,0 +1,68 @@
+@startuml
+title Sequence Diagram - Xem video - Chi tiet 1: Khoi tao phien phat
+autonumber
+autoactivate on
+hide footbox
+
+skinparam maxMessageSize 80
+skinparam ParticipantPadding 12
+skinparam BoxPadding 8
+
+actor "Viewer" as Viewer
+participant "Frontend" as FE
+participant "API Gateway" as GW
+
+box "Media Service" #F5F5F5
+  participant "VideosController" as VC
+  participant "PlayVideoUseCase" as PlayUC
+  participant "VideoWatchAccessService" as Access
+  participant "PlaybackTokenService" as Token
+  database "Media DB" as DB
+end box
+
+Viewer -> FE: Chon xem video
+FE -> GW: Gui yeu cau phat video
+GW -> GW: Kiem tra phien dang nhap
+
+alt Chua dang nhap
+  GW --> FE: Tu choi yeu cau
+  FE --> Viewer: Hien thi yeu cau dang nhap
+else Da dang nhap
+  GW -> VC: Chuyen tiep yeu cau phat video
+  VC -> PlayUC: Xu ly tao phien phat
+  PlayUC -> DB: Lay thong tin co ban cua video
+
+  alt Video khong ton tai
+    DB --> PlayUC: Khong co du lieu
+    PlayUC --> VC: Tra thong bao video khong ton tai
+    VC --> GW: Tra ket qua
+    GW --> FE: Tra ket qua
+    FE --> Viewer: Hien thi loi
+  else Video ton tai
+    DB --> PlayUC: Tra thong tin video
+    PlayUC -> Access: Kiem tra trang thai video, kenh va quyen xem
+    Access -> DB: Lay ngu canh truy cap cua viewer
+
+    alt Khong duoc phep xem
+      DB --> Access: Khong thoa dieu kien
+      Access --> PlayUC: Tu choi quyen xem
+      PlayUC --> VC: Tra ket qua khong duoc xem
+      VC --> GW: Tra ket qua
+      GW --> FE: Tra ket qua
+      FE --> Viewer: Hien thi yeu cau mo khoa hoac hoi vien
+    else Duoc phep xem
+      DB --> Access: Thoa dieu kien
+      Access --> PlayUC: Cho phep xem
+      PlayUC -> DB: Lay tien do xem gan nhat
+      DB --> PlayUC: Tra tien do xem
+      PlayUC -> Token: Tao playback token
+      Token --> PlayUC: Tra token
+      PlayUC --> VC: Tra playback url, token va vi tri resume
+      VC --> GW: Tra thong tin phat video
+      GW --> FE: Tra thong tin phat video
+      FE --> Viewer: Mo trinh phat video
+    end
+  end
+end
+
+@enduml
