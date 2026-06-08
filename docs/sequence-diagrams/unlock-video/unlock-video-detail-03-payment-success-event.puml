@@ -1,0 +1,48 @@
+@startuml
+title Sequence Diagram - Mo khoa video - Chi tiet 3: Xu ly su kien thanh toan thanh cong
+autonumber
+autoactivate on
+hide footbox
+
+skinparam maxMessageSize 80
+skinparam ParticipantPadding 12
+skinparam BoxPadding 8
+
+participant "Finance Service" as FS
+queue "Message Broker" as Broker
+
+box "Media Service" #F5F5F5
+  participant "VideoPaymentConsumer" as Consumer
+  participant "HandleVideoPaymentSuccessUseCase" as HandleUC
+  participant "UnlockVideoUseCase" as UnlockUC
+  participant "Idempotency Cache" as Cache
+  database "Media DB" as DB
+end box
+
+FS ->> Broker: Phat su kien video.payment.success
+Broker ->> Consumer: Chuyen su kien thanh toan thanh cong
+Consumer -> HandleUC: Xu ly su kien
+HandleUC -> Cache: Danh dau su kien da xu ly theo eventId
+
+alt Su kien da xu ly truoc do
+  Cache --> HandleUC: Khong cho xu ly lai
+  HandleUC --> Consumer: Bo qua su kien trung
+else Su kien moi
+  Cache --> HandleUC: Cho phep xu ly
+  HandleUC -> UnlockUC: Ghi nhan quyen mo khoa
+  UnlockUC -> DB: Kiem tra unlock da ton tai
+
+  alt Da ton tai
+    DB --> UnlockUC: Da co quyen mo khoa
+    UnlockUC --> HandleUC: Bo qua ghi trung
+  else Chua ton tai
+    DB --> UnlockUC: Chua co quyen mo khoa
+    UnlockUC -> DB: Luu quyen mo khoa video
+    DB --> UnlockUC: Da luu
+    UnlockUC --> HandleUC: Da ghi nhan
+  end
+
+  HandleUC --> Consumer: Hoan tat xu ly su kien
+end
+
+@enduml

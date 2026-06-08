@@ -1,0 +1,67 @@
+@startuml
+title Sequence Diagram - Mo khoa video - Tong quat luong du lieu
+autonumber
+autoactivate on
+hide footbox
+
+skinparam maxMessageSize 80
+skinparam ParticipantPadding 12
+
+actor "Viewer" as Viewer
+participant "Frontend" as FE
+participant "API Gateway" as GW
+participant "Media Service" as MS
+participant "Finance Service" as FS
+queue "Message Broker" as Broker
+
+Viewer -> FE: Chon mo khoa video
+FE -> FE: Hien thi gia va yeu cau xac nhan
+FE -> GW: Gui yeu cau mo khoa video
+GW -> GW: Kiem tra phien dang nhap
+
+alt Chua dang nhap
+  GW --> FE: Tu choi yeu cau
+  FE --> Viewer: Hien thi yeu cau dang nhap
+else Da dang nhap
+  ref over FE, GW, MS
+    Chi tiet 1: Kiem tra dieu kien mo khoa
+  end ref
+
+  GW -> MS: Chuyen tiep yeu cau mo khoa
+  MS -> MS: Kiem tra video, chu so huu, trang thai va quyen da mo khoa
+
+  alt Khong the mo khoa hoac da mo khoa truoc do
+    MS --> GW: Tra ket qua phu hop
+    GW --> FE: Tra ket qua
+    FE --> Viewer: Hien thi thong bao
+  else Co the mua de mo khoa
+    ref over MS, FS
+      Chi tiet 2: Thanh toan va ghi nhan mo khoa
+    end ref
+
+    MS -> FS: Yeu cau tru tien mua video
+
+    alt Thanh toan that bai
+      FS --> MS: Tra ket qua that bai
+      MS --> GW: Tra thong bao thanh toan that bai
+      GW --> FE: Tra ket qua
+      FE --> Viewer: Hien thi loi thanh toan
+    else Thanh toan thanh cong
+      FS --> MS: Tra ket qua giao dich
+      MS -> MS: Luu quyen mo khoa video
+      MS --> GW: Tra ket qua mo khoa thanh cong
+      GW --> FE: Tra ket qua
+      FE --> Viewer: Hien thi nut xem video
+
+      ref over FS, Broker, MS
+        Chi tiet 3: Xu ly su kien thanh toan thanh cong
+      end ref
+
+      FS ->> Broker: Phat su kien video.payment.success
+      Broker ->> MS: Chuyen su kien thanh toan thanh cong
+      MS -> MS: Xu ly idempotent neu can
+    end
+  end
+end
+
+@enduml

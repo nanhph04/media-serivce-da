@@ -1,0 +1,95 @@
+@startuml
+title Sequence Diagram - Upload video - Chi tiết 1: Khởi tạo upload
+autonumber
+autoactivate on
+hide footbox
+
+skinparam maxMessageSize 240
+skinparam ParticipantPadding 36
+skinparam defaultFontSize 20
+skinparam sequence {
+  ActorFontSize 18
+  ParticipantFontSize 18
+  MessageFontSize 17
+  GroupFontSize 17
+  ReferenceFontSize 17
+}
+
+actor "Creator" as Creator
+participant "Frontend" as FE
+participant "API Gateway" as GW
+
+box "Media Service" #F5F5F5
+  participant "VideosController" as VC
+  participant "StartVideoUploadUseCase" as StartUC
+  participant "ChannelAccessService" as ChannelAccess
+  database "Media DB" as DB
+  participant "ObjectStorageService" as StorageClient
+end box
+
+participant "Object Storage" as Storage
+
+Creator -> FE: Nhập thông tin video và chọn file
+FE -> GW: Gửi yêu cầu bắt đầu upload
+GW -> GW: Kiểm tra phiên đăng nhập
+
+alt Chưa đăng nhập
+  GW --> FE: Từ chối yêu cầu
+  FE --> Creator: Hiển thị yêu cầu đăng nhập
+else Đã đăng nhập
+  GW -> VC: Chuyển tiếp yêu cầu bắt đầu upload
+  VC -> StartUC: Xử lý tạo draft và phiên upload
+  StartUC -> StartUC: Kiểm tra kích thước file
+
+  alt File không hợp lệ
+    StartUC --> VC: Trả thông báo file không hợp lệ
+    VC --> GW: Trả kết quả
+    GW --> FE: Trả kết quả
+    FE --> Creator: Hiển thị lỗi
+  else File hợp lệ
+    StartUC -> ChannelAccess: Lấy kênh đang hoạt động của creator
+
+    alt Creator chưa có kênh hợp lệ
+      ChannelAccess --> StartUC: Từ chối thao tác
+      StartUC --> VC: Trả thông báo không thể upload
+      VC --> GW: Trả kết quả
+      GW --> FE: Trả kết quả
+      FE --> Creator: Hiển thị lỗi
+    else Kênh hợp lệ
+      ChannelAccess --> StartUC: Trả channelId
+      StartUC -> DB: Kiểm tra danh mục và tag
+
+      alt Danh mục hoặc tag không hợp lệ
+        DB --> StartUC: Không thỏa điều kiện
+        StartUC --> VC: Trả thông báo thông tin không hợp lệ
+        VC --> GW: Trả kết quả
+        GW --> FE: Trả kết quả
+        FE --> Creator: Hiển thị lỗi
+      else Thông tin hợp lệ
+        DB --> StartUC: Trả danh mục và tag hợp lệ
+        StartUC -> DB: Lưu video draft
+        DB --> StartUC: Trả videoId
+        StartUC -> StorageClient: Tạo multipart upload
+        StorageClient -> Storage: Tạo phiên upload file raw
+        Storage --> StorageClient: Trả uploadId
+        StorageClient --> StartUC: Trả uploadId
+        StartUC -> DB: Lưu upload session
+        DB --> StartUC: Đã lưu session
+
+        opt Creator có thumbnail tùy chỉnh
+          StartUC -> StorageClient: Tạo URL upload thumbnail
+          StorageClient -> Storage: Tạo URL upload object public
+          Storage --> StorageClient: Trả URL upload thumbnail
+          StorageClient --> StartUC: Trả URL thumbnail
+        end
+
+        StartUC --> VC: Trả videoId, uploadId, partSize và URL thumbnail
+        VC --> GW: Trả kết quả
+        GW --> FE: Trả thông tin upload
+        FE --> Creator: Bắt đầu upload file
+      end
+    end
+  end
+end
+
+@enduml

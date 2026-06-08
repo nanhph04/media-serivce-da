@@ -1,0 +1,97 @@
+@startuml
+title Sequence Diagram - Upload video - Tổng quát luồng dữ liệu
+autonumber
+autoactivate on
+hide footbox
+
+skinparam maxMessageSize 220
+skinparam ParticipantPadding 36
+skinparam defaultFontSize 18
+skinparam sequence {
+  ActorFontSize 18
+  ParticipantFontSize 18
+  MessageFontSize 17
+  GroupFontSize 17
+  ReferenceFontSize 17
+}
+
+actor "Creator" as Creator
+participant "Frontend" as FE
+participant "API Gateway" as GW
+participant "Media Service" as MS
+participant "Object Storage" as Storage
+queue "Message Broker" as Broker
+participant "Moderation Service" as Moderation
+participant "Media Processing Service" as Processing
+
+Creator -> FE: Nhập thông tin và chọn file video
+FE -> GW: Gửi yêu cầu bắt đầu upload
+GW -> GW: Kiểm tra phiên đăng nhập
+
+alt Chưa đăng nhập
+  GW --> FE: Từ chối yêu cầu
+  FE --> Creator: Hiển thị yêu cầu đăng nhập
+else Đã đăng nhập
+  ref over FE, GW, MS, Storage
+    Chi tiết 1: Khởi tạo draft video và multipart upload
+  end ref
+
+  GW -> MS: Chuyển tiếp yêu cầu bắt đầu upload
+  MS -> MS: Kiểm tra kênh, danh mục, tag và thông tin file
+  MS -> Storage: Tạo multipart upload
+  Storage --> MS: Trả uploadId
+  MS --> GW: Trả videoId, uploadId và thông tin upload
+  GW --> FE: Trả kết quả bắt đầu upload
+
+  ref over FE, GW, MS, Storage
+    Chi tiết 2: Upload multipart video lên Object Storage
+  end ref
+
+  loop Mỗi nhóm part cần upload
+    FE -> GW: Yêu cầu URL upload part
+    GW -> MS: Chuyển tiếp yêu cầu URL
+    MS -> Storage: Tạo URL upload part
+    Storage --> MS: Trả URL upload part
+    MS --> GW: Trả danh sách URL
+    GW --> FE: Trả danh sách URL
+    FE -> Storage: Upload part trực tiếp lên storage
+    Storage --> FE: Trả etag
+    FE -> GW: Báo part đã upload
+    GW -> MS: Lưu thông tin part đã upload
+    MS --> GW: Trả kết quả
+    GW --> FE: Trả kết quả
+  end
+
+  FE -> GW: Yêu cầu hoàn tất multipart upload
+  GW -> MS: Chuyển tiếp yêu cầu hoàn tất
+  MS -> Storage: Hoàn tất multipart upload
+  Storage --> MS: Đã ghép file raw
+  MS --> GW: Trả kết quả hoàn tất upload
+  GW --> FE: Trả kết quả
+
+  ref over FE, GW, MS, Storage, Broker, Moderation
+    Chi tiết 3: Submit video sang kiểm duyệt
+  end ref
+
+  FE -> GW: Submit video để kiểm duyệt
+  GW -> MS: Chuyển tiếp yêu cầu submit
+  MS -> Storage: Kiểm tra và chuyển raw file sang confirmed
+  Storage --> MS: Đã sẵn sàng file confirmed
+  MS ->> Broker: Phát sự kiện video.moderation.requested
+  Broker ->> Moderation: Chuyển yêu cầu kiểm duyệt
+  MS --> GW: Trả trạng thái chờ kiểm duyệt
+  GW --> FE: Trả kết quả
+  FE --> Creator: Hiển thị video đang chờ kiểm duyệt
+end
+
+ref over Broker, Processing, MS
+  Chi tiết 4: Nhận kết quả xử lý video
+end ref
+
+Moderation ->> Broker: Phát kết quả duyệt video
+Broker ->> Processing: Chuyển video được duyệt để xử lý
+Processing ->> Broker: Phát kết quả xử lý video
+Broker ->> MS: Chuyển video.processed.success hoặc video.processed.failed
+MS -> MS: Cập nhật trạng thái video
+
+@enduml

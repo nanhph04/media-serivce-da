@@ -1,0 +1,88 @@
+@startuml
+title Sequence Diagram - Upload video - Chi tiết 3: Submit sang kiểm duyệt
+autonumber
+autoactivate on
+hide footbox
+
+skinparam maxMessageSize 80
+skinparam ParticipantPadding 12
+skinparam BoxPadding 8
+
+actor "Creator" as Creator
+participant "Frontend" as FE
+participant "API Gateway" as GW
+
+box "Media Service" #F5F5F5
+  participant "VideosController" as VC
+  participant "ConfirmVideoUploadUseCase" as ConfirmUC
+  database "Media DB" as DB
+  participant "ObjectStorageService" as StorageClient
+  participant "OutboxTransaction" as Outbox
+  participant "StatusEventPublisher" as StatusPublisher
+end box
+
+participant "Object Storage" as Storage
+queue "Message Broker" as Broker
+participant "Moderation Service" as Moderation
+
+Creator -> FE: Chọn submit video
+FE -> GW: Gửi yêu cầu submit upload
+GW -> VC: Chuyển tiếp yêu cầu submit
+VC -> ConfirmUC: Xác nhận video đã upload
+ConfirmUC -> DB: Lấy video draft
+
+alt Video không tồn tại hoặc không thuộc creator
+  DB --> ConfirmUC: Không thỏa điều kiện
+  ConfirmUC --> VC: Trả thông báo không thể submit
+  VC --> GW: Trả kết quả
+  GW --> FE: Trả kết quả
+  FE --> Creator: Hiển thị lỗi
+else Video draft hợp lệ
+  DB --> ConfirmUC: Trả video draft
+  ConfirmUC -> StorageClient: Kiểm tra file raw đã upload
+  StorageClient -> Storage: Kiểm tra object raw
+
+  alt File raw không tồn tại hoặc không hợp lệ
+    Storage --> StorageClient: File không hợp lệ
+    StorageClient --> ConfirmUC: Báo lỗi file raw
+    ConfirmUC --> VC: Trả kết quả thất bại
+    VC --> GW: Trả kết quả
+    GW --> FE: Trả kết quả
+    FE --> Creator: Hiển thị lỗi upload
+  else File raw hợp lệ
+    Storage --> StorageClient: Trả metadata file raw
+    StorageClient --> ConfirmUC: File raw hợp lệ
+    ConfirmUC -> StorageClient: Copy raw draft sang confirmed
+    StorageClient -> Storage: Copy object raw
+    Storage --> StorageClient: Đã copy
+    StorageClient --> ConfirmUC: Trả confirmed raw key
+
+    opt Có thumbnail tùy chỉnh
+      ConfirmUC -> StorageClient: Kiểm tra thumbnail đã upload
+      StorageClient -> Storage: Kiểm tra object thumbnail
+      Storage --> StorageClient: Trả metadata thumbnail
+      StorageClient --> ConfirmUC: Thumbnail hợp lệ
+    else Không có thumbnail tùy chỉnh
+      ConfirmUC -> ConfirmUC: Đánh dấu xử lý thumbnail tự động
+    end
+
+    ConfirmUC -> ConfirmUC: Chuẩn hóa danh sách độ phân giải
+    ConfirmUC -> Outbox: Lưu video pending moderation và outbox event
+    Outbox -> DB: Cập nhật video và ghi outbox
+    DB --> Outbox: Đã lưu
+    Outbox --> ConfirmUC: Đã ghi nhận
+    ConfirmUC -> StatusPublisher: Phát thay đổi trạng thái cho frontend
+    ConfirmUC -> StorageClient: Xóa raw draft nếu còn
+    StorageClient -> Storage: Xóa object raw draft
+    Storage --> StorageClient: Đã xóa hoặc bỏ qua
+    ConfirmUC --> VC: Trả trạng thái chờ kiểm duyệt
+    VC --> GW: Trả kết quả
+    GW --> FE: Trả kết quả
+    FE --> Creator: Hiển thị video đang chờ kiểm duyệt
+
+    Outbox ->> Broker: Phát sự kiện video.moderation.requested
+    Broker ->> Moderation: Chuyển yêu cầu kiểm duyệt video
+  end
+end
+
+@enduml

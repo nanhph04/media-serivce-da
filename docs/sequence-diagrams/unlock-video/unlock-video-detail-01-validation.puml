@@ -1,0 +1,82 @@
+@startuml
+title Sequence Diagram - Mo khoa video - Chi tiet 1: Kiem tra dieu kien
+autonumber
+autoactivate on
+hide footbox
+
+skinparam maxMessageSize 80
+skinparam ParticipantPadding 12
+skinparam BoxPadding 8
+
+actor "Viewer" as Viewer
+participant "Frontend" as FE
+participant "API Gateway" as GW
+
+box "Media Service" #F5F5F5
+  participant "VideosController" as VC
+  participant "PurchaseVideoUseCase" as PurchaseUC
+  database "Media DB" as DB
+end box
+
+Viewer -> FE: Xac nhan mo khoa video
+FE -> GW: Gui yeu cau mo khoa video
+GW -> GW: Kiem tra phien dang nhap
+
+alt Chua dang nhap
+  GW --> FE: Tu choi yeu cau
+  FE --> Viewer: Hien thi yeu cau dang nhap
+else Da dang nhap
+  GW -> VC: Chuyen tiep yeu cau mo khoa
+  VC -> PurchaseUC: Xu ly mua video
+  PurchaseUC -> DB: Lay thong tin video
+
+  alt Video khong ton tai
+    DB --> PurchaseUC: Khong co video
+    PurchaseUC --> VC: Tra thong bao video khong ton tai
+    VC --> GW: Tra ket qua
+    GW --> FE: Tra ket qua
+    FE --> Viewer: Hien thi loi
+  else Video ton tai
+    DB --> PurchaseUC: Tra thong tin video
+
+    alt Viewer la chu video
+      PurchaseUC --> VC: Tu choi mua video cua chinh minh
+      VC --> GW: Tra ket qua
+      GW --> FE: Tra ket qua
+      FE --> Viewer: Hien thi thong bao khong hop le
+    else Viewer khong phai chu video
+      PurchaseUC -> PurchaseUC: Kiem tra video san sang, cong khai va co the phat
+
+      alt Video khong san sang de mua
+        PurchaseUC --> VC: Tra thong bao video khong the mua
+        VC --> GW: Tra ket qua
+        GW --> FE: Tra ket qua
+        FE --> Viewer: Hien thi loi
+      else Video san sang de mua
+        PurchaseUC -> PurchaseUC: Kiem tra gia video
+
+        alt Video khong can thanh toan
+          PurchaseUC --> VC: Tra thong bao video khong can mua
+          VC --> GW: Tra ket qua
+          GW --> FE: Tra ket qua
+          FE --> Viewer: Hien thi thong bao
+        else Video co gia mua
+          PurchaseUC -> DB: Kiem tra viewer da mo khoa chua
+
+          alt Da mo khoa truoc do
+            DB --> PurchaseUC: Da co quyen mo khoa
+            PurchaseUC --> VC: Tra ket qua da mo khoa
+            VC --> GW: Tra ket qua
+            GW --> FE: Tra ket qua
+            FE --> Viewer: Hien thi video da mo khoa
+          else Chua mo khoa
+            DB --> PurchaseUC: Chua co quyen mo khoa
+            PurchaseUC --> VC: San sang chuyen sang thanh toan
+          end
+        end
+      end
+    end
+  end
+end
+
+@enduml

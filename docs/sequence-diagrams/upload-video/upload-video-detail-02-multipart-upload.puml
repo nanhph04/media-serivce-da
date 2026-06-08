@@ -1,0 +1,108 @@
+@startuml
+title Sequence Diagram - Upload video - Chi tiết 2: Multipart upload
+autonumber
+autoactivate on
+hide footbox
+
+skinparam maxMessageSize 240
+skinparam ParticipantPadding 36
+skinparam defaultFontSize 24
+skinparam sequence {
+  ActorFontSize 24
+  ParticipantFontSize 24
+  MessageFontSize 22
+  GroupFontSize 22
+  ReferenceFontSize 22
+}
+
+actor "Creator" as Creator
+participant "Frontend" as FE
+participant "API Gateway" as GW
+
+box "Media Service" #F5F5F5
+  participant "VideosController" as VC
+  participant "CreatePartUrlsUseCase" as PartUrlUC
+  participant "RecordPartCompletedUseCase" as RecordPartUC
+  participant "CompleteVideoUploadUseCase" as CompleteUC
+  participant "UploadSessionGuardService" as Guard
+  database "Media DB" as DB
+  participant "ObjectStorageService" as StorageClient
+end box
+
+participant "Object Storage" as Storage
+
+loop Mỗi nhóm part cần upload
+  Creator -> FE: Tiếp tục upload file
+  FE -> GW: Yêu cầu URL upload part
+  GW -> VC: Chuyển tiếp yêu cầu URL
+  VC -> PartUrlUC: Tạo URL upload part
+  PartUrlUC -> Guard: Kiểm tra video draft và upload session
+  Guard -> DB: Lấy video và upload session
+
+  alt Session không hợp lệ
+    DB --> Guard: Không thỏa điều kiện
+    Guard --> PartUrlUC: Từ chối yêu cầu
+    PartUrlUC --> VC: Trả kết quả lỗi
+    VC --> GW: Trả kết quả
+    GW --> FE: Trả kết quả
+    FE --> Creator: Hiển thị lỗi upload
+  else Session hợp lệ
+    DB --> Guard: Trả session hợp lệ
+    Guard --> PartUrlUC: Cho phép upload part
+    PartUrlUC -> PartUrlUC: Kiểm tra số part
+    PartUrlUC -> StorageClient: Tạo URL upload part
+    StorageClient -> Storage: Tạo URL theo uploadId và partNumber
+    Storage --> StorageClient: Trả URL upload part
+    StorageClient --> PartUrlUC: Trả URL upload part
+    PartUrlUC --> VC: Trả danh sách URL
+    VC --> GW: Trả kết quả
+    GW --> FE: Trả danh sách URL
+
+    FE -> Storage: Upload part trực tiếp
+    Storage --> FE: Trả etag
+
+    FE -> GW: Báo part đã upload
+    GW -> VC: Chuyển tiếp thông tin part
+    VC -> RecordPartUC: Ghi nhận part đã upload
+    RecordPartUC -> Guard: Kiểm tra session và số part
+    Guard -> DB: Lấy video và upload session
+    DB --> Guard: Trả session hợp lệ
+    Guard --> RecordPartUC: Cho phép ghi nhận
+    RecordPartUC -> DB: Lưu partNumber, etag và kích thước
+    DB --> RecordPartUC: Đã lưu part
+    RecordPartUC --> VC: Trả kết quả completed
+    VC --> GW: Trả kết quả
+    GW --> FE: Trả kết quả
+  end
+end
+
+FE -> GW: Yêu cầu hoàn tất multipart upload
+GW -> VC: Chuyển tiếp yêu cầu hoàn tất
+VC -> CompleteUC: Hoàn tất upload
+CompleteUC -> Guard: Kiểm tra session
+Guard -> DB: Lấy video và upload session
+DB --> Guard: Trả session hợp lệ
+Guard --> CompleteUC: Cho phép hoàn tất
+CompleteUC -> DB: Kiểm tra các part đã upload
+
+alt Thiếu part
+  DB --> CompleteUC: Chưa đủ part
+  CompleteUC --> VC: Trả thông báo thiếu part
+  VC --> GW: Trả kết quả
+  GW --> FE: Trả kết quả
+  FE --> Creator: Hiển thị lỗi upload
+else Đủ part
+  DB --> CompleteUC: Trả danh sách part
+  CompleteUC -> StorageClient: Hoàn tất multipart upload
+  StorageClient -> Storage: Ghép các part thành file raw
+  Storage --> StorageClient: Đã hoàn tất
+  StorageClient --> CompleteUC: Trả kết quả hoàn tất
+  CompleteUC -> DB: Đánh dấu upload session completed
+  DB --> CompleteUC: Đã cập nhật
+  CompleteUC --> VC: Trả kết quả hoàn tất upload
+  VC --> GW: Trả kết quả
+  GW --> FE: Trả kết quả
+  FE --> Creator: Sẵn sàng submit video
+end
+
+@enduml

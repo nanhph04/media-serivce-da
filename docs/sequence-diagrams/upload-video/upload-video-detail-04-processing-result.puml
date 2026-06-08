@@ -1,0 +1,81 @@
+@startuml
+title Sequence Diagram - Upload video - Chi tiết 4: Kết quả xử lý video
+autonumber
+autoactivate on
+hide footbox
+
+skinparam maxMessageSize 80
+skinparam ParticipantPadding 12
+skinparam BoxPadding 8
+
+participant "Media Processing Service" as Processing
+queue "Message Broker" as Broker
+
+box "Media Service" #F5F5F5
+  participant "VideoProcessingConsumer" as Consumer
+  participant "HandleProcessedSuccessUseCase" as SuccessUC
+  participant "HandleProcessedFailedUseCase" as FailedUC
+  participant "Idempotency Cache" as Cache
+  database "Media DB" as DB
+  participant "ObjectStorageService" as StorageClient
+  participant "VideoCacheInvalidator" as CacheInvalidator
+  participant "StatusEventPublisher" as StatusPublisher
+end box
+
+participant "Object Storage" as Storage
+
+alt Xử lý video thành công
+  Processing ->> Broker: Phát sự kiện video.processed.success
+  Broker ->> Consumer: Chuyển sự kiện thành công
+  Consumer -> SuccessUC: Xử lý kết quả thành công
+  SuccessUC -> Cache: Kiểm tra event đã xử lý chưa
+
+  alt Event đã xử lý
+    Cache --> SuccessUC: Bỏ qua event trùng
+    SuccessUC --> Consumer: Hoàn tất
+  else Event mới
+    Cache --> SuccessUC: Cho phép xử lý
+    SuccessUC -> DB: Lấy video đang processing
+
+    alt Video không tồn tại hoặc không đúng trạng thái
+      DB --> SuccessUC: Không cần cập nhật
+      SuccessUC --> Consumer: Bỏ qua event stale
+    else Video đang processing
+      DB --> SuccessUC: Trả video
+      SuccessUC -> DB: Cập nhật video ready, playlist, thời lượng và thumbnail
+      DB --> SuccessUC: Đã lưu video
+      SuccessUC -> StatusPublisher: Phát thay đổi trạng thái READY
+      SuccessUC -> CacheInvalidator: Xóa cache metadata và danh sách khám phá
+      SuccessUC -> StorageClient: Xóa raw file đã xử lý nếu còn
+      StorageClient -> Storage: Xóa object raw confirmed
+      Storage --> StorageClient: Đã xóa hoặc bỏ qua
+      SuccessUC --> Consumer: Hoàn tất
+    end
+  end
+else Xử lý video thất bại
+  Processing ->> Broker: Phát sự kiện video.processed.failed
+  Broker ->> Consumer: Chuyển sự kiện thất bại
+  Consumer -> FailedUC: Xử lý kết quả thất bại
+  FailedUC -> Cache: Kiểm tra event đã xử lý chưa
+
+  alt Event đã xử lý
+    Cache --> FailedUC: Bỏ qua event trùng
+    FailedUC --> Consumer: Hoàn tất
+  else Event mới
+    Cache --> FailedUC: Cho phép xử lý
+    FailedUC -> DB: Lấy video đang processing
+
+    alt Video không tồn tại hoặc không đúng trạng thái
+      DB --> FailedUC: Không cần cập nhật
+      FailedUC --> Consumer: Bỏ qua event stale
+    else Video đang processing
+      DB --> FailedUC: Trả video
+      FailedUC -> DB: Cập nhật video failed và lý do lỗi
+      DB --> FailedUC: Đã lưu video
+      FailedUC -> StatusPublisher: Phát thay đổi trạng thái FAILED
+      FailedUC --> Consumer: Hoàn tất
+    end
+  end
+end
+
+@enduml

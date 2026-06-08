@@ -1,0 +1,59 @@
+@startuml
+title Sequence Diagram - Mo khoa video - Chi tiet 2: Thanh toan va ghi nhan mo khoa
+autonumber
+autoactivate on
+hide footbox
+
+skinparam maxMessageSize 80
+skinparam ParticipantPadding 12
+skinparam BoxPadding 8
+
+participant "API Gateway" as GW
+
+box "Media Service" #F5F5F5
+  participant "VideosController" as VC
+  participant "PurchaseVideoUseCase" as PurchaseUC
+  participant "FinancePaymentClient" as FinanceClient
+  participant "UnlockVideoUseCase" as UnlockUC
+  database "Media DB" as DB
+end box
+
+participant "Finance Service" as FS
+
+GW -> VC: Chuyen tiep yeu cau mo khoa hop le
+VC -> PurchaseUC: Tiep tuc xu ly mua video
+PurchaseUC -> FinanceClient: Tao yeu cau tru tien
+FinanceClient -> FS: Goi thanh toan mua video
+
+alt Thanh toan bi tu choi
+  FS --> FinanceClient: Tra ket qua that bai
+  FinanceClient --> PurchaseUC: Bao loi thanh toan
+  PurchaseUC --> VC: Tra ket qua that bai
+  VC --> GW: Tra ket qua
+else Thanh toan thanh cong
+  FS --> FinanceClient: Tra ket qua giao dich
+  FinanceClient --> PurchaseUC: Tra thong tin thanh toan
+
+  alt Khong co giao dich thanh toan
+    PurchaseUC --> VC: Tra ket qua mo khoa that bai
+    VC --> GW: Tra ket qua
+  else Co giao dich thanh toan
+    PurchaseUC -> UnlockUC: Ghi nhan quyen mo khoa
+    UnlockUC -> DB: Kiem tra unlock da ton tai
+
+    alt Da ton tai
+      DB --> UnlockUC: Da co quyen mo khoa
+      UnlockUC --> PurchaseUC: Bo qua ghi trung
+    else Chua ton tai
+      DB --> UnlockUC: Chua co quyen mo khoa
+      UnlockUC -> DB: Luu quyen mo khoa video
+      DB --> UnlockUC: Da luu
+      UnlockUC --> PurchaseUC: Da ghi nhan
+    end
+
+    PurchaseUC --> VC: Tra ket qua mo khoa thanh cong
+    VC --> GW: Tra ket qua
+  end
+end
+
+@enduml
