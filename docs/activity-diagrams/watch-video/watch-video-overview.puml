@@ -1,0 +1,63 @@
+@startuml
+title Biểu đồ hoạt động - Xem video - Tổng quát
+
+skinparam TitleFontSize 42
+skinparam defaultFontSize 34
+skinparam ArrowFontSize 32
+skinparam ActivityFontSize 34
+skinparam DiamondFontSize 32
+skinparam PartitionFontSize 34
+
+|Người xem|
+start
+:Mở trang chi tiết video;
+:Chọn xem video;
+
+|Frontend|
+:Gửi yêu cầu bắt đầu phát video;
+
+|API Gateway|
+:Kiểm tra phiên đăng nhập;
+
+if (Phiên hợp lệ?) then (Có)
+  :Chuyển yêu cầu sang Media Service;
+else (Không)
+  |Frontend|
+  :Hiển thị yêu cầu đăng nhập;
+  |Người xem|
+  :Xem thông báo;
+  stop
+endif
+
+|Media Service|
+:Kiểm tra video, kênh và quyền xem;
+
+if (Được phép xem?) then (Có)
+  :Tạo phiên phát video;
+  :Trả thông tin phát video;
+else (Không)
+  |Frontend|
+  :Hiển thị lý do không thể xem;
+  |Người xem|
+  :Xem thông báo;
+  stop
+endif
+
+|Frontend|
+:Khởi tạo trình phát;
+:Tải playlist và segment video;
+:Phát video từ vị trí phù hợp;
+
+while (Người xem còn xem video?) is (Có)
+  :Gửi tiến độ xem định kỳ;
+  |Media Service|
+  :Lưu tiến độ và xét điều kiện tính lượt xem;
+  |Frontend|
+  :Tiếp tục phát video;
+endwhile (Không)
+
+|Người xem|
+:Dừng xem hoặc rời khỏi trang video;
+stop
+
+@enduml

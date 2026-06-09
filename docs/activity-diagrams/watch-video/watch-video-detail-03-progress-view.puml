@@ -1,0 +1,48 @@
+@startuml
+title Biểu đồ hoạt động - Xem video - Chi tiết 3: Tiến độ và lượt xem
+
+skinparam TitleFontSize 34
+skinparam defaultFontSize 34
+skinparam ArrowFontSize 32
+skinparam ActivityFontSize 34
+skinparam DiamondFontSize 32
+skinparam PartitionFontSize 34
+
+|Frontend|
+start
+:Theo dõi thời lượng đã xem;
+
+if (Đến thời điểm lưu tiến độ?) then (Có)
+  :Gửi tiến độ xem hiện tại;
+else (Không)
+  :Tiếp tục phát video;
+  stop
+endif
+
+|API Gateway|
+:Chuyển tiến độ sang Media Service;
+
+|Media Service|
+:Tìm video và kiểm tra quyền xem;
+
+if (Còn được phép xem?) then (Có)
+  :Lưu vị trí xem gần nhất;
+else (Không)
+  :Từ chối cập nhật tiến độ;
+  stop
+endif
+
+if (Đủ điều kiện tính lượt xem?) then (Có)
+  :Ghi nhận lượt xem hợp lệ;
+  :Phát sự kiện cập nhật thống kê lượt xem;
+else (Không)
+  :Chỉ lưu tiến độ xem;
+endif
+
+:Trả kết quả cập nhật tiến độ;
+
+|Frontend|
+:Tiếp tục phát video;
+stop
+
+@enduml

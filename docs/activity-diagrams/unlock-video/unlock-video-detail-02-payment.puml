@@ -1,0 +1,44 @@
+@startuml
+title Biểu đồ hoạt động - Mở khóa video - Chi tiết 2: Thanh toán và ghi nhận quyền
+
+skinparam defaultFontSize 24
+skinparam ArrowFontSize 23
+skinparam ActivityFontSize 24
+skinparam DiamondFontSize 23
+skinparam PartitionFontSize 24
+
+|Media Service|
+start
+:Tạo yêu cầu thanh toán theo giá video;
+
+|Finance Service|
+:Kiểm tra ví người xem;
+
+if (Đủ coin?) then (Có)
+  :Trừ coin người xem;
+  :Ghi nhận giao dịch thanh toán;
+else (Không)
+  :Trả thông báo số dư không đủ;
+  stop
+endif
+
+|Media Service|
+:Nhận kết quả giao dịch;
+
+if (Giao dịch hợp lệ?) then (Có)
+  :Kiểm tra quyền mở khóa đã tồn tại;
+else (Không)
+  :Trả thông báo giao dịch không hợp lệ;
+  stop
+endif
+
+if (Chưa có quyền mở khóa?) then (Có)
+  :Lưu quyền mở khóa video;
+else (Không)
+  :Bỏ qua để tránh ghi trùng;
+endif
+
+:Trả kết quả mở khóa thành công;
+stop
+
+@enduml

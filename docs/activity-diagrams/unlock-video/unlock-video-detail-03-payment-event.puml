@@ -1,0 +1,39 @@
+@startuml
+title Biểu đồ hoạt động - Mở khóa video - Chi tiết 3: Xử lý sự kiện thanh toán
+
+skinparam defaultFontSize 24
+skinparam ArrowFontSize 23
+skinparam ActivityFontSize 24
+skinparam DiamondFontSize 23
+skinparam PartitionFontSize 24
+
+|Finance Service|
+start
+:Phát sự kiện thanh toán video thành công;
+
+|Message Broker|
+:Chuyển sự kiện đến Media Service;
+
+|Media Service|
+:Nhận sự kiện thanh toán;
+:Kiểm tra sự kiện đã xử lý chưa;
+
+if (Sự kiện mới?) then (Có)
+  :Đánh dấu sự kiện đang xử lý;
+else (Không)
+  :Bỏ qua sự kiện trùng;
+  stop
+endif
+
+:Kiểm tra quyền mở khóa đã tồn tại;
+
+if (Chưa có quyền mở khóa?) then (Có)
+  :Lưu quyền mở khóa video;
+else (Không)
+  :Bỏ qua để tránh ghi trùng;
+endif
+
+:Hoàn tất xử lý sự kiện;
+stop
+
+@enduml

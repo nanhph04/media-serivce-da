@@ -1,19 +1,20 @@
 @startuml
-title Sequence Diagram - Xem video - Chi tiet 2: Tai playlist va segment
+title Biểu đồ tuần tự - Xem video - Chi tiết 2: Tải playlist và segment
 autonumber
 autoactivate on
 hide footbox
 
-skinparam maxMessageSize 240
+skinparam maxMessageSize 220
 skinparam ParticipantPadding 36
-skinparam defaultFontSize 32
+skinparam defaultFontSize 18
 skinparam sequence {
-  ActorFontSize 24
-  ParticipantFontSize 24
-  MessageFontSize 22
-  GroupFontSize 22
-  ReferenceFontSize 22
+  ActorFontSize 18
+  ParticipantFontSize 18
+  MessageFontSize 17
+  GroupFontSize 17
+  ReferenceFontSize 17
 }
+skinparam BoxPadding 8
 
 participant "Frontend" as FE
 participant "API Gateway" as GW
@@ -28,77 +29,77 @@ end box
 
 participant "Object Storage" as Storage
 
-== Tai master playlist ==
+== Tải master playlist ==
 
-FE -> GW: Yeu cau master playlist
-GW -> SC: Chuyen tiep yeu cau playlist
-SC -> StreamUC: Xu ly playlist
-StreamUC -> Token: Kiem tra playback token
+FE -> GW: Yêu cầu master playlist
+GW -> SC: Chuyển tiếp yêu cầu playlist
+SC -> StreamUC: Xử lý playlist
+StreamUC -> Token: Kiểm tra token phát video
 
-alt Token khong hop le
-  Token --> StreamUC: Tu choi token
-  StreamUC --> SC: Tra ket qua khong the phat
-  SC --> GW: Tra ket qua
-  GW --> FE: Hien thi loi phat video
-else Token hop le
-  Token --> StreamUC: Token hop le
-  StreamUC -> Cache: Tim master playlist key
+alt Token không hợp lệ
+  Token --> StreamUC: Từ chối token
+  StreamUC --> SC: Trả kết quả không thể phát
+  SC --> GW: Trả kết quả
+  GW --> FE: Hiển thị lỗi phát video
+else Token hợp lệ
+  Token --> StreamUC: Token hợp lệ
+  StreamUC -> Cache: Tìm master playlist key
 
-  alt Chua co trong cache
-    Cache --> StreamUC: Khong co du lieu
-    StreamUC -> DB: Lay master playlist key
-    DB --> StreamUC: Tra master playlist key
-    StreamUC -> Cache: Luu master playlist key
-  else Co trong cache
-    Cache --> StreamUC: Tra master playlist key
+  alt Chưa có trong cache
+    Cache --> StreamUC: Không có dữ liệu
+    StreamUC -> DB: Lấy master playlist key
+    DB --> StreamUC: Trả master playlist key
+    StreamUC -> Cache: Lưu master playlist key
+  else Có trong cache
+    Cache --> StreamUC: Trả master playlist key
   end
 
-  StreamUC -> Cache: Tim playlist da gan token
+  StreamUC -> Cache: Tìm playlist đã gắn token
 
-  alt Chua co playlist cache
-    Cache --> StreamUC: Khong co playlist
-    StreamUC -> Storage: Doc playlist goc
-    Storage --> StreamUC: Tra playlist goc
-    StreamUC -> StreamUC: Gan token vao duong dan segment
-    StreamUC -> Cache: Luu playlist da gan token
-  else Co playlist cache
-    Cache --> StreamUC: Tra playlist da gan token
+  alt Chưa có playlist cache
+    Cache --> StreamUC: Không có playlist
+    StreamUC -> Storage: Đọc playlist gốc
+    Storage --> StreamUC: Trả playlist gốc
+    StreamUC -> StreamUC: Gắn token vào đường dẫn segment
+    StreamUC -> Cache: Lưu playlist đã gắn token
+  else Có playlist cache
+    Cache --> StreamUC: Trả playlist đã gắn token
   end
 
-  StreamUC --> SC: Tra playlist
-  SC --> GW: Tra playlist
-  GW --> FE: Tra playlist cho trinh phat
+  StreamUC --> SC: Trả playlist
+  SC --> GW: Trả playlist
+  GW --> FE: Trả playlist cho trình phát
 end
 
-== Tai segment trong khi xem ==
+== Tải segment trong khi xem ==
 
-loop Moi lan trinh phat can them du lieu
-  FE -> GW: Yeu cau segment hoac playlist con
-  GW -> SC: Chuyen tiep yeu cau streaming
-  SC -> StreamUC: Xu ly du lieu phat
-  StreamUC -> Token: Kiem tra playback token
+loop Mỗi lần trình phát cần thêm dữ liệu
+  FE -> GW: Yêu cầu segment hoặc playlist con
+  GW -> SC: Chuyển tiếp yêu cầu streaming
+  SC -> StreamUC: Xử lý dữ liệu phát
+  StreamUC -> Token: Kiểm tra token phát video
 
-  alt Token khong hop le
-    Token --> StreamUC: Tu choi token
-    StreamUC --> SC: Tra ket qua khong the phat
-    SC --> GW: Tra ket qua
-    GW --> FE: Hien thi loi phat video
-  else Token hop le
-    Token --> StreamUC: Token hop le
+  alt Token không hợp lệ
+    Token --> StreamUC: Từ chối token
+    StreamUC --> SC: Trả kết quả không thể phát
+    SC --> GW: Trả kết quả
+    GW --> FE: Hiển thị lỗi phát video
+  else Token hợp lệ
+    Token --> StreamUC: Token hợp lệ
 
-    alt La playlist con
-      StreamUC -> Storage: Doc playlist con
-      Storage --> StreamUC: Tra playlist con
-      StreamUC -> StreamUC: Gan token vao playlist con
-      StreamUC --> SC: Tra playlist con
-    else La segment media
-      StreamUC -> Storage: Doc segment video
-      Storage --> StreamUC: Tra stream segment
-      StreamUC --> SC: Tra segment video
+    alt Là playlist con
+      StreamUC -> Storage: Đọc playlist con
+      Storage --> StreamUC: Trả playlist con
+      StreamUC -> StreamUC: Gắn token vào playlist con
+      StreamUC --> SC: Trả playlist con
+    else Là segment media
+      StreamUC -> Storage: Đọc segment video
+      Storage --> StreamUC: Trả stream segment
+      StreamUC --> SC: Trả segment video
     end
 
-    SC --> GW: Tra du lieu phat
-    GW --> FE: Tra du lieu cho trinh phat
+    SC --> GW: Trả dữ liệu phát
+    GW --> FE: Trả dữ liệu cho trình phát
   end
 end
 

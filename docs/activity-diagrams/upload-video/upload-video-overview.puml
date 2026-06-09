@@ -1,0 +1,76 @@
+@startuml
+title Biểu đồ hoạt động - Tạo video mới - Tổng quát
+
+skinparam TitleFontSize 34
+skinparam defaultFontSize 34
+skinparam ArrowFontSize 32
+skinparam ActivityFontSize 34
+skinparam DiamondFontSize 32
+skinparam PartitionFontSize 34
+
+|Creator|
+start
+:Mở màn hình tạo video;
+:Nhập thông tin video;
+:Chọn file video và thumbnail;
+:Bắt đầu tải lên;
+
+|Frontend|
+:Kiểm tra dữ liệu cơ bản;
+:Gửi yêu cầu bắt đầu upload;
+
+|API Gateway|
+:Kiểm tra phiên đăng nhập;
+
+if (Phiên hợp lệ?) then (Có)
+  :Chuyển yêu cầu sang Media Service;
+else (Không)
+  |Frontend|
+  :Hiển thị yêu cầu đăng nhập;
+  |Creator|
+  :Xem thông báo;
+  stop
+endif
+
+|Media Service|
+:Kiểm tra kênh, danh mục và thông tin file;
+
+if (Thông tin hợp lệ?) then (Có)
+  :Tạo video nháp;
+  :Tạo phiên upload multipart;
+  :Trả thông tin upload;
+else (Không)
+  |Frontend|
+  :Hiển thị lỗi tạo video;
+  |Creator|
+  :Sửa lại thông tin;
+  stop
+endif
+
+|Frontend|
+:Upload các phần của file video;
+:Yêu cầu hoàn tất upload;
+
+|Media Service|
+:Kiểm tra các phần đã upload;
+
+if (Upload hoàn tất?) then (Có)
+  :Xác nhận file đã upload;
+  :Chuyển video sang chờ kiểm duyệt;
+  :Phát yêu cầu kiểm duyệt video;
+else (Không)
+  |Frontend|
+  :Hiển thị lỗi upload;
+  |Creator|
+  :Tiếp tục upload phần còn thiếu;
+  stop
+endif
+
+|Frontend|
+:Hiển thị video đang chờ kiểm duyệt;
+
+|Creator|
+:Theo dõi trạng thái xử lý video;
+stop
+
+@enduml

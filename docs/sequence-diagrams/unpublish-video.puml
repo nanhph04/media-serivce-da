@@ -1,60 +1,80 @@
 @startuml
-title Sequence Diagram - Go video
+title Biểu đồ tuần tự - Gỡ video
 autonumber
 autoactivate on
+hide footbox
+
+skinparam maxMessageSize 260
+skinparam ParticipantPadding 48
+skinparam defaultFontSize 24
+skinparam sequence {
+  ActorFontSize 24
+  ParticipantFontSize 24
+  MessageFontSize 23
+  GroupFontSize 23
+  ReferenceFontSize 23
+}
 
 actor "Creator" as Creator
 participant "Frontend" as FE
 participant "API Gateway" as GW
 participant "Media Service" as MS
-database "Video Store" as VideoStore
+database "Media DB" as DB
 participant "Object Storage" as Storage
-queue "Outbox / Message Broker" as Broker
-participant "Background Consumers" as Consumers
+queue "Message Broker" as Broker
+participant "Finance Service" as Finance
+participant "Cleanup Worker" as Worker
 
-Creator -> FE: Xac nhan go video
-FE -> GW: Gui yeu cau go video
-GW -> GW: Kiem tra phien dang nhap
+Creator -> FE: Xác nhận gỡ video
+FE -> GW: Gửi yêu cầu gỡ video
+GW -> GW: Kiểm tra phiên đăng nhập
 
-alt Chua dang nhap
-  GW --> FE: Tu choi yeu cau
-  FE --> Creator: Hien thi yeu cau dang nhap
-else Da dang nhap
-  GW -> MS: Chuyen tiep yeu cau go video
-  MS -> VideoStore: Lay thong tin video
+alt Chưa đăng nhập
+  GW --> FE: Từ chối yêu cầu
+  FE --> Creator: Hiển thị yêu cầu đăng nhập
+else Đã đăng nhập
+  GW -> MS: Chuyển tiếp yêu cầu gỡ video
+  MS -> DB: Lấy thông tin video
 
-  alt Video khong ton tai
-    VideoStore --> MS: Khong tim thay video
-    MS --> GW: Thong bao video khong ton tai
-    GW --> FE: Tra ket qua
-    FE --> Creator: Hien thi loi go video
-  else Video ton tai
-    VideoStore --> MS: Tra thong tin video
-    MS -> MS: Kiem tra quyen so huu
+  alt Video không tồn tại
+    DB --> MS: Không tìm thấy video
+    MS --> GW: Trả thông báo video không tồn tại
+    GW --> FE: Trả kết quả
+    FE --> Creator: Hiển thị lỗi gỡ video
+  else Video tồn tại
+    DB --> MS: Trả thông tin video
+    MS -> MS: Kiểm tra quyền sở hữu video
 
-    alt Khong phai chu so huu
-      MS --> GW: Tu choi go video
-      GW --> FE: Tra ket qua
-      FE --> Creator: Hien thi loi khong co quyen
-    else Dung chu so huu
-      MS -> MS: Kiem tra trang thai video
+    alt Không phải chủ sở hữu
+      MS --> GW: Từ chối gỡ video
+      GW --> FE: Trả kết quả
+      FE --> Creator: Hiển thị lỗi không có quyền
+    else Đúng chủ sở hữu
+      alt Video lỗi hoặc bị từ chối
+        MS -> Storage: Xóa raw file nếu còn tồn tại
+        Storage --> MS: Đã xử lý file raw
+        MS -> DB: Xóa bản ghi video lỗi
+        DB --> MS: Đã xóa video
+        MS --> GW: Trả kết quả xóa thành công
+        GW --> FE: Trả kết quả
+        FE --> Creator: Cập nhật danh sách video
+      else Video thông thường
+        MS -> DB: Đánh dấu video đang chờ xóa
+        DB --> MS: Đã cập nhật video
+        MS ->> Broker: Phát sự kiện video.delete.requested
+        Broker ->> Finance: Chuyển sự kiện để xử lý hoàn tiền/doanh thu nếu cần
+        MS --> GW: Trả kết quả gỡ video thành công
+        GW --> FE: Trả kết quả
+        FE --> Creator: Hiển thị trạng thái video đã gỡ
 
-      alt Video loi hoac bi tu choi
-        MS -> Storage: Xoa file raw neu con ton tai
-        Storage --> MS: Da xu ly file raw
-        MS -> VideoStore: Xoa ban ghi video loi
-        VideoStore --> MS: Da xoa
-        MS --> GW: Tra ket qua xoa thanh cong
-        GW --> FE: Tra ket qua
-        FE --> Creator: Cap nhat danh sach video
-      else Video thong thuong
-        MS -> VideoStore: Danh dau video da bi go
-        VideoStore --> MS: Da cap nhat
-        MS ->> Broker: Phat su kien video.delete.requested
-        Broker ->> Consumers: Xu ly sau khi go video
-        MS --> GW: Tra ket qua go video thanh cong
-        GW --> FE: Tra ket qua
-        FE --> Creator: Hien thi trang thai video da go
+        opt Đến thời điểm dọn dẹp dữ liệu lưu trữ
+          Worker -> DB: Tìm video sẵn sàng xóa file
+          DB --> Worker: Trả danh sách video
+          Worker -> Storage: Xóa raw, processed và thumbnail nếu có
+          Storage --> Worker: Đã xóa hoặc bỏ qua file không còn tồn tại
+          Worker -> DB: Đánh dấu storage đã được dọn dẹp
+          DB --> Worker: Đã cập nhật
+        end
       end
     end
   end

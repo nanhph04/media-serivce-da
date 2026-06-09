@@ -1,0 +1,45 @@
+@startuml
+title Biểu đồ hoạt động - Gỡ video - Chi tiết 1: Gỡ video bình thường
+
+skinparam defaultFontSize 34
+skinparam ArrowFontSize 32
+skinparam ActivityFontSize 34
+skinparam DiamondFontSize 32
+skinparam PartitionFontSize 34
+
+|Media Service|
+start
+:Nhận yêu cầu gỡ video;
+:Tìm thông tin video;
+
+if (Video tồn tại?) then (Có)
+  :Kiểm tra chủ sở hữu video;
+else (Không)
+  :Trả thông báo video không tồn tại;
+  stop
+endif
+
+if (Đúng chủ sở hữu?) then (Có)
+  :Kiểm tra trạng thái gỡ video;
+else (Không)
+  :Từ chối gỡ video;
+  stop
+endif
+
+if (Video đã chờ gỡ?) then (Có)
+  :Giữ nguyên trạng thái hiện tại;
+else (Không)
+  :Đánh dấu video chờ gỡ;
+  :Ẩn video khỏi danh sách công khai;
+endif
+
+:Lưu trạng thái video;
+
+|Message Broker|
+:Nhận sự kiện video.delete.requested;
+
+|Media Service|
+:Trả kết quả gỡ video thành công;
+stop
+
+@enduml

@@ -1,0 +1,41 @@
+@startuml
+title Biểu đồ tuần tự - Khóa kênh - Chi tiết 2: Finance xử lý payout
+autonumber
+autoactivate on
+hide footbox
+
+skinparam TitleFontSize 38
+skinparam maxMessageSize 260
+skinparam ParticipantPadding 90
+skinparam defaultFontSize 30
+skinparam sequence {
+  ActorFontSize 30
+  ParticipantFontSize 30
+  MessageFontSize 29
+  GroupFontSize 29
+  ReferenceFontSize 29
+}
+
+queue "Message Broker" as Broker
+participant "Finance Service" as FS
+database "Finance DB" as DB
+
+Broker ->> FS: Chuyển sự kiện kênh bị khóa
+FS -> DB: Kiểm tra sự kiện đã xử lý chưa
+
+alt Sự kiện đã xử lý
+  DB --> FS: Bỏ qua để tránh xử lý trùng
+else Sự kiện mới
+  FS -> DB: Lưu trạng thái tạm giữ payout của kênh
+  FS -> DB: Ghi nhận sự kiện đã xử lý
+  DB --> FS: Đã cập nhật trạng thái payout
+end
+
+FS -> DB: Khi rút tiền, kiểm tra payout hold của chủ kênh
+alt Đang bị hold
+  FS --> FS: Từ chối yêu cầu rút tiền
+else Không bị hold
+  FS --> FS: Cho phép tiếp tục xử lý rút tiền
+end
+
+@enduml

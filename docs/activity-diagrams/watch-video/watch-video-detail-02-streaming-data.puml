@@ -1,0 +1,60 @@
+@startuml
+title Biểu đồ hoạt động - Xem video - Chi tiết 2: Tải playlist và segment
+
+skinparam TitleFontSize 42
+skinparam defaultFontSize 34
+skinparam ArrowFontSize 32
+skinparam ActivityFontSize 34
+skinparam DiamondFontSize 32
+skinparam PartitionFontSize 34
+
+|Frontend|
+start
+:Yêu cầu playlist phát video;
+
+|API Gateway|
+:Chuyển yêu cầu sang Media Service;
+
+|Media Service|
+:Kiểm tra token phát video;
+
+if (Token hợp lệ?) then (Có)
+  :Tìm playlist đã xử lý;
+else (Không)
+  :Trả thông báo không thể phát video;
+  stop
+endif
+
+if (Có playlist trong cache?) then (Có)
+  :Sử dụng playlist đã chuẩn bị;
+else (Không)
+  |Object Storage|
+  :Trả playlist gốc;
+  |Media Service|
+  :Gắn token vào đường dẫn segment;
+  :Lưu playlist đã chuẩn bị;
+endif
+
+|Frontend|
+:Nhận playlist;
+
+while (Cần tải segment tiếp theo?) is (Có)
+  :Yêu cầu segment video;
+  |Media Service|
+  :Kiểm tra token và đường dẫn segment;
+
+  if (Yêu cầu hợp lệ?) then (Có)
+    |Object Storage|
+    :Trả segment video;
+    |Frontend|
+    :Phát segment trong trình phát;
+  else (Không)
+    |Frontend|
+    :Hiển thị lỗi phát video;
+    stop
+  endif
+endwhile (Không)
+
+stop
+
+@enduml

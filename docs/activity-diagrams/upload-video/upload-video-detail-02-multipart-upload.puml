@@ -1,0 +1,61 @@
+@startuml
+title Biểu đồ hoạt động - Tạo video mới - Chi tiết 2: Upload multipart
+
+skinparam TitleFontSize 34
+skinparam defaultFontSize 34
+skinparam ArrowFontSize 32
+skinparam ActivityFontSize 34
+skinparam DiamondFontSize 32
+skinparam PartitionFontSize 34
+
+|Frontend|
+start
+:Chia file video thành nhiều phần;
+
+while (Còn phần cần upload?) is (Có)
+  :Yêu cầu URL upload cho nhóm part;
+
+  |Media Service|
+  :Kiểm tra video nháp và phiên upload;
+
+  if (Phiên upload hợp lệ?) then (Có)
+    |Object Storage|
+    :Tạo URL upload part;
+    |Frontend|
+    :Upload part lên Object Storage;
+  else (Không)
+    |Frontend|
+    :Hiển thị lỗi phiên upload;
+    stop
+  endif
+
+  |Frontend|
+  :Báo part đã upload xong;
+
+  |Media Service|
+  :Ghi nhận part đã upload;
+
+  |Frontend|
+endwhile (Không)
+
+:Yêu cầu hoàn tất multipart upload;
+
+|Media Service|
+:Kiểm tra danh sách part đã upload;
+
+if (Đủ part?) then (Có)
+  |Object Storage|
+  :Hoàn tất multipart upload;
+  |Media Service|
+  :Đánh dấu phiên upload hoàn tất;
+else (Không)
+  |Frontend|
+  :Hiển thị lỗi thiếu part;
+  stop
+endif
+
+|Frontend|
+:Nhận kết quả hoàn tất upload;
+stop
+
+@enduml

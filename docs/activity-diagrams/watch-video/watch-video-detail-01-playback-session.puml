@@ -1,0 +1,47 @@
+@startuml
+title Biểu đồ hoạt động - Xem video - Chi tiết 1: Khởi tạo phiên phát
+
+skinparam TitleFontSize 42
+skinparam defaultFontSize 34
+skinparam ArrowFontSize 32
+skinparam ActivityFontSize 34
+skinparam DiamondFontSize 32
+skinparam PartitionFontSize 34
+
+|Media Service|
+start
+:Nhận yêu cầu phát video;
+:Tìm thông tin video;
+
+if (Video tồn tại?) then (Có)
+  :Kiểm tra trạng thái video;
+else (Không)
+  :Trả thông báo video không tồn tại;
+  stop
+endif
+
+if (Video có thể phát?) then (Có)
+  :Lấy thông tin kênh và quyền truy cập;
+else (Không)
+  :Trả thông báo video chưa sẵn sàng;
+  stop
+endif
+
+if (Kênh đang hoạt động?) then (Có)
+  :Kiểm tra quyền xem của người dùng;
+else (Không)
+  :Trả thông báo kênh không khả dụng;
+  stop
+endif
+
+if (Người dùng được phép xem?) then (Có)
+  :Tạo token phát video;
+  :Lấy vị trí xem gần nhất;
+  :Trả đường dẫn phát và token;
+else (Không)
+  :Trả yêu cầu mở khóa hoặc đăng ký hội viên;
+endif
+
+stop
+
+@enduml

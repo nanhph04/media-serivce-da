@@ -1,0 +1,59 @@
+@startuml
+title Biểu đồ hoạt động - Gỡ video - Tổng quát
+
+skinparam TitleFontSize 36
+skinparam defaultFontSize 34
+skinparam ArrowFontSize 32
+skinparam ActivityFontSize 34
+skinparam DiamondFontSize 32
+skinparam PartitionFontSize 34
+
+|Nhà sáng tạo|
+start
+:Mở màn hình quản lý video;
+:Chọn video cần gỡ;
+:Xác nhận gỡ video;
+
+|Frontend|
+:Gửi yêu cầu gỡ video;
+
+|API Gateway|
+:Kiểm tra phiên đăng nhập;
+
+if (Phiên hợp lệ?) then (Có)
+  :Chuyển yêu cầu sang Media Service;
+else (Không)
+  |Frontend|
+  :Hiển thị yêu cầu đăng nhập;
+  |Nhà sáng tạo|
+  :Xem thông báo;
+  stop
+endif
+
+|Media Service|
+:Tìm video và kiểm tra quyền sở hữu;
+
+if (Có quyền gỡ video?) then (Có)
+  :Kiểm tra trạng thái video;
+else (Không)
+  |Frontend|
+  :Hiển thị lỗi không thể gỡ video;
+  |Nhà sáng tạo|
+  :Xem thông báo lỗi;
+  stop
+endif
+
+|Media Service|
+:Đánh dấu video chờ gỡ;
+:Ẩn video khỏi danh sách công khai;
+:Phát sự kiện xử lý sau khi gỡ video;
+
+|Frontend|
+:Cập nhật danh sách video;
+:Hiển thị thao tác thành công;
+
+|Nhà sáng tạo|
+:Xem trạng thái video đã gỡ;
+stop
+
+@enduml

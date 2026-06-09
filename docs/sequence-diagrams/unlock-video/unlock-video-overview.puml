@@ -1,65 +1,73 @@
 @startuml
-title Sequence Diagram - Mo khoa video - Tong quat luong du lieu
+title Biểu đồ tuần tự - Mở khóa video - Tổng quát luồng dữ liệu
 autonumber
 autoactivate on
 hide footbox
 
-skinparam maxMessageSize 80
-skinparam ParticipantPadding 12
+skinparam maxMessageSize 220
+skinparam ParticipantPadding 36
+skinparam defaultFontSize 18
+skinparam sequence {
+  ActorFontSize 18
+  ParticipantFontSize 18
+  MessageFontSize 17
+  GroupFontSize 17
+  ReferenceFontSize 17
+}
 
-actor "Viewer" as Viewer
+actor "Người xem" as Viewer
 participant "Frontend" as FE
 participant "API Gateway" as GW
 participant "Media Service" as MS
 participant "Finance Service" as FS
 queue "Message Broker" as Broker
 
-Viewer -> FE: Chon mo khoa video
-FE -> FE: Hien thi gia va yeu cau xac nhan
-FE -> GW: Gui yeu cau mo khoa video
-GW -> GW: Kiem tra phien dang nhap
+Viewer -> FE: Chọn mở khóa video
+FE -> FE: Hiển thị giá và yêu cầu xác nhận
+FE -> GW: Gửi yêu cầu mở khóa video
+GW -> GW: Kiểm tra phiên đăng nhập
 
-alt Chua dang nhap
-  GW --> FE: Tu choi yeu cau
-  FE --> Viewer: Hien thi yeu cau dang nhap
-else Da dang nhap
+alt Chưa đăng nhập
+  GW --> FE: Từ chối yêu cầu
+  FE --> Viewer: Hiển thị yêu cầu đăng nhập
+else Đã đăng nhập
   ref over FE, GW, MS
-    Chi tiet 1: Kiem tra dieu kien mo khoa
+    Chi tiết 1: Kiểm tra điều kiện mở khóa
   end ref
 
-  GW -> MS: Chuyen tiep yeu cau mo khoa
-  MS -> MS: Kiem tra video, chu so huu, trang thai va quyen da mo khoa
+  GW -> MS: Chuyển tiếp yêu cầu mở khóa
+  MS -> MS: Kiểm tra video, chủ sở hữu, trạng thái và quyền đã mở khóa
 
-  alt Khong the mo khoa hoac da mo khoa truoc do
-    MS --> GW: Tra ket qua phu hop
-    GW --> FE: Tra ket qua
-    FE --> Viewer: Hien thi thong bao
-  else Co the mua de mo khoa
+  alt Không thể mở khóa hoặc đã mở khóa trước đó
+    MS --> GW: Trả kết quả phù hợp
+    GW --> FE: Trả kết quả
+    FE --> Viewer: Hiển thị thông báo
+  else Có thể mua để mở khóa
     ref over MS, FS
-      Chi tiet 2: Thanh toan va ghi nhan mo khoa
+      Chi tiết 2: Thanh toán và ghi nhận mở khóa
     end ref
 
-    MS -> FS: Yeu cau tru tien mua video
+    MS -> FS: Yêu cầu trừ tiền mua video
 
-    alt Thanh toan that bai
-      FS --> MS: Tra ket qua that bai
-      MS --> GW: Tra thong bao thanh toan that bai
-      GW --> FE: Tra ket qua
-      FE --> Viewer: Hien thi loi thanh toan
-    else Thanh toan thanh cong
-      FS --> MS: Tra ket qua giao dich
-      MS -> MS: Luu quyen mo khoa video
-      MS --> GW: Tra ket qua mo khoa thanh cong
-      GW --> FE: Tra ket qua
-      FE --> Viewer: Hien thi nut xem video
+    alt Thanh toán thất bại
+      FS --> MS: Trả kết quả thất bại
+      MS --> GW: Trả thông báo thanh toán thất bại
+      GW --> FE: Trả kết quả
+      FE --> Viewer: Hiển thị lỗi thanh toán
+    else Thanh toán thành công
+      FS --> MS: Trả kết quả giao dịch
+      MS -> MS: Lưu quyền mở khóa video
+      MS --> GW: Trả kết quả mở khóa thành công
+      GW --> FE: Trả kết quả
+      FE --> Viewer: Hiển thị nút xem video
 
       ref over FS, Broker, MS
-        Chi tiet 3: Xu ly su kien thanh toan thanh cong
+        Chi tiết 3: Xử lý sự kiện thanh toán thành công
       end ref
 
-      FS ->> Broker: Phat su kien video.payment.success
-      Broker ->> MS: Chuyen su kien thanh toan thanh cong
-      MS -> MS: Xu ly idempotent neu can
+      FS ->> Broker: Phát sự kiện video.payment.success
+      Broker ->> MS: Chuyển sự kiện thanh toán thành công
+      MS -> MS: Xử lý idempotent nếu cần
     end
   end
 end

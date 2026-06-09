@@ -1,0 +1,69 @@
+@startuml
+title Biểu đồ hoạt động - Mở khóa video - Tổng quát
+
+skinparam defaultFontSize 24
+skinparam ArrowFontSize 23
+skinparam ActivityFontSize 24
+skinparam DiamondFontSize 23
+skinparam PartitionFontSize 24
+
+|Người xem|
+start
+:Chọn mở khóa video;
+:Xác nhận mua video;
+
+|Frontend|
+:Gửi yêu cầu mở khóa;
+
+|API Gateway|
+:Kiểm tra phiên đăng nhập;
+
+if (Phiên hợp lệ?) then (Có)
+  :Chuyển yêu cầu sang Media Service;
+else (Không)
+  |Frontend|
+  :Hiển thị yêu cầu đăng nhập;
+  |Người xem|
+  :Xem thông báo;
+  stop
+endif
+
+|Media Service|
+:Kiểm tra điều kiện mở khóa;
+
+if (Có thể mở khóa?) then (Có)
+  :Tạo yêu cầu thanh toán;
+else (Không)
+  |Frontend|
+  :Hiển thị lý do không thể mở khóa;
+  |Người xem|
+  :Xem thông báo;
+  stop
+endif
+
+|Finance Service|
+:Trừ coin trong ví người xem;
+
+if (Thanh toán thành công?) then (Có)
+  :Trả kết quả giao dịch;
+else (Không)
+  |Frontend|
+  :Hiển thị lỗi thanh toán;
+  |Người xem|
+  :Xem thông báo lỗi;
+  stop
+endif
+
+|Media Service|
+:Ghi nhận quyền mở khóa video;
+:Trả kết quả thành công;
+
+|Frontend|
+:Cập nhật trạng thái video đã mở khóa;
+:Hiển thị nút xem video;
+
+|Người xem|
+:Có thể xem video;
+stop
+
+@enduml

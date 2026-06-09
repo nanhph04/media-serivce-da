@@ -1,14 +1,22 @@
 @startuml
-title Sequence Diagram - Mo khoa video - Chi tiet 1: Kiem tra dieu kien
+title Biểu đồ tuần tự - Mở khóa video - Chi tiết 1: Kiểm tra điều kiện
 autonumber
 autoactivate on
 hide footbox
 
-skinparam maxMessageSize 80
-skinparam ParticipantPadding 12
+skinparam maxMessageSize 220
+skinparam ParticipantPadding 36
+skinparam defaultFontSize 18
+skinparam sequence {
+  ActorFontSize 18
+  ParticipantFontSize 18
+  MessageFontSize 17
+  GroupFontSize 17
+  ReferenceFontSize 17
+}
 skinparam BoxPadding 8
 
-actor "Viewer" as Viewer
+actor "Người xem" as Viewer
 participant "Frontend" as FE
 participant "API Gateway" as GW
 
@@ -18,60 +26,60 @@ box "Media Service" #F5F5F5
   database "Media DB" as DB
 end box
 
-Viewer -> FE: Xac nhan mo khoa video
-FE -> GW: Gui yeu cau mo khoa video
-GW -> GW: Kiem tra phien dang nhap
+Viewer -> FE: Xác nhận mở khóa video
+FE -> GW: Gửi yêu cầu mở khóa video
+GW -> GW: Kiểm tra phiên đăng nhập
 
-alt Chua dang nhap
-  GW --> FE: Tu choi yeu cau
-  FE --> Viewer: Hien thi yeu cau dang nhap
-else Da dang nhap
-  GW -> VC: Chuyen tiep yeu cau mo khoa
-  VC -> PurchaseUC: Xu ly mua video
-  PurchaseUC -> DB: Lay thong tin video
+alt Chưa đăng nhập
+  GW --> FE: Từ chối yêu cầu
+  FE --> Viewer: Hiển thị yêu cầu đăng nhập
+else Đã đăng nhập
+  GW -> VC: Chuyển tiếp yêu cầu mở khóa
+  VC -> PurchaseUC: Xử lý mua video
+  PurchaseUC -> DB: Lấy thông tin video
 
-  alt Video khong ton tai
-    DB --> PurchaseUC: Khong co video
-    PurchaseUC --> VC: Tra thong bao video khong ton tai
-    VC --> GW: Tra ket qua
-    GW --> FE: Tra ket qua
-    FE --> Viewer: Hien thi loi
-  else Video ton tai
-    DB --> PurchaseUC: Tra thong tin video
+  alt Video không tồn tại
+    DB --> PurchaseUC: Không có video
+    PurchaseUC --> VC: Trả thông báo video không tồn tại
+    VC --> GW: Trả kết quả
+    GW --> FE: Trả kết quả
+    FE --> Viewer: Hiển thị lỗi
+  else Video tồn tại
+    DB --> PurchaseUC: Trả thông tin video
 
-    alt Viewer la chu video
-      PurchaseUC --> VC: Tu choi mua video cua chinh minh
-      VC --> GW: Tra ket qua
-      GW --> FE: Tra ket qua
-      FE --> Viewer: Hien thi thong bao khong hop le
-    else Viewer khong phai chu video
-      PurchaseUC -> PurchaseUC: Kiem tra video san sang, cong khai va co the phat
+    alt Người xem là chủ video
+      PurchaseUC --> VC: Từ chối mua video của chính mình
+      VC --> GW: Trả kết quả
+      GW --> FE: Trả kết quả
+      FE --> Viewer: Hiển thị thông báo không hợp lệ
+    else Người xem không phải chủ video
+      PurchaseUC -> PurchaseUC: Kiểm tra video sẵn sàng, công khai và có thể phát
 
-      alt Video khong san sang de mua
-        PurchaseUC --> VC: Tra thong bao video khong the mua
-        VC --> GW: Tra ket qua
-        GW --> FE: Tra ket qua
-        FE --> Viewer: Hien thi loi
-      else Video san sang de mua
-        PurchaseUC -> PurchaseUC: Kiem tra gia video
+      alt Video không sẵn sàng để mua
+        PurchaseUC --> VC: Trả thông báo video không thể mua
+        VC --> GW: Trả kết quả
+        GW --> FE: Trả kết quả
+        FE --> Viewer: Hiển thị lỗi
+      else Video sẵn sàng để mua
+        PurchaseUC -> PurchaseUC: Kiểm tra giá video
 
-        alt Video khong can thanh toan
-          PurchaseUC --> VC: Tra thong bao video khong can mua
-          VC --> GW: Tra ket qua
-          GW --> FE: Tra ket qua
-          FE --> Viewer: Hien thi thong bao
-        else Video co gia mua
-          PurchaseUC -> DB: Kiem tra viewer da mo khoa chua
+        alt Video không cần thanh toán
+          PurchaseUC --> VC: Trả thông báo video không cần mua
+          VC --> GW: Trả kết quả
+          GW --> FE: Trả kết quả
+          FE --> Viewer: Hiển thị thông báo
+        else Video có giá mua
+          PurchaseUC -> DB: Kiểm tra người xem đã mở khóa chưa
 
-          alt Da mo khoa truoc do
-            DB --> PurchaseUC: Da co quyen mo khoa
-            PurchaseUC --> VC: Tra ket qua da mo khoa
-            VC --> GW: Tra ket qua
-            GW --> FE: Tra ket qua
-            FE --> Viewer: Hien thi video da mo khoa
-          else Chua mo khoa
-            DB --> PurchaseUC: Chua co quyen mo khoa
-            PurchaseUC --> VC: San sang chuyen sang thanh toan
+          alt Đã mở khóa trước đó
+            DB --> PurchaseUC: Đã có quyền mở khóa
+            PurchaseUC --> VC: Trả kết quả đã mở khóa
+            VC --> GW: Trả kết quả
+            GW --> FE: Trả kết quả
+            FE --> Viewer: Hiển thị video đã mở khóa
+          else Chưa mở khóa
+            DB --> PurchaseUC: Chưa có quyền mở khóa
+            PurchaseUC --> VC: Sẵn sàng chuyển sang thanh toán
           end
         end
       end

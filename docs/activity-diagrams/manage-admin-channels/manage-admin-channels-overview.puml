@@ -1,0 +1,77 @@
+@startuml
+title Khóa kênh (Admin) - Tổng quát
+
+skinparam TitleFontSize 38
+skinparam defaultFontSize 38
+skinparam ArrowFontSize 32
+skinparam ActivityFontSize 34
+skinparam DiamondFontSize 32
+skinparam PartitionFontSize 34
+
+|Admin|
+start
+:Mở màn hình quản lý kênh;
+:Chọn kênh cần khóa;
+:Nhập lý do khóa kênh;
+:Xác nhận thao tác;
+
+|Frontend|
+:Gửi yêu cầu khóa kênh;
+
+|Hệ thống|
+:Kiểm tra phiên đăng nhập
+và quyền admin;
+
+if (Admin hợp lệ?) then (Có)
+  :Chuyển yêu cầu
+sang Media Service;
+else (Không)
+  |Frontend|
+  :Hiển thị thông báo
+không có quyền;
+  |Admin|
+  :Xem thông báo;
+  stop
+endif
+
+|Hệ thống|
+:Kiểm tra kênh
+và trạng thái hiện tại;
+
+if (Có thể khóa kênh?) then (Có)
+  :Cập nhật kênh
+sang trạng thái bị khóa;
+  :Tắt tự động gia hạn
+hội viên của kênh;
+  :Ghi sự kiện kênh
+đã đổi trạng thái;
+else (Không)
+  |Frontend|
+  :Hiển thị thông báo
+không thể khóa kênh;
+  |Admin|
+  :Xem thông báo;
+  stop
+endif
+
+|Frontend|
+:Cập nhật trạng thái kênh
+trên màn hình;
+
+|Admin|
+:Xem kết quả khóa kênh;
+
+|Hệ thống|
+:Phát sự kiện kênh
+đã đổi trạng thái;
+:Chuyển sự kiện đến
+service liên quan;
+
+|Finance Service|
+:Chi tiết 1:
+Xử lý payout
+khi kênh bị khóa;
+
+stop
+
+@enduml

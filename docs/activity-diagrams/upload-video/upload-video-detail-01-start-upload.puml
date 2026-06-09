@@ -1,0 +1,56 @@
+@startuml
+title Biểu đồ hoạt động - Tạo video mới - Chi tiết 1: Khởi tạo upload
+
+
+skinparam TitleFontSize 34
+skinparam defaultFontSize 34
+skinparam ArrowFontSize 32
+skinparam ActivityFontSize 34
+skinparam DiamondFontSize 32
+skinparam PartitionFontSize 34
+
+|Media Service|
+start
+:Nhận yêu cầu bắt đầu upload;
+:Kiểm tra kênh của creator;
+
+if (Kênh hợp lệ?) then (Có)
+  :Kiểm tra danh mục, tag và metadata;
+else (Không)
+  :Trả thông báo kênh không hợp lệ;
+  stop
+endif
+
+if (Thông tin video hợp lệ?) then (Có)
+  :Kiểm tra kích thước và định dạng file;
+else (Không)
+  :Trả thông báo dữ liệu video không hợp lệ;
+  stop
+endif
+
+if (File có thể upload?) then (Có)
+  :Tạo video ở trạng thái nháp;
+else (Không)
+  :Trả thông báo file không được hỗ trợ;
+  stop
+endif
+
+|Object Storage|
+:Tạo phiên multipart upload cho file video;
+
+|Media Service|
+:Lưu phiên upload;
+
+if (Có thumbnail tùy chỉnh?) then (Có)
+  |Object Storage|
+  :Tạo URL upload thumbnail;
+  |Media Service|
+  :Gắn thông tin thumbnail vào phản hồi;
+else (Không)
+  :Bỏ qua upload thumbnail;
+endif
+
+:Trả videoId, uploadId và thông tin upload;
+stop
+
+@enduml

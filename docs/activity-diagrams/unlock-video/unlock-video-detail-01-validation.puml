@@ -1,0 +1,52 @@
+@startuml
+title Biểu đồ hoạt động - Mở khóa video - Chi tiết 1: Kiểm tra điều kiện
+
+skinparam defaultFontSize 24
+skinparam ArrowFontSize 23
+skinparam ActivityFontSize 24
+skinparam DiamondFontSize 23
+skinparam PartitionFontSize 24
+
+|Media Service|
+start
+:Nhận yêu cầu mở khóa video;
+:Tìm thông tin video;
+
+if (Video tồn tại?) then (Có)
+  :Kiểm tra chủ sở hữu video;
+else (Không)
+  :Trả thông báo video không tồn tại;
+  stop
+endif
+
+if (Người mua là chủ video?) then (Có)
+  :Từ chối mua video của chính mình;
+  stop
+else (Không)
+  :Kiểm tra trạng thái và khả năng phát;
+endif
+
+if (Video sẵn sàng và công khai?) then (Có)
+  :Kiểm tra giá video;
+else (Không)
+  :Trả thông báo video không thể mở khóa;
+  stop
+endif
+
+if (Video yêu cầu thanh toán?) then (Có)
+  :Kiểm tra quyền mở khóa đã tồn tại;
+else (Không)
+  :Trả thông báo video không cần mua;
+  stop
+endif
+
+if (Đã mở khóa trước đó?) then (Có)
+  :Trả kết quả đã mở khóa;
+  stop
+else (Không)
+  :Cho phép chuyển sang bước thanh toán;
+endif
+
+stop
+
+@enduml

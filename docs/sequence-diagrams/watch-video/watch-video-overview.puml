@@ -1,7 +1,19 @@
 @startuml
-title Biểu đồ tuần tự - Người xem xem video - Tổng quát luồng dữ liệu
+title Biểu đồ tuần tự - Xem video - Tổng quát luồng dữ liệu
 autonumber
 autoactivate on
+hide footbox
+
+skinparam maxMessageSize 220
+skinparam ParticipantPadding 36
+skinparam defaultFontSize 18
+skinparam sequence {
+  ActorFontSize 18
+  ParticipantFontSize 18
+  MessageFontSize 17
+  GroupFontSize 17
+  ReferenceFontSize 17
+}
 
 actor "Người xem" as Viewer
 participant "Frontend" as FE
@@ -30,7 +42,7 @@ else Đã đăng nhập
     GW --> FE: Trả kết quả
     FE --> Viewer: Hiển thị thông báo phù hợp
   else Được phép xem
-    MS --> GW: Trả playback token, đường dẫn phát và vị trí xem gần nhất
+    MS --> GW: Trả token phát video, đường dẫn phát và vị trí xem gần nhất
     GW --> FE: Trả thông tin phát video
     FE --> Viewer: Mở trình phát video
 

@@ -1,0 +1,53 @@
+@startuml
+title Biểu đồ hoạt động - Tạo video mới - Chi tiết 4: Nhận kết quả xử lý
+
+skinparam TitleFontSize 34
+skinparam defaultFontSize 34
+skinparam ArrowFontSize 32
+skinparam ActivityFontSize 34
+skinparam DiamondFontSize 32
+skinparam PartitionFontSize 34
+
+|Moderation Service|
+start
+:Trả kết quả kiểm duyệt video;
+
+|Message Broker|
+:Chuyển sự kiện đến Media Service;
+
+|Media Service|
+:Kiểm tra sự kiện đã xử lý chưa;
+
+if (Sự kiện mới?) then (Có)
+  :Tìm video đang chờ kiểm duyệt;
+else (Không)
+  :Bỏ qua sự kiện trùng;
+  stop
+endif
+
+if (Video an toàn?) then (Có)
+  :Chuyển video sang trạng thái đang xử lý;
+  :Đưa video vào hàng đợi xử lý media;
+else (Không)
+  :Chuyển video sang trạng thái bị từ chối;
+  :Lưu lý do kiểm duyệt;
+  stop
+endif
+
+|Media Processing Service|
+:Xử lý video thành các định dạng phát;
+:Trả kết quả xử lý;
+
+|Media Service|
+if (Xử lý thành công?) then (Có)
+  :Lưu playlist và thông tin phát;
+  :Chuyển video sang sẵn sàng;
+else (Không)
+  :Chuyển video sang xử lý thất bại;
+  :Lưu lý do thất bại;
+endif
+
+:Thông báo trạng thái mới cho creator;
+stop
+
+@enduml

@@ -1,14 +1,22 @@
 @startuml
-title Sequence Diagram - Xem video - Chi tiet 1: Khoi tao phien phat
+title Biểu đồ tuần tự - Xem video - Chi tiết 1: Khởi tạo phiên phát
 autonumber
 autoactivate on
 hide footbox
 
-skinparam maxMessageSize 80
-skinparam ParticipantPadding 12
+skinparam maxMessageSize 220
+skinparam ParticipantPadding 36
+skinparam defaultFontSize 18
+skinparam sequence {
+  ActorFontSize 18
+  ParticipantFontSize 18
+  MessageFontSize 17
+  GroupFontSize 17
+  ReferenceFontSize 17
+}
 skinparam BoxPadding 8
 
-actor "Viewer" as Viewer
+actor "Người xem" as Viewer
 participant "Frontend" as FE
 participant "API Gateway" as GW
 
@@ -20,47 +28,47 @@ box "Media Service" #F5F5F5
   database "Media DB" as DB
 end box
 
-Viewer -> FE: Chon xem video
-FE -> GW: Gui yeu cau phat video
-GW -> GW: Kiem tra phien dang nhap
+Viewer -> FE: Chọn xem video
+FE -> GW: Gửi yêu cầu phát video
+GW -> GW: Kiểm tra phiên đăng nhập
 
-alt Chua dang nhap
-  GW --> FE: Tu choi yeu cau
-  FE --> Viewer: Hien thi yeu cau dang nhap
-else Da dang nhap
-  GW -> VC: Chuyen tiep yeu cau phat video
-  VC -> PlayUC: Xu ly tao phien phat
-  PlayUC -> DB: Lay thong tin co ban cua video
+alt Chưa đăng nhập
+  GW --> FE: Từ chối yêu cầu
+  FE --> Viewer: Hiển thị yêu cầu đăng nhập
+else Đã đăng nhập
+  GW -> VC: Chuyển tiếp yêu cầu phát video
+  VC -> PlayUC: Xử lý tạo phiên phát
+  PlayUC -> DB: Lấy thông tin cơ bản của video
 
-  alt Video khong ton tai
-    DB --> PlayUC: Khong co du lieu
-    PlayUC --> VC: Tra thong bao video khong ton tai
-    VC --> GW: Tra ket qua
-    GW --> FE: Tra ket qua
-    FE --> Viewer: Hien thi loi
-  else Video ton tai
-    DB --> PlayUC: Tra thong tin video
-    PlayUC -> Access: Kiem tra trang thai video, kenh va quyen xem
-    Access -> DB: Lay ngu canh truy cap cua viewer
+  alt Video không tồn tại
+    DB --> PlayUC: Không có dữ liệu
+    PlayUC --> VC: Trả thông báo video không tồn tại
+    VC --> GW: Trả kết quả
+    GW --> FE: Trả kết quả
+    FE --> Viewer: Hiển thị lỗi
+  else Video tồn tại
+    DB --> PlayUC: Trả thông tin video
+    PlayUC -> Access: Kiểm tra trạng thái video, kênh và quyền xem
+    Access -> DB: Lấy ngữ cảnh truy cập của người xem
 
-    alt Khong duoc phep xem
-      DB --> Access: Khong thoa dieu kien
-      Access --> PlayUC: Tu choi quyen xem
-      PlayUC --> VC: Tra ket qua khong duoc xem
-      VC --> GW: Tra ket qua
-      GW --> FE: Tra ket qua
-      FE --> Viewer: Hien thi yeu cau mo khoa hoac hoi vien
-    else Duoc phep xem
-      DB --> Access: Thoa dieu kien
-      Access --> PlayUC: Cho phep xem
-      PlayUC -> DB: Lay tien do xem gan nhat
-      DB --> PlayUC: Tra tien do xem
-      PlayUC -> Token: Tao playback token
-      Token --> PlayUC: Tra token
-      PlayUC --> VC: Tra playback url, token va vi tri resume
-      VC --> GW: Tra thong tin phat video
-      GW --> FE: Tra thong tin phat video
-      FE --> Viewer: Mo trinh phat video
+    alt Không được phép xem
+      DB --> Access: Không thỏa điều kiện
+      Access --> PlayUC: Từ chối quyền xem
+      PlayUC --> VC: Trả kết quả không được xem
+      VC --> GW: Trả kết quả
+      GW --> FE: Trả kết quả
+      FE --> Viewer: Hiển thị yêu cầu mở khóa hoặc hội viên
+    else Được phép xem
+      DB --> Access: Thỏa điều kiện
+      Access --> PlayUC: Cho phép xem
+      PlayUC -> DB: Lấy tiến độ xem gần nhất
+      DB --> PlayUC: Trả tiến độ xem
+      PlayUC -> Token: Tạo token phát video
+      Token --> PlayUC: Trả token
+      PlayUC --> VC: Trả đường dẫn phát, token và vị trí xem tiếp
+      VC --> GW: Trả thông tin phát video
+      GW --> FE: Trả thông tin phát video
+      FE --> Viewer: Mở trình phát video
     end
   end
 end

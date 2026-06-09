@@ -1,0 +1,39 @@
+@startuml
+title Biểu đồ hoạt động - Khóa kênh - Chi tiết 1: Finance xử lý sự kiện
+
+skinparam TitleFontSize 38
+skinparam defaultFontSize 34
+skinparam ArrowFontSize 32
+skinparam ActivityFontSize 34
+skinparam DiamondFontSize 32
+skinparam PartitionFontSize 34
+
+|Message Broker|
+start
+:Có sự kiện kênh đã đổi trạng thái;
+
+|Finance Service|
+:Nhận sự kiện kênh bị khóa;
+:Kiểm tra sự kiện đã xử lý chưa;
+
+if (Sự kiện mới?) then (Có)
+  :Ghi nhận trạng thái tạm giữ payout của kênh;
+  :Liên kết hold với chủ kênh;
+  :Ghi nhận sự kiện đã xử lý;
+else (Không)
+  :Bỏ qua để tránh xử lý trùng;
+endif
+
+|Finance Service|
+:Khi chủ kênh yêu cầu rút tiền;
+:Kiểm tra payout hold đang hiệu lực;
+
+if (Đang bị hold?) then (Có)
+  :Từ chối yêu cầu rút tiền;
+else (Không)
+  :Cho phép tiếp tục luồng rút tiền;
+endif
+
+stop
+
+@enduml

@@ -19,14 +19,14 @@ Gateway public path hien tai:
 
 | STT | Chuc nang | File |
 | --- | --- | --- |
-| 1 | Xem video - tong quat | `docs/sequence-diagrams/watch-video/watch-video-overview.puml` |
-| 2 | Xem video - chi tiet khoi tao phien phat | `docs/sequence-diagrams/watch-video/watch-video-detail-01-playback-session.puml` |
-| 3 | Xem video - chi tiet tai playlist va segment | `docs/sequence-diagrams/watch-video/watch-video-detail-02-streaming-data.puml` |
-| 4 | Xem video - chi tiet cap nhat tien do va luot xem | `docs/sequence-diagrams/watch-video/watch-video-detail-03-progress-view-event.puml` |
-| 5 | Mo khoa video - tong quat | `docs/sequence-diagrams/unlock-video/unlock-video-overview.puml` |
-| 6 | Mo khoa video - chi tiet kiem tra dieu kien | `docs/sequence-diagrams/unlock-video/unlock-video-detail-01-validation.puml` |
-| 7 | Mo khoa video - chi tiet thanh toan va ghi nhan | `docs/sequence-diagrams/unlock-video/unlock-video-detail-02-payment-and-unlock.puml` |
-| 8 | Mo khoa video - chi tiet su kien thanh toan | `docs/sequence-diagrams/unlock-video/unlock-video-detail-03-payment-success-event.puml` |
+| 1 | Xem video - tổng quát | `docs/sequence-diagrams/watch-video/watch-video-overview.puml` |
+| 2 | Xem video - chi tiết khởi tạo phiên phát | `docs/sequence-diagrams/watch-video/watch-video-detail-01-playback-session.puml` |
+| 3 | Xem video - chi tiết tải playlist và segment | `docs/sequence-diagrams/watch-video/watch-video-detail-02-streaming-data.puml` |
+| 4 | Xem video - chi tiết cập nhật tiến độ và lượt xem | `docs/sequence-diagrams/watch-video/watch-video-detail-03-progress-view-event.puml` |
+| 5 | Mở khóa video - tổng quát | `docs/sequence-diagrams/unlock-video/unlock-video-overview.puml` |
+| 6 | Mở khóa video - chi tiết kiểm tra điều kiện | `docs/sequence-diagrams/unlock-video/unlock-video-detail-01-validation.puml` |
+| 7 | Mở khóa video - chi tiết thanh toán và ghi nhận | `docs/sequence-diagrams/unlock-video/unlock-video-detail-02-payment-and-unlock.puml` |
+| 8 | Mở khóa video - chi tiết sự kiện thanh toán | `docs/sequence-diagrams/unlock-video/unlock-video-detail-03-payment-success-event.puml` |
 | 9 | Dang ky hoi vien | `docs/sequence-diagrams/purchase-membership.puml` |
 | 10 | Upload video - tong quat | `docs/sequence-diagrams/upload-video/upload-video-overview.puml` |
 | 11 | Upload video - chi tiet khoi tao upload | `docs/sequence-diagrams/upload-video/upload-video-detail-01-start-upload.puml` |
@@ -34,9 +34,11 @@ Gateway public path hien tai:
 | 13 | Upload video - chi tiet submit sang kiem duyet | `docs/sequence-diagrams/upload-video/upload-video-detail-03-submit-for-moderation.puml` |
 | 14 | Upload video - chi tiet ket qua xu ly | `docs/sequence-diagrams/upload-video/upload-video-detail-04-processing-result.puml` |
 | 15 | Cap nhat thong tin video | `docs/sequence-diagrams/update-video-metadata.puml` |
-| 16 | Go video | `docs/sequence-diagrams/unpublish-video.puml` |
+| 16 | Gỡ video | `docs/sequence-diagrams/unpublish-video.puml` |
 | 17 | Quan ly goi hoi vien | `docs/sequence-diagrams/manage-membership-tiers.puml` |
-| 18 | Quan ly kenh (Admin) | `docs/sequence-diagrams/manage-admin-channels.puml` |
-| 19 | Duyet video (Admin) | `docs/sequence-diagrams/review-admin-video.puml` |
-| 20 | Them danh muc moi | `docs/sequence-diagrams/create-category.puml` |
-| 21 | Cap nhat danh muc | `docs/sequence-diagrams/update-category.puml` |
+| 18 | Khóa kênh (Admin) - tổng quát | `docs/sequence-diagrams/manage-admin-channels/manage-admin-channels-overview.puml` |
+| 19 | Khóa kênh (Admin) - Media Service khóa kênh | `docs/sequence-diagrams/manage-admin-channels/manage-admin-channels-detail-01-media-lock.puml` |
+| 20 | Khóa kênh (Admin) - Finance xử lý payout | `docs/sequence-diagrams/manage-admin-channels/manage-admin-channels-detail-02-finance-event.puml` |
+| 21 | Duyet video (Admin) | `docs/sequence-diagrams/review-admin-video.puml` |
+| 22 | Them danh muc moi | `docs/sequence-diagrams/create-category.puml` |
+| 23 | Cap nhat danh muc | `docs/sequence-diagrams/update-category.puml` |

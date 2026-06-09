@@ -1,0 +1,52 @@
+@startuml
+title Biểu đồ hoạt động - Tạo video mới - Chi tiết 3: Gửi kiểm duyệt
+
+skinparam TitleFontSize 34
+skinparam defaultFontSize 34
+skinparam ArrowFontSize 32
+skinparam ActivityFontSize 34
+skinparam DiamondFontSize 32
+skinparam PartitionFontSize 34
+
+|Frontend|
+start
+:Gửi yêu cầu submit video;
+
+|Media Service|
+:Kiểm tra video nháp và phiên upload;
+
+if (Upload đã hoàn tất?) then (Có)
+  :Kiểm tra file raw trong Object Storage;
+else (Không)
+  :Trả thông báo upload chưa hoàn tất;
+  stop
+endif
+
+|Object Storage|
+:Xác nhận file raw đã tồn tại;
+
+|Media Service|
+if (File raw hợp lệ?) then (Có)
+  :Kiểm tra thumbnail nếu có;
+else (Không)
+  :Trả thông báo file upload không hợp lệ;
+  stop
+endif
+
+if (Thumbnail hợp lệ?) then (Có)
+  :Chuyển file raw sang vùng confirmed;
+else (Không)
+  :Sử dụng thumbnail mặc định hoặc chờ xử lý sau;
+endif
+
+:Cập nhật video sang trạng thái chờ kiểm duyệt;
+:Lưu thay đổi video;
+
+|Message Broker|
+:Nhận sự kiện yêu cầu kiểm duyệt video;
+
+|Media Service|
+:Trả kết quả submit thành công;
+stop
+
+@enduml

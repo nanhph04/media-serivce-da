@@ -1,14 +1,22 @@
 @startuml
-title Sequence Diagram - Xem video - Chi tiet 3: Cap nhat tien do va luot xem
+title Biểu đồ tuần tự - Xem video - Chi tiết 3: Cập nhật tiến độ và lượt xem
 autonumber
 autoactivate on
 hide footbox
 
-skinparam maxMessageSize 80
-skinparam ParticipantPadding 12
+skinparam maxMessageSize 220
+skinparam ParticipantPadding 36
+skinparam defaultFontSize 18
+skinparam sequence {
+  ActorFontSize 18
+  ParticipantFontSize 18
+  MessageFontSize 17
+  GroupFontSize 17
+  ReferenceFontSize 17
+}
 skinparam BoxPadding 8
 
-actor "Viewer" as Viewer
+actor "Người xem" as Viewer
 participant "Frontend" as FE
 participant "API Gateway" as GW
 
@@ -23,52 +31,52 @@ end box
 
 queue "Message Broker" as Broker
 
-loop Dinh ky khi viewer dang xem
-  Viewer -> FE: Tiep tuc xem video
-  FE -> GW: Gui tien do xem hien tai
-  GW -> GW: Kiem tra phien dang nhap
+loop Định kỳ khi người xem đang xem
+  Viewer -> FE: Tiếp tục xem video
+  FE -> GW: Gửi tiến độ xem hiện tại
+  GW -> GW: Kiểm tra phiên đăng nhập
 
-  alt Chua dang nhap
-    GW --> FE: Tu choi yeu cau
-    FE --> Viewer: Hien thi thong bao dang nhap lai
-  else Da dang nhap
-    GW -> VC: Chuyen tiep tien do xem
-    VC -> ProgressUC: Xu ly cap nhat tien do
-    ProgressUC -> DB: Lay video va tien do hien co
-    DB --> ProgressUC: Tra du lieu can thiet
-    ProgressUC -> Access: Kiem tra lai quyen xem
-    Access -> DB: Lay trang thai kenh, hoi vien va mo khoa
+  alt Chưa đăng nhập
+    GW --> FE: Từ chối yêu cầu
+    FE --> Viewer: Hiển thị thông báo đăng nhập lại
+  else Đã đăng nhập
+    GW -> VC: Chuyển tiếp tiến độ xem
+    VC -> ProgressUC: Xử lý cập nhật tiến độ
+    ProgressUC -> DB: Lấy video và tiến độ hiện có
+    DB --> ProgressUC: Trả dữ liệu cần thiết
+    ProgressUC -> Access: Kiểm tra lại quyền xem
+    Access -> DB: Lấy trạng thái kênh, hội viên và mở khóa
 
-    alt Khong con quyen xem
-      DB --> Access: Khong thoa dieu kien
-      Access --> ProgressUC: Tu choi cap nhat
-      ProgressUC --> VC: Tra ket qua khong hop le
-      VC --> GW: Tra ket qua
-      GW --> FE: Tra ket qua
-      FE --> Viewer: Hien thi thong bao phu hop
-    else Con quyen xem
-      DB --> Access: Thoa dieu kien
-      Access --> ProgressUC: Cho phep cap nhat
-      ProgressUC -> DB: Luu tien do moi
-      DB --> ProgressUC: Da luu tien do
+    alt Không còn quyền xem
+      DB --> Access: Không thỏa điều kiện
+      Access --> ProgressUC: Từ chối cập nhật
+      ProgressUC --> VC: Trả kết quả không hợp lệ
+      VC --> GW: Trả kết quả
+      GW --> FE: Trả kết quả
+      FE --> Viewer: Hiển thị thông báo phù hợp
+    else Còn quyền xem
+      DB --> Access: Thỏa điều kiện
+      Access --> ProgressUC: Cho phép cập nhật
+      ProgressUC -> DB: Lưu tiến độ mới
+      DB --> ProgressUC: Đã lưu tiến độ
 
-      opt Dat nguong tinh luot xem
-        ProgressUC -> ViewUC: Ghi nhan luot xem
-        ViewUC -> Idempotency: Kiem tra trung lap theo viewer va video
+      opt Đạt ngưỡng tính lượt xem
+        ProgressUC -> ViewUC: Ghi nhận lượt xem
+        ViewUC -> Idempotency: Kiểm tra trùng lặp theo người xem và video
 
-        alt Chua ghi nhan gan day
-          Idempotency --> ViewUC: Cho phep ghi nhan
-          ViewUC ->> Broker: Phat su kien video.viewed
-        else Da ghi nhan gan day
-          Idempotency --> ViewUC: Bo qua ghi nhan trung
+        alt Chưa ghi nhận gần đây
+          Idempotency --> ViewUC: Cho phép ghi nhận
+          ViewUC ->> Broker: Phát sự kiện video.viewed
+        else Đã ghi nhận gần đây
+          Idempotency --> ViewUC: Bỏ qua ghi nhận trùng
         end
 
-        ViewUC --> ProgressUC: Hoan tat
+        ViewUC --> ProgressUC: Hoàn tất
       end
 
-      ProgressUC --> VC: Tra ket qua cap nhat tien do
-      VC --> GW: Tra ket qua
-      GW --> FE: Tra ket qua
+      ProgressUC --> VC: Trả kết quả cập nhật tiến độ
+      VC --> GW: Trả kết quả
+      GW --> FE: Trả kết quả
     end
   end
 end
