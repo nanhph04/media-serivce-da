@@ -1,0 +1,90 @@
+@startuml
+title Thiết kế database Media Service - Nội dung và kênh
+
+left to right direction
+
+skinparam TitleFontSize 40
+skinparam defaultFontSize 28
+skinparam ArrowFontSize 26
+skinparam ClassFontSize 28
+skinparam ClassAttributeFontSize 27
+skinparam ClassHeaderFontSize 30
+skinparam linetype ortho
+skinparam nodesep 80
+skinparam ranksep 70
+hide circle
+
+entity "channels" as channels {
+  * id : uuid <<PK>>
+  --
+  * owner_id : uuid <<UQ>>
+  * name : varchar(100)
+  * handle : varchar(120) <<UQ>>
+  bio : text
+  avatar_url : varchar(500)
+  banner_url : varchar(500)
+  * status : enum(active, inactive, suspended)
+  membership_review_status : enum
+  membership_rejection_reason : text
+  membership_requested_at : timestamptz
+  membership_reviewed_at : timestamptz
+  * created_at : timestamptz
+  * updated_at : timestamptz
+}
+
+entity "videos" as videos {
+  * id : uuid <<PK>>
+  --
+  * channel_id : uuid <<FK>>
+  * owner_id : uuid
+  * title : varchar(200)
+  description : text
+  category_id : uuid <<FK>>
+  * visibility : enum(public, private, membership)
+  * status : enum(draft, processing, ready, failed, rejected)
+  price_coin : integer
+  required_tier_level : integer
+  raw_file_key : varchar(500)
+  master_playlist_key : varchar(500)
+  thumbnail_url : varchar(500)
+  duration_seconds : integer
+  view_count : integer
+  published_at : timestamptz
+  deleted_at : timestamptz
+  * created_at : timestamptz
+  * updated_at : timestamptz
+}
+
+entity "categories" as categories {
+  * id : uuid <<PK>>
+  --
+  * name : varchar(100)
+  * slug : varchar(120) <<UQ>>
+  description : text
+  parent_id : uuid <<FK>>
+  * status : enum(active, inactive, deleted)
+  display_order : integer
+}
+
+entity "tags" as tags {
+  * id : uuid <<PK>>
+  --
+  * name : varchar(100)
+  * slug : varchar(120) <<UQ>>
+  * status : enum(active, inactive)
+}
+
+entity "video_tags" as video_tags {
+  * video_id : uuid <<PK, FK>>
+  * tag_id : uuid <<PK, FK>>
+  --
+  created_at : timestamptz
+}
+
+channels ||--o{ videos
+categories ||--o{ videos
+categories ||--o{ categories : "cha - con"
+videos ||--o{ video_tags
+tags ||--o{ video_tags
+
+@enduml

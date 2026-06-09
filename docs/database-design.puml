@@ -1,0 +1,118 @@
+@startuml
+title Thiết kế database Media Service - Tổng quan
+
+left to right direction
+
+skinparam TitleFontSize 42
+skinparam defaultFontSize 30
+skinparam ArrowFontSize 28
+skinparam ClassFontSize 30
+skinparam ClassAttributeFontSize 29
+skinparam ClassHeaderFontSize 32
+skinparam linetype ortho
+skinparam nodesep 90
+skinparam ranksep 80
+hide circle
+
+entity "channels" as channels {
+  * id : uuid <<PK>>
+  --
+  * owner_id : uuid
+  * name : varchar
+  * handle : varchar <<UQ>>
+  * status : active/suspended
+}
+
+entity "videos" as videos {
+  * id : uuid <<PK>>
+  --
+  * channel_id : uuid <<FK>>
+  * owner_id : uuid
+  * title : varchar
+  * status : draft/ready/failed
+  * visibility : public/private
+  price_coin : integer
+}
+
+entity "categories" as categories {
+  * id : uuid <<PK>>
+  --
+  * name : varchar
+  * slug : varchar <<UQ>>
+  * status : active/inactive/deleted
+}
+
+entity "tags" as tags {
+  * id : uuid <<PK>>
+  --
+  * name : varchar
+  * slug : varchar <<UQ>>
+  * status : active/inactive
+}
+
+entity "membership_tiers" as tiers {
+  * id : uuid <<PK>>
+  --
+  * channel_id : uuid <<FK>>
+  * name : varchar
+  * level : integer
+  * price_coin : integer
+}
+
+entity "channel_memberships" as memberships {
+  * id : uuid <<PK>>
+  --
+  * user_id : uuid
+  * channel_id : uuid <<FK>>
+  * tier_id : uuid <<FK>>
+  * status : active/cancelled
+}
+
+entity "video_unlocks" as unlocks {
+  * id : uuid <<PK>>
+  --
+  * user_id : uuid
+  * video_id : uuid <<FK>>
+  * unlocked_at : datetime
+}
+
+entity "watch_progress" as progress {
+  * id : uuid <<PK>>
+  --
+  * user_id : uuid
+  * video_id : uuid <<FK>>
+  last_position_seconds : integer
+}
+
+entity "outbox_messages" as outbox {
+  * id : uuid <<PK>>
+  --
+  * topic : varchar
+  * message_key : varchar
+  * payload : jsonb
+  * status : pending/published
+}
+
+channels ||--o{ videos : "sở hữu"
+channels ||--o{ tiers : "có gói"
+channels ||--o{ memberships : "có hội viên"
+tiers ||--o{ memberships : "được đăng ký"
+videos ||--o{ unlocks : "được mở khóa"
+videos ||--o{ progress : "tiến độ xem"
+categories ||--o{ videos : "phân loại chính"
+videos }o--o{ tags : "gắn tag"
+
+note bottom of videos
+  File video, playlist và thumbnail
+  lưu ở Object Storage.
+  DB chỉ lưu metadata và khóa đối tượng.
+end note
+
+note bottom of outbox
+  Dùng để phát event:
+  video.moderation.requested,
+  channel.status.changed,
+  video.viewed...
+end note
+
+@enduml

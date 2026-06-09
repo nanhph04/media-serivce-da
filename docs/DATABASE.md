@@ -1,4 +1,25 @@
-# ER diagram
+# Media Service Database Notes
+
+## Recommended database design
+
+PlantUML ERD đề xuất cho media-service:
+
+```text
+docs/database-design.puml
+```
+
+Các hình chi tiết được tách nhỏ để đưa vào Word dễ đọc:
+
+```text
+docs/database-design-content-detail.puml
+docs/database-design-membership-detail.puml
+docs/database-design-operations-detail.puml
+```
+
+Thiết kế này lược bỏ bớt phần tạp của schema hiện tại: gom tên bảng theo nghiệp
+vụ, dùng tên khóa rõ nghĩa hơn, không lưu file nhị phân trong database, giữ
+metadata video và trạng thái xử lý trong `videos`, còn trạng thái upload, xem
+video, hội viên và event được tách thành các bảng riêng.
 
 ## videos thumbnail columns
 

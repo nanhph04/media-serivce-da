@@ -1,0 +1,88 @@
+@startuml
+title Thiết kế database Media Service - Hội viên và mở khóa video
+
+left to right direction
+
+skinparam TitleFontSize 40
+skinparam defaultFontSize 28
+skinparam ArrowFontSize 26
+skinparam ClassFontSize 28
+skinparam ClassAttributeFontSize 27
+skinparam ClassHeaderFontSize 30
+skinparam linetype ortho
+skinparam nodesep 80
+skinparam ranksep 70
+hide circle
+
+entity "channels" as channels {
+  * id : uuid <<PK>>
+  --
+  * owner_id : uuid
+  * status : enum(active, suspended)
+}
+
+entity "videos" as videos {
+  * id : uuid <<PK>>
+  --
+  * channel_id : uuid <<FK>>
+  * owner_id : uuid
+  price_coin : integer
+  required_tier_level : integer
+  visibility : enum
+  status : enum
+}
+
+entity "membership_tiers" as tiers {
+  * id : uuid <<PK>>
+  --
+  * channel_id : uuid <<FK>>
+  * name : varchar(100)
+  * level : integer
+  * price_coin : integer
+  * is_accepting_new : boolean
+  * created_at : timestamptz
+  * updated_at : timestamptz
+}
+
+entity "channel_memberships" as memberships {
+  * id : uuid <<PK>>
+  --
+  * user_id : uuid
+  * channel_id : uuid <<FK>>
+  * tier_id : uuid <<FK>>
+  * status : enum(active, cancelled)
+  expiry_date : timestamptz
+  auto_renew_enabled : boolean
+  renewal_status : enum(idle, pending, failed)
+  retry_count : integer
+  next_renewal_attempt_at : timestamptz
+  * created_at : timestamptz
+  * updated_at : timestamptz
+}
+
+entity "video_unlocks" as unlocks {
+  * id : uuid <<PK>>
+  --
+  * user_id : uuid
+  * video_id : uuid <<FK>>
+  * payment_reference_id : varchar
+  * unlocked_at : timestamptz
+}
+
+channels ||--o{ tiers
+channels ||--o{ memberships
+tiers ||--o{ memberships
+channels ||--o{ videos
+videos ||--o{ unlocks
+
+note bottom of memberships
+  Unique index nên đặt trên:
+  (user_id, channel_id)
+end note
+
+note bottom of unlocks
+  Unique index nên đặt trên:
+  (user_id, video_id)
+end note
+
+@enduml

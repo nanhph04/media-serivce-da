@@ -1,0 +1,100 @@
+@startuml
+title Thiết kế database Media Service - Upload, xem video và event
+
+left to right direction
+
+skinparam TitleFontSize 40
+skinparam defaultFontSize 28
+skinparam ArrowFontSize 26
+skinparam ClassFontSize 28
+skinparam ClassAttributeFontSize 27
+skinparam ClassHeaderFontSize 30
+skinparam linetype ortho
+skinparam nodesep 80
+skinparam ranksep 70
+hide circle
+
+entity "videos" as videos {
+  * id : uuid <<PK>>
+  --
+  * channel_id : uuid
+  * owner_id : uuid
+  * status : enum
+  master_playlist_key : varchar
+  duration_seconds : integer
+  view_count : integer
+}
+
+entity "video_upload_sessions" as upload_sessions {
+  * id : uuid <<PK>>
+  --
+  * video_id : uuid <<FK>>
+  * user_id : uuid
+  * raw_file_key : varchar(500)
+  * upload_id : varchar(512) <<UQ>>
+  * part_size_bytes : integer
+  * file_name : varchar(255)
+  * file_size : bigint
+  * status : enum(active, completed, aborted)
+  * expires_at : timestamptz
+}
+
+entity "video_upload_parts" as upload_parts {
+  * id : uuid <<PK>>
+  --
+  * session_id : uuid <<FK>>
+  * part_number : integer
+  * etag : varchar(255)
+  * size_bytes : bigint
+  * uploaded_at : timestamptz
+}
+
+entity "watch_progress" as progress {
+  * id : uuid <<PK>>
+  --
+  * user_id : uuid
+  * video_id : uuid <<FK>>
+  * channel_id : uuid
+  last_position_seconds : integer
+  duration_seconds : integer
+  last_watched_at : timestamptz
+  completed_at : timestamptz
+}
+
+entity "video_view_daily_stats" as stats {
+  * video_id : uuid <<PK, FK>>
+  * stat_date : date <<PK>>
+  --
+  * view_count : integer
+  * updated_at : timestamptz
+}
+
+entity "outbox_messages" as outbox {
+  * id : uuid <<PK>>
+  --
+  * topic : varchar(255)
+  * message_key : varchar(255)
+  * payload : jsonb
+  * status : enum(pending, processing, published)
+  * attempt_count : integer
+  * next_attempt_at : timestamptz
+  published_at : timestamptz
+  last_error : text
+}
+
+videos ||--o{ upload_sessions
+upload_sessions ||--o{ upload_parts
+videos ||--o{ progress
+videos ||--o{ stats
+
+note bottom of upload_sessions
+  Dùng cho multipart upload.
+  File thật nằm trong Object Storage.
+end note
+
+note bottom of outbox
+  Gửi event bất đồng bộ cho
+  moderation, processing, finance...
+end note
+
+@enduml
