@@ -1,0 +1,40 @@
+name: media-system
+version: '3.8'
+
+services:
+  media-service:
+    image: node:22-alpine
+    container_name: media-service
+    working_dir: /app
+    env_file:
+      - .env
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      KAFKA_BROKERS: kafka:29092
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_PUBLIC_ENDPOINT: localhost
+      MINIO_PUBLIC_PORT: 19000
+      FINANCE_SERVICE_URL: http://finance-service:4004
+      MEDIA_PROCESSING_SERVICE_HEALTH_URL: http://media-processing-service:4003/health/ready
+      MODERATION_SERVICE_HEALTH_URL: http://host.docker.internal:8000/health/ready
+    ports:
+      - "4002:4002"
+    command: sh -c "npm ci && npm run start:dev"
+    volumes:
+      - .:/app
+      - media_service_node_modules:/app/node_modules
+    restart: unless-stopped
+    networks:
+      - app-network
+
+volumes:
+  media_service_node_modules:
+
+networks:
+  app-network:
+    external: true
+    name: app-network
