@@ -1,9 +1,21 @@
+import type { IObjectStorageService } from '@shared/application/interfaces/object-storage.service.interface';
 import type { VideoEntity } from '../../domain/entities/video.entity';
+import type { VideoUploadSession } from '../../domain/repositories/video-upload-session.repository';
 import {
   mapVideoStatusToJobFields,
   type VideoJobStatusFields,
 } from './video-job-status';
 import { buildOwnerThumbnailUrl } from './thumbnail-url';
+
+export type StudioVideoUploadSessionSummary = Pick<
+  VideoUploadSession,
+  | 'uploadId'
+  | 'partSizeBytes'
+  | 'status'
+  | 'expiresAt'
+  | 'fileName'
+  | 'fileSize'
+>;
 
 export interface StudioVideoListItemResponse extends VideoJobStatusFields {
   id: string;
@@ -26,6 +38,12 @@ export interface StudioVideoListItemResponse extends VideoJobStatusFields {
   viewCount: number;
   publishedAt: Date | null;
   isDeleted: boolean;
+  uploadId: string | null;
+  partSizeBytes: number | null;
+  uploadSessionStatus: string | null;
+  uploadExpiresAt: Date | null;
+  uploadFileName: string | null;
+  uploadFileSize: number | null;
   deletedAt: Date | null;
   deletedBy: string | null;
   deleteReason: string | null;
@@ -35,6 +53,8 @@ export interface StudioVideoListItemResponse extends VideoJobStatusFields {
 
 export function mapVideoEntityToStudioListItem(
   video: VideoEntity,
+  objectStorageService?: IObjectStorageService,
+  activeUploadSession?: StudioVideoUploadSessionSummary | null,
 ): StudioVideoListItemResponse {
   return {
     id: video.id,
@@ -47,7 +67,7 @@ export function mapVideoEntityToStudioListItem(
     visibility: video.visibility,
     price: video.price,
     requiredTierLevel: video.requiredTierLevel,
-    thumbnailUrl: buildOwnerThumbnailUrl(video),
+    thumbnailUrl: buildOwnerThumbnailUrl(video, objectStorageService),
     thumbnailSource: video.thumbnailSource,
     thumbnailStatus: video.thumbnailStatus,
     durationSeconds: video.durationSeconds,
@@ -62,6 +82,12 @@ export function mapVideoEntityToStudioListItem(
     viewCount: video.viewCount,
     publishedAt: video.publishedAt,
     isDeleted: video.isDeleted,
+    uploadId: activeUploadSession?.uploadId ?? null,
+    partSizeBytes: activeUploadSession?.partSizeBytes ?? null,
+    uploadSessionStatus: activeUploadSession?.status ?? null,
+    uploadExpiresAt: activeUploadSession?.expiresAt ?? null,
+    uploadFileName: activeUploadSession?.fileName ?? null,
+    uploadFileSize: activeUploadSession?.fileSize ?? null,
     deletedAt: video.deletedAt,
     deletedBy: video.deletedBy,
     deleteReason: video.deleteReason,

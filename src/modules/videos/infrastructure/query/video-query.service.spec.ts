@@ -37,6 +37,9 @@ describe('VideoQueryService', () => {
   const membershipTierOrmRepository = {
     find: jest.fn(),
   };
+  const uploadSessionOrmRepository = {
+    find: jest.fn(),
+  };
   const cacheService = {
     get: jest.fn(),
     set: jest.fn(),
@@ -47,12 +50,14 @@ describe('VideoQueryService', () => {
     watchProgressOrmRepository as never,
     channelOrmRepository as never,
     membershipTierOrmRepository as never,
+    uploadSessionOrmRepository as never,
     cacheService as never,
   );
 
   beforeEach(() => {
     jest.resetAllMocks();
     channelOrmRepository.find.mockResolvedValue([buildChannelRow()]);
+    uploadSessionOrmRepository.find.mockResolvedValue([]);
   });
 
   it('returns metadata from cache without querying database', async () => {
@@ -415,6 +420,17 @@ describe('VideoQueryService', () => {
       ],
       total: 1,
     });
+    uploadSessionOrmRepository.find.mockResolvedValue([
+      {
+        videoId: 'video-1',
+        uploadId: 'upload-1',
+        partSizeBytes: 5 * 1024 * 1024,
+        status: 'active',
+        expiresAt: new Date('2026-01-02T00:00:00.000Z'),
+        fileName: 'draft.mp4',
+        fileSize: '123456789',
+      },
+    ]);
 
     await expect(
       service.getStudioVideos('owner-1', {
@@ -424,7 +440,17 @@ describe('VideoQueryService', () => {
         visibilities: [VideoVisibility.PRIVATE],
       }),
     ).resolves.toMatchObject({
-      items: [{ id: 'video-1', status: VideoStatus.DRAFT }],
+      items: [
+        {
+          id: 'video-1',
+          status: VideoStatus.DRAFT,
+          uploadId: 'upload-1',
+          partSizeBytes: 5 * 1024 * 1024,
+          uploadSessionStatus: 'active',
+          uploadFileName: 'draft.mp4',
+          uploadFileSize: 123456789,
+        },
+      ],
       pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
     });
     expect(videoRepository.findStudioByOwnerId).toHaveBeenCalledWith(

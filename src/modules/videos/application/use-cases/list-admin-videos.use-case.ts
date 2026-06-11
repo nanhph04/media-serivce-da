@@ -1,5 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
+import {
+  OBJECT_STORAGE_SERVICE,
+  type IObjectStorageService,
+} from '@shared/application/interfaces/object-storage.service.interface';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import {
   BadRequestException,
@@ -39,6 +43,8 @@ export class ListAdminVideosUseCase extends BaseUseCase<
     private readonly videoRepository: IVideoRepository,
     @Inject(CHANNEL_REPOSITORY)
     private readonly channelRepository: IChannelRepository,
+    @Inject(OBJECT_STORAGE_SERVICE)
+    private readonly objectStorageService?: IObjectStorageService,
   ) {
     super();
   }
@@ -93,7 +99,7 @@ export class ListAdminVideosUseCase extends BaseUseCase<
     channelName: string | null,
   ): AdminVideoListItemResponse {
     return {
-      ...mapVideoEntityToStudioListItem(video),
+      ...mapVideoEntityToStudioListItem(video, this.objectStorageService),
       ownerId: video.ownerId,
       channelName,
     };

@@ -16,6 +16,10 @@ import {
   type IChannelRepository,
 } from '../../domain/repositories/channel.repository';
 import type { ChannelResponse } from '../dtos/channel.response';
+import {
+  buildChannelAvatarUrl,
+  buildChannelBannerUrl,
+} from '../dtos/channel-image-url';
 import type {
   UploadChannelImageCommand,
   UploadChannelImageFile,
@@ -60,10 +64,14 @@ export class UploadChannelImageUseCase extends BaseUseCase<
       throw new ForbiddenException(ERROR_MESSAGES.CHANNEL_NOT_ACTIVE);
     }
 
+    const previousImageObjectKey =
+      command.imageType === 'avatar'
+        ? channel.avatarObjectKey
+        : channel.bannerObjectKey;
     const previousImageUrl =
       command.imageType === 'avatar' ? channel.avatarUrl : channel.bannerUrl;
     const objectKey = `channels/${channel.id}/${command.imageType}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
-    const imageUrl = await this.objectStorageService.uploadObject({
+    await this.objectStorageService.uploadObject({
       bucket: 'public',
       objectKey,
       body: command.file.buffer,
@@ -71,17 +79,23 @@ export class UploadChannelImageUseCase extends BaseUseCase<
       sizeBytes: command.file.sizeBytes,
     });
 
+    const imageUrl = this.objectStorageService.createObjectUrl(
+      'public',
+      objectKey,
+    );
+
     if (command.imageType === 'avatar') {
-      channel.update({ avatarUrl: imageUrl });
+      channel.update({ avatarUrl: imageUrl, avatarObjectKey: objectKey });
     } else {
-      channel.update({ bannerUrl: imageUrl });
+      channel.update({ bannerUrl: imageUrl, bannerObjectKey: objectKey });
     }
 
     await this.channelRepository.update(channel);
     await this.deletePreviousImageIfNeeded(
       command.imageType,
+      previousImageObjectKey,
       previousImageUrl,
-      imageUrl,
+      objectKey,
     );
 
     return {
@@ -95,8 +109,8 @@ export class UploadChannelImageUseCase extends BaseUseCase<
       membershipRejectionReason: channel.membershipRejectionReason,
       membershipRequestedAt: channel.membershipRequestedAt,
       membershipReviewedAt: channel.membershipReviewedAt,
-      avatarUrl: channel.avatarUrl,
-      bannerUrl: channel.bannerUrl,
+      avatarUrl: buildChannelAvatarUrl(channel, this.objectStorageService),
+      bannerUrl: buildChannelBannerUrl(channel, this.objectStorageService),
       status: channel.status,
       createdAt: channel.createdAt,
       updatedAt: channel.updatedAt,
@@ -135,10 +149,32 @@ export class UploadChannelImageUseCase extends BaseUseCase<
 
   private async deletePreviousImageIfNeeded(
     imageType: UploadChannelImageCommand['imageType'],
+    previousImageObjectKey: string | null,
     previousImageUrl: string,
-    currentImageUrl: string,
+    currentImageObjectKey: string,
   ): Promise<void> {
-    if (!previousImageUrl || previousImageUrl === currentImageUrl) {
+    if (previousImageObjectKey) {
+      if (previousImageObjectKey === currentImageObjectKey) {
+        return;
+      }
+
+      try {
+        await this.objectStorageService.deleteObject(
+          'public',
+          previousImageObjectKey,
+        );
+      } catch (error) {
+        this.logger.logWarn('Failed to delete previous channel image', {
+          imageType,
+          previousImageObjectKey,
+          errorMessage:
+            error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+      return;
+    }
+
+    if (!previousImageUrl) {
       return;
     }
 

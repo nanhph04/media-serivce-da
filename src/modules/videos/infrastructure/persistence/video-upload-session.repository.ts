@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LessThanOrEqual, Repository } from 'typeorm';
+import { LessThanOrEqual, MoreThan, Repository } from 'typeorm';
 import {
   type CreateVideoUploadSessionInput,
   type IVideoUploadSessionRepository,
@@ -47,6 +47,23 @@ export class VideoUploadSessionRepository implements IVideoUploadSessionReposito
       where: { videoId, uploadId },
       relations: { parts: true },
       order: { parts: { partNumber: 'ASC' } },
+    });
+
+    return row ? this.toDomain(row) : null;
+  }
+
+  async findActiveByVideoId(
+    videoId: string,
+    now = new Date(),
+  ): Promise<VideoUploadSession | null> {
+    const row = await this.sessionRepository.findOne({
+      where: {
+        videoId,
+        status: VideoUploadSessionStatus.ACTIVE,
+        expiresAt: MoreThan(now),
+      },
+      relations: { parts: true },
+      order: { createdAt: 'DESC', parts: { partNumber: 'ASC' } },
     });
 
     return row ? this.toDomain(row) : null;

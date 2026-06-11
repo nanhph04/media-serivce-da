@@ -1,5 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import {
+  OBJECT_STORAGE_SERVICE,
+  type IObjectStorageService,
+} from '@shared/application/interfaces/object-storage.service.interface';
 import { Repository } from 'typeorm';
 import { ChannelMembershipOrmEntity } from '../persistence/channel-membership.orm-entity';
 import { ChannelOrmEntity } from '../persistence/channel.orm-entity';
@@ -9,6 +13,7 @@ import type {
   UserMembershipQuery,
   UserMembershipQueryResult,
 } from '../../application/interfaces/user-membership-query.service.interface';
+import { buildChannelImageUrl } from '../../application/dtos/channel-image-url';
 import type { ChannelMembershipStatus } from '../../domain/entities/channel-membership.entity';
 
 interface UserMembershipRawRow {
@@ -16,6 +21,7 @@ interface UserMembershipRawRow {
   channel_id: string;
   channel_name: string;
   channel_avatar_url: string | null;
+  channel_avatar_object_key: string | null;
   tier_id: string;
   tier_name: string;
   tier_level: number | string;
@@ -31,6 +37,8 @@ export class UserMembershipQueryService implements IUserMembershipQueryService {
   constructor(
     @InjectRepository(ChannelMembershipOrmEntity)
     private readonly membershipOrmRepository: Repository<ChannelMembershipOrmEntity>,
+    @Inject(OBJECT_STORAGE_SERVICE)
+    private readonly objectStorageService?: IObjectStorageService,
   ) {}
 
   async getMembershipsByUserId(
@@ -55,6 +63,7 @@ export class UserMembershipQueryService implements IUserMembershipQueryService {
         'membership.channelId AS channel_id',
         'channel.name AS channel_name',
         'channel.avatarUrl AS channel_avatar_url',
+        'channel.avatarObjectKey AS channel_avatar_object_key',
         'membership.membershipId AS tier_id',
         'tier.name AS tier_name',
         'tier.level AS tier_level',
@@ -80,11 +89,7 @@ export class UserMembershipQueryService implements IUserMembershipQueryService {
         membershipId: row.membership_id,
         channelId: row.channel_id,
         channelName: row.channel_name,
-        channelAvatarUrl:
-          typeof row.channel_avatar_url === 'string' &&
-          row.channel_avatar_url.length > 0
-            ? row.channel_avatar_url
-            : null,
+        channelAvatarUrl: this.buildNullableChannelAvatarUrl(row),
         tierId: row.tier_id,
         tierName: row.tier_name,
         tierLevel: Number(row.tier_level),
@@ -100,5 +105,22 @@ export class UserMembershipQueryService implements IUserMembershipQueryService {
       })),
       total,
     };
+  }
+
+  private buildNullableChannelAvatarUrl(
+    row: UserMembershipRawRow,
+  ): string | null {
+    const fallbackUrl =
+      typeof row.channel_avatar_url === 'string' &&
+      row.channel_avatar_url.length > 0
+        ? row.channel_avatar_url
+        : '';
+    const avatarUrl = buildChannelImageUrl(
+      row.channel_avatar_object_key,
+      fallbackUrl,
+      this.objectStorageService,
+    );
+
+    return avatarUrl.length > 0 ? avatarUrl : null;
   }
 }

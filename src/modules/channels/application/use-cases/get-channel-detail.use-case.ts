@@ -1,5 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
+import {
+  OBJECT_STORAGE_SERVICE,
+  type IObjectStorageService,
+} from '@shared/application/interfaces/object-storage.service.interface';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import { NotFoundException } from '@shared/domain/exceptions/domain.exception';
 import {
@@ -19,6 +23,10 @@ import {
   CHANNEL_MEMBERSHIP_ELIGIBILITY_SERVICE,
   type IChannelMembershipEligibilityService,
 } from '../interfaces/channel-membership-eligibility.service.interface';
+import {
+  buildChannelAvatarUrl,
+  buildChannelBannerUrl,
+} from '../dtos/channel-image-url';
 
 @Injectable()
 export class GetChannelDetailUseCase extends BaseUseCase<
@@ -34,6 +42,8 @@ export class GetChannelDetailUseCase extends BaseUseCase<
     private readonly channelMembershipEligibilityService: IChannelMembershipEligibilityService,
     @Inject(VIDEO_QUERY_SERVICE)
     private readonly videoQueryService: IVideoQueryService,
+    @Inject(OBJECT_STORAGE_SERVICE)
+    private readonly objectStorageService?: IObjectStorageService,
   ) {
     super();
   }
@@ -72,8 +82,8 @@ export class GetChannelDetailUseCase extends BaseUseCase<
         membershipRejectionReason: channel.membershipRejectionReason,
         membershipRequestedAt: channel.membershipRequestedAt,
         membershipReviewedAt: channel.membershipReviewedAt,
-        avatarUrl: channel.avatarUrl,
-        bannerUrl: channel.bannerUrl,
+        avatarUrl: buildChannelAvatarUrl(channel, this.objectStorageService),
+        bannerUrl: buildChannelBannerUrl(channel, this.objectStorageService),
         status: channel.status,
         createdAt: channel.createdAt,
         updatedAt: channel.updatedAt,

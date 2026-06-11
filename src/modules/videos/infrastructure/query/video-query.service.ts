@@ -3,12 +3,17 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import { NotFoundException } from '@shared/domain/exceptions/domain.exception';
 import {
+  OBJECT_STORAGE_SERVICE,
+  type IObjectStorageService,
+} from '@shared/application/interfaces/object-storage.service.interface';
+import {
   createPagination,
   type PaginatedResponse,
 } from '@shared/application/dtos/paginated.response';
 import { CacheService } from '@shared/infrastructure/cache/cache.service';
 import {
   In,
+  MoreThan,
   Repository,
   type ObjectLiteral,
   type SelectQueryBuilder,
@@ -36,6 +41,7 @@ import {
   PublicChannelVideoSummary,
 } from '../../application/interfaces/video-query.service.interface';
 import type { SearchPublicVideosQuery } from '../../application/interfaces/video-search-query.service.interface';
+import { buildChannelImageUrl } from '../../../channels/application/dtos/channel-image-url';
 import { ChannelOrmEntity } from '../../../channels/infrastructure/persistence/channel.orm-entity';
 import { ChannelStatus } from '../../../channels/domain/entities/channel.entity';
 import { MembershipTierOrmEntity } from '../../../channels/infrastructure/persistence/membership-tier.orm-entity';
@@ -44,6 +50,7 @@ import {
   VIDEO_REPOSITORY,
 } from '../../domain/repositories/video.repository';
 import {
+  type VideoEntity,
   VideoDeletionStatus,
   VideoStatus,
   VideoThumbnailStatus,
@@ -54,6 +61,11 @@ import { VideoPurchaseUnlockOrmEntity } from '../persistence/video-purchase-unlo
 import { VideoViewDailyStatOrmEntity } from '../persistence/video-view-daily-stat.orm-entity';
 import { VideoWatchProgressOrmEntity } from '../persistence/video-watch-progress.orm-entity';
 import { VideoOrmEntity } from '../persistence/video.orm-entity';
+import { VideoUploadSessionOrmEntity } from '../persistence/video-upload-session.orm-entity';
+import {
+  type VideoUploadSession,
+  VideoUploadSessionStatus,
+} from '../../domain/repositories/video-upload-session.repository';
 
 type CachedVideoListItem = Omit<
   VideoListItemResponse,
@@ -93,7 +105,11 @@ export class VideoQueryService implements IVideoQueryService {
     private readonly channelOrmRepository: Repository<ChannelOrmEntity>,
     @InjectRepository(MembershipTierOrmEntity)
     private readonly membershipTierOrmRepository: Repository<MembershipTierOrmEntity>,
+    @InjectRepository(VideoUploadSessionOrmEntity)
+    private readonly uploadSessionOrmRepository: Repository<VideoUploadSessionOrmEntity>,
     private readonly cacheService: CacheService,
+    @Inject(OBJECT_STORAGE_SERVICE)
+    private readonly objectStorageService?: IObjectStorageService,
   ) {}
 
   async getPublicVideoSummariesByChannel(
@@ -107,7 +123,7 @@ export class VideoQueryService implements IVideoQueryService {
       category: video.category.slug,
       tags: video.tags.map((tag) => tag.slug),
       status: video.status,
-      thumbnailUrl: buildPublicThumbnailUrl(video),
+      thumbnailUrl: buildPublicThumbnailUrl(video, this.objectStorageService),
       publishedAt: video.publishedAt,
     }));
   }
@@ -140,7 +156,7 @@ export class VideoQueryService implements IVideoQueryService {
 
     const channel = await this.channelOrmRepository.findOne({
       where: { id: video.channelId, status: ChannelStatus.ACTIVE },
-      select: { id: true, name: true, avatarUrl: true },
+      select: { id: true, name: true, avatarUrl: true, avatarObjectKey: true },
     });
     if (!channel) {
       throw new NotFoundException(ERROR_MESSAGES.VIDEO_NOT_FOUND);
@@ -154,7 +170,11 @@ export class VideoQueryService implements IVideoQueryService {
       id: video.id,
       channelId: video.channelId,
       channelName: channel.name,
-      avatarUrlChannel: channel.avatarUrl,
+      avatarUrlChannel: buildChannelImageUrl(
+        channel.avatarObjectKey,
+        channel.avatarUrl,
+        this.objectStorageService,
+      ),
       membershipTiers,
       title: video.title,
       description: video.description,
@@ -162,7 +182,7 @@ export class VideoQueryService implements IVideoQueryService {
       category: video.category.slug,
       tagIds: video.tags.map((tag) => tag.id),
       tags: video.tags.map((tag) => tag.slug),
-      thumbnailUrl: buildPublicThumbnailUrl(video),
+      thumbnailUrl: buildPublicThumbnailUrl(video, this.objectStorageService),
       thumbnailSource: video.thumbnailSource,
       thumbnailStatus: video.thumbnailStatus,
       viewCount: video.viewCount,
@@ -216,7 +236,9 @@ export class VideoQueryService implements IVideoQueryService {
 
     const result = await this.videoRepository.findLatestPublic(page, limit);
     const items = await this.withChannelNames(
-      result.items.map(mapVideoEntityToListItem),
+      result.items.map((video) =>
+        mapVideoEntityToListItem(video, this.objectStorageService),
+      ),
     );
 
     await this.setCachedValue(
@@ -269,7 +291,9 @@ export class VideoQueryService implements IVideoQueryService {
 
     return {
       items: await this.withChannelNames(
-        result.items.map(mapVideoEntityToListItem),
+        result.items.map((video) =>
+          mapVideoEntityToListItem(video, this.objectStorageService),
+        ),
       ),
       pagination: createPagination(page, limit, result.total),
     };
@@ -291,10 +315,83 @@ export class VideoQueryService implements IVideoQueryService {
       visibilities: filters.visibilities,
     });
 
+    const activeUploadSessionsByVideoId =
+      await this.getActiveDraftUploadSessionsByVideoId(result.items);
+
     return {
-      items: result.items.map(mapVideoEntityToStudioListItem),
+      items: result.items.map((video) =>
+        mapVideoEntityToStudioListItem(
+          video,
+          this.objectStorageService,
+          activeUploadSessionsByVideoId.get(video.id) ?? null,
+        ),
+      ),
       pagination: createPagination(filters.page, filters.limit, result.total),
     };
+  }
+
+  private async getActiveDraftUploadSessionsByVideoId(
+    videos: VideoEntity[],
+  ): Promise<
+    Map<
+      string,
+      Pick<
+        VideoUploadSession,
+        | 'uploadId'
+        | 'partSizeBytes'
+        | 'status'
+        | 'expiresAt'
+        | 'fileName'
+        | 'fileSize'
+      >
+    >
+  > {
+    const draftVideoIds = videos
+      .filter((video) => video.status === VideoStatus.DRAFT)
+      .map((video) => video.id);
+
+    if (draftVideoIds.length === 0) {
+      return new Map();
+    }
+
+    const sessions = await this.uploadSessionOrmRepository.find({
+      where: {
+        videoId: In(draftVideoIds),
+        status: VideoUploadSessionStatus.ACTIVE,
+        expiresAt: MoreThan(new Date()),
+      },
+      order: { createdAt: 'DESC' },
+    });
+
+    const sessionsByVideoId = new Map<
+      string,
+      Pick<
+        VideoUploadSession,
+        | 'uploadId'
+        | 'partSizeBytes'
+        | 'status'
+        | 'expiresAt'
+        | 'fileName'
+        | 'fileSize'
+      >
+    >();
+
+    for (const session of sessions) {
+      if (sessionsByVideoId.has(session.videoId)) {
+        continue;
+      }
+
+      sessionsByVideoId.set(session.videoId, {
+        uploadId: session.uploadId,
+        partSizeBytes: session.partSizeBytes,
+        status: session.status,
+        expiresAt: session.expiresAt,
+        fileName: session.fileName,
+        fileSize: Number(session.fileSize),
+      });
+    }
+
+    return sessionsByVideoId;
   }
 
   async getVideosByCategory(
@@ -329,7 +426,9 @@ export class VideoQueryService implements IVideoQueryService {
       limit,
     });
     const items = await this.withChannelNames(
-      result.items.map(mapVideoEntityToListItem),
+      result.items.map((video) =>
+        mapVideoEntityToListItem(video, this.objectStorageService),
+      ),
     );
 
     await this.setCachedValue(
@@ -375,7 +474,9 @@ export class VideoQueryService implements IVideoQueryService {
 
     const result = await this.videoRepository.searchPublic(query);
     const items = await this.withChannelNames(
-      result.items.map(mapVideoEntityToListItem),
+      result.items.map((video) =>
+        mapVideoEntityToListItem(video, this.objectStorageService),
+      ),
     );
 
     await this.setCachedValue(
@@ -463,10 +564,13 @@ export class VideoQueryService implements IVideoQueryService {
         channelId: row.channelId,
         title: row.title,
         thumbnailUrl:
-          row.thumbnailStatus === VideoThumbnailStatus.READY &&
-          row.thumbnailObjectKey &&
-          row.thumbnailUrl
-            ? row.thumbnailUrl
+          row.thumbnailStatus === VideoThumbnailStatus.READY
+            ? row.thumbnailObjectKey
+              ? (this.objectStorageService?.createObjectUrl(
+                  'public',
+                  row.thumbnailObjectKey,
+                ) ?? row.thumbnailUrl)
+              : row.thumbnailUrl
             : null,
         durationSeconds,
         resumePositionSeconds,
@@ -660,10 +764,13 @@ export class VideoQueryService implements IVideoQueryService {
       price: video.price,
       requiredTierLevel: video.requiredTierLevel,
       thumbnailUrl:
-        video.thumbnailStatus === VideoThumbnailStatus.READY &&
-        video.thumbnailObjectKey &&
-        video.thumbnailUrl
-          ? video.thumbnailUrl
+        video.thumbnailStatus === VideoThumbnailStatus.READY
+          ? video.thumbnailObjectKey
+            ? (this.objectStorageService?.createObjectUrl(
+                'public',
+                video.thumbnailObjectKey,
+              ) ?? video.thumbnailUrl)
+            : video.thumbnailUrl
           : null,
       thumbnailSource: video.thumbnailSource,
       thumbnailStatus: video.thumbnailStatus,

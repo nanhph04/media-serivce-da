@@ -20,10 +20,17 @@ describe('GetStudioVideoDetailUseCase', () => {
   const videoRepository = {
     findById: jest.fn(),
   };
-  const useCase = new GetStudioVideoDetailUseCase(videoRepository as never);
+  const uploadSessionRepository = {
+    findActiveByVideoId: jest.fn(),
+  };
+  const useCase = new GetStudioVideoDetailUseCase(
+    videoRepository as never,
+    uploadSessionRepository as never,
+  );
 
   beforeEach(() => {
     jest.clearAllMocks();
+    uploadSessionRepository.findActiveByVideoId.mockResolvedValue(null);
   });
 
   it('returns draft video detail for the owner', async () => {
@@ -40,6 +47,36 @@ describe('GetStudioVideoDetailUseCase', () => {
       status: VideoStatus.DRAFT,
       jobStatus: 'waiting',
       jobStatusMessage: 'Upload initialized',
+      uploadId: null,
+      partSizeBytes: null,
+    });
+  });
+
+  it('returns active upload session fields for resumable draft detail', async () => {
+    videoRepository.findById.mockResolvedValue(buildVideo());
+    uploadSessionRepository.findActiveByVideoId.mockResolvedValue({
+      uploadId: 'upload-1',
+      partSizeBytes: 5 * 1024 * 1024,
+      status: 'active',
+      expiresAt: new Date('2026-01-02T00:00:00.000Z'),
+      fileName: 'draft.mp4',
+      fileSize: 123456789,
+    });
+
+    const result = await useCase.execute({
+      userId: 'owner-1',
+      videoId: 'video-1',
+    });
+
+    expect(uploadSessionRepository.findActiveByVideoId).toHaveBeenCalledWith(
+      'video-1',
+    );
+    expect(result).toMatchObject({
+      uploadId: 'upload-1',
+      partSizeBytes: 5 * 1024 * 1024,
+      uploadSessionStatus: 'active',
+      uploadFileName: 'draft.mp4',
+      uploadFileSize: 123456789,
     });
   });
 

@@ -1,5 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import {
+  OBJECT_STORAGE_SERVICE,
+  type IObjectStorageService,
+} from '@shared/application/interfaces/object-storage.service.interface';
 import { CacheService } from '@shared/infrastructure/cache/cache.service';
 import { Repository } from 'typeorm';
 import type {
@@ -7,6 +11,7 @@ import type {
   SearchChannelsQuery,
 } from '../../application/interfaces/channel-search-query.service.interface';
 import type { ChannelSearchItemResponse } from '../../../search/application/dtos/channel-search-item.response';
+import { buildChannelImageUrl } from '../../application/dtos/channel-image-url';
 import { ChannelStatus } from '../../domain/entities/channel.entity';
 import { ChannelOrmEntity } from '../persistence/channel.orm-entity';
 
@@ -26,6 +31,8 @@ export class ChannelSearchQueryService implements IChannelSearchQueryService {
     @InjectRepository(ChannelOrmEntity)
     private readonly channelOrmRepository: Repository<ChannelOrmEntity>,
     private readonly cacheService: CacheService,
+    @Inject(OBJECT_STORAGE_SERVICE)
+    private readonly objectStorageService?: IObjectStorageService,
   ) {}
 
   async searchChannels(
@@ -91,8 +98,16 @@ export class ChannelSearchQueryService implements IChannelSearchQueryService {
       userId: row.userId,
       name: row.name,
       bio: row.bio,
-      avatarUrl: row.avatarUrl,
-      bannerUrl: row.bannerUrl,
+      avatarUrl: buildChannelImageUrl(
+        row.avatarObjectKey,
+        row.avatarUrl,
+        this.objectStorageService,
+      ),
+      bannerUrl: buildChannelImageUrl(
+        row.bannerObjectKey,
+        row.bannerUrl,
+        this.objectStorageService,
+      ),
       status: row.status,
       isEligibleForMembership: row.isEligibleForMembership,
       createdAt: row.createdAt,

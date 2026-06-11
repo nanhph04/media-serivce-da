@@ -38,6 +38,8 @@ export class ChannelStatusChangeTransactionService implements IChannelStatusChan
         bio: input.channel.bio,
         avatarUrl: input.channel.avatarUrl,
         bannerUrl: input.channel.bannerUrl,
+        avatarObjectKey: input.channel.avatarObjectKey,
+        bannerObjectKey: input.channel.bannerObjectKey,
         status: input.channel.status,
         isEligibleForMembership: input.channel.isEligibleForMembership,
         isMembershipClosedByAdmin: input.channel.isMembershipClosedByAdmin,

@@ -1,5 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
+import {
+  OBJECT_STORAGE_SERVICE,
+  type IObjectStorageService,
+} from '@shared/application/interfaces/object-storage.service.interface';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import {
   BadRequestException,
@@ -7,6 +11,10 @@ import {
   NotFoundException,
 } from '@shared/domain/exceptions/domain.exception';
 import type { ChannelResponse } from '../dtos/channel.response';
+import {
+  buildChannelAvatarUrl,
+  buildChannelBannerUrl,
+} from '../dtos/channel-image-url';
 import type { ReviewChannelMembershipCommand } from '../dtos/review-channel-membership.command';
 import {
   CHANNEL_REPOSITORY,
@@ -21,6 +29,8 @@ export class ReviewChannelMembershipUseCase extends BaseUseCase<
   constructor(
     @Inject(CHANNEL_REPOSITORY)
     private readonly channelRepository: IChannelRepository,
+    @Inject(OBJECT_STORAGE_SERVICE)
+    private readonly objectStorageService?: IObjectStorageService,
   ) {
     super();
   }
@@ -56,8 +66,8 @@ export class ReviewChannelMembershipUseCase extends BaseUseCase<
       membershipRejectionReason: channel.membershipRejectionReason,
       membershipRequestedAt: channel.membershipRequestedAt,
       membershipReviewedAt: channel.membershipReviewedAt,
-      avatarUrl: channel.avatarUrl,
-      bannerUrl: channel.bannerUrl,
+      avatarUrl: buildChannelAvatarUrl(channel, this.objectStorageService),
+      bannerUrl: buildChannelBannerUrl(channel, this.objectStorageService),
       status: channel.status,
       createdAt: channel.createdAt,
       updatedAt: channel.updatedAt,

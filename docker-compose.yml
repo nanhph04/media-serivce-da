@@ -16,7 +16,7 @@ services:
       KAFKA_BROKERS: kafka:29092
       MINIO_ENDPOINT: minio
       MINIO_PORT: 9000
-      MINIO_PUBLIC_ENDPOINT: host.docker.internal
+      MINIO_PUBLIC_ENDPOINT: ${PUBLIC_HOST:-localhost}
       MINIO_PUBLIC_PORT: 19000
       FINANCE_SERVICE_URL: http://finance-service:4004
       MEDIA_PROCESSING_SERVICE_HEALTH_URL: http://media-processing-service:4003/health/ready

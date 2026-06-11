@@ -105,7 +105,7 @@ describe('MinioService', () => {
     );
   });
 
-  it('rewrites presigned upload URLs to the configured public MinIO host', async () => {
+  it('uses the configured public MinIO host for presigned upload URLs', async () => {
     configService.get.mockImplementation((key: string) => {
       if (key === 'MINIO_PUBLIC_ENDPOINT') {
         return '192.168.1.10';
@@ -127,12 +127,19 @@ describe('MinioService', () => {
     });
     service = new MinioService(configService as never, logger as never);
     presignedPutObject.mockResolvedValue(
-      'http://localhost:9000/media-raw/video/raw.mp4?X-Amz-Signature=test',
+      'http://192.168.1.10:9000/media-raw/video/raw.mp4?X-Amz-Signature=test',
     );
 
     await expect(service.createUploadUrl('raw', 'video/raw.mp4')).resolves.toBe(
       'http://192.168.1.10:9000/media-raw/video/raw.mp4?X-Amz-Signature=test',
     );
+    expect(Client).toHaveBeenCalledWith({
+      endPoint: '192.168.1.10',
+      port: 9000,
+      useSSL: false,
+      accessKey: 'minio',
+      secretKey: 'minio123',
+    });
   });
 
   it('maps logical processed bucket to configured bucket when reading a stream', async () => {

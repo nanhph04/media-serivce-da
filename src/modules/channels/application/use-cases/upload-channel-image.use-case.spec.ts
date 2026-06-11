@@ -16,6 +16,8 @@ describe('UploadChannelImageUseCase', () => {
   };
   const objectStorageService = {
     uploadObject: jest.fn(),
+    createObjectUrl: jest.fn(),
+    deleteObject: jest.fn(),
     deleteObjectByUrl: jest.fn(),
   };
 
@@ -31,10 +33,15 @@ describe('UploadChannelImageUseCase', () => {
     objectStorageService.uploadObject.mockResolvedValue(
       'http://localhost:9000/media-public/channels/channel-1/avatar/image.jpg',
     );
+    objectStorageService.createObjectUrl.mockImplementation(
+      (_bucket: string, objectKey: string) =>
+        `http://localhost:9000/media-public/${objectKey}`,
+    );
+    objectStorageService.deleteObject.mockResolvedValue(undefined);
     objectStorageService.deleteObjectByUrl.mockResolvedValue(true);
   });
 
-  it('uploads an avatar to public MinIO bucket and stores the public URL', async () => {
+  it('uploads an avatar to public MinIO bucket and stores the object key plus runtime URL', async () => {
     const result = await useCase.execute({
       userId: 'user-1',
       imageType: 'avatar',
@@ -50,12 +57,14 @@ describe('UploadChannelImageUseCase', () => {
     );
     expect(channelRepository.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        avatarUrl:
-          'http://localhost:9000/media-public/channels/channel-1/avatar/image.jpg',
+        avatarUrl: expect.stringContaining(
+          'http://localhost:9000/media-public/channels/channel-1/avatar/',
+        ),
+        avatarObjectKey: expect.stringContaining('channels/channel-1/avatar/'),
       }),
     );
-    expect(result.avatarUrl).toBe(
-      'http://localhost:9000/media-public/channels/channel-1/avatar/image.jpg',
+    expect(result.avatarUrl).toContain(
+      'http://localhost:9000/media-public/channels/channel-1/avatar/',
     );
     expect(objectStorageService.deleteObjectByUrl).not.toHaveBeenCalled();
   });
@@ -78,8 +87,8 @@ describe('UploadChannelImageUseCase', () => {
         contentType: 'image/webp',
       }),
     );
-    expect(result.bannerUrl).toBe(
-      'http://localhost:9000/media-public/channels/channel-1/banner/image.webp',
+    expect(result.bannerUrl).toContain(
+      'http://localhost:9000/media-public/channels/channel-1/banner/',
     );
   });
 
@@ -107,15 +116,13 @@ describe('UploadChannelImageUseCase', () => {
     );
   });
 
-  it('deletes the previous banner after storing the new banner URL', async () => {
+  it('deletes the previous banner by object key when available', async () => {
     channelRepository.findByUserId.mockResolvedValue(
       buildChannel({
         bannerUrl:
           'http://localhost:9000/media-public/channels/channel-1/banner/old.webp',
+        bannerObjectKey: 'channels/channel-1/banner/old.webp',
       }),
-    );
-    objectStorageService.uploadObject.mockResolvedValue(
-      'http://localhost:9000/media-public/channels/channel-1/banner/new.webp',
     );
 
     await useCase.execute({
@@ -124,10 +131,11 @@ describe('UploadChannelImageUseCase', () => {
       file: buildFile({ contentType: 'image/webp' }),
     });
 
-    expect(objectStorageService.deleteObjectByUrl).toHaveBeenCalledWith(
+    expect(objectStorageService.deleteObject).toHaveBeenCalledWith(
       'public',
-      'http://localhost:9000/media-public/channels/channel-1/banner/old.webp',
+      'channels/channel-1/banner/old.webp',
     );
+    expect(objectStorageService.deleteObjectByUrl).not.toHaveBeenCalled();
   });
 
   it('keeps the upload successful when deleting the previous image fails', async () => {
@@ -149,8 +157,9 @@ describe('UploadChannelImageUseCase', () => {
       }),
     ).resolves.toEqual(
       expect.objectContaining({
-        avatarUrl:
-          'http://localhost:9000/media-public/channels/channel-1/avatar/image.jpg',
+        avatarUrl: expect.stringContaining(
+          'http://localhost:9000/media-public/channels/channel-1/avatar/',
+        ),
       }),
     );
   });
@@ -217,6 +226,8 @@ function buildChannel(
     status: ChannelStatus;
     avatarUrl: string;
     bannerUrl: string;
+    avatarObjectKey: string | null;
+    bannerObjectKey: string | null;
   }> = {},
 ): ChannelEntity {
   return new ChannelEntity({
@@ -226,6 +237,8 @@ function buildChannel(
     bio: 'Channel bio',
     avatarUrl: overrides.avatarUrl ?? '',
     bannerUrl: overrides.bannerUrl ?? '',
+    avatarObjectKey: overrides.avatarObjectKey ?? null,
+    bannerObjectKey: overrides.bannerObjectKey ?? null,
     status: overrides.status ?? ChannelStatus.ACTIVE,
     isEligibleForMembership: false,
     isMembershipClosedByAdmin: false,

@@ -28,6 +28,8 @@ export class ChannelCreationTransactionService implements IChannelCreationTransa
         bio: channel.bio,
         avatarUrl: channel.avatarUrl,
         bannerUrl: channel.bannerUrl,
+        avatarObjectKey: channel.avatarObjectKey,
+        bannerObjectKey: channel.bannerObjectKey,
         status: channel.status,
         isEligibleForMembership: channel.isEligibleForMembership,
         isMembershipClosedByAdmin: channel.isMembershipClosedByAdmin,

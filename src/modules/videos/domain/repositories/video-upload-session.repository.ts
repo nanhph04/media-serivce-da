@@ -50,6 +50,7 @@ export interface IVideoUploadSessionRepository {
     videoId: string,
     uploadId: string,
   ): Promise<VideoUploadSession | null>;
+  findActiveByVideoId(videoId: string, now?: Date): Promise<VideoUploadSession | null>;
   savePart(input: {
     sessionId: string;
     partNumber: number;

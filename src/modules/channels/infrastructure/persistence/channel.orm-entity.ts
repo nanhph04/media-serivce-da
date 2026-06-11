@@ -32,6 +32,22 @@ export class ChannelOrmEntity {
   @Column({ type: 'varchar', length: 500, name: 'banner_url' })
   bannerUrl!: string;
 
+  @Column({
+    type: 'varchar',
+    length: 500,
+    name: 'avatar_object_key',
+    nullable: true,
+  })
+  avatarObjectKey!: string | null;
+
+  @Column({
+    type: 'varchar',
+    length: 500,
+    name: 'banner_object_key',
+    nullable: true,
+  })
+  bannerObjectKey!: string | null;
+
   @Column({ type: 'enum', enum: ChannelStatus })
   status!: ChannelStatus;
 

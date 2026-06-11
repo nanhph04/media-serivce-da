@@ -86,6 +86,24 @@ export class StudioVideoListItemResponseDto {
   isDeleted!: boolean;
 
   @ApiProperty({ nullable: true })
+  uploadId!: string | null;
+
+  @ApiProperty({ nullable: true })
+  partSizeBytes!: number | null;
+
+  @ApiProperty({ nullable: true })
+  uploadSessionStatus!: string | null;
+
+  @ApiProperty({ nullable: true })
+  uploadExpiresAt!: string | null;
+
+  @ApiProperty({ nullable: true })
+  uploadFileName!: string | null;
+
+  @ApiProperty({ nullable: true })
+  uploadFileSize!: number | null;
+
+  @ApiProperty({ nullable: true })
   deletedAt!: string | null;
 
   @ApiProperty({ nullable: true })
@@ -128,6 +146,12 @@ export class StudioVideoListItemResponseDto {
       viewCount: video.viewCount,
       publishedAt: video.publishedAt?.toISOString() ?? null,
       isDeleted: video.isDeleted,
+      uploadId: video.uploadId,
+      partSizeBytes: video.partSizeBytes,
+      uploadSessionStatus: video.uploadSessionStatus,
+      uploadExpiresAt: video.uploadExpiresAt?.toISOString() ?? null,
+      uploadFileName: video.uploadFileName,
+      uploadFileSize: video.uploadFileSize,
       deletedAt: video.deletedAt?.toISOString() ?? null,
       deletedBy: video.deletedBy,
       deleteReason: video.deleteReason,

@@ -1,3 +1,4 @@
+import type { IObjectStorageService } from '@shared/application/interfaces/object-storage.service.interface';
 import type { VideoEntity } from '../../domain/entities/video.entity';
 import { buildPublicThumbnailUrl } from './thumbnail-url';
 
@@ -26,6 +27,7 @@ export interface VideoListItemResponse {
 
 export function mapVideoEntityToListItem(
   video: VideoEntity,
+  objectStorageService?: IObjectStorageService,
 ): VideoListItemResponse {
   return {
     id: video.id,
@@ -38,7 +40,7 @@ export function mapVideoEntityToListItem(
     status: video.status,
     price: video.price,
     requiredTierLevel: video.requiredTierLevel,
-    thumbnailUrl: buildPublicThumbnailUrl(video),
+    thumbnailUrl: buildPublicThumbnailUrl(video, objectStorageService),
     thumbnailSource: video.thumbnailSource,
     thumbnailStatus: video.thumbnailStatus,
     durationSeconds: video.durationSeconds,

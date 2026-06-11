@@ -21,6 +21,8 @@ export interface ChannelProps {
   bio: string;
   avatarUrl: string;
   bannerUrl: string;
+  avatarObjectKey?: string | null;
+  bannerObjectKey?: string | null;
   status: ChannelStatus;
   isEligibleForMembership: boolean;
   isMembershipClosedByAdmin: boolean;
@@ -39,6 +41,8 @@ export class ChannelEntity {
   constructor(props: ChannelProps) {
     this.props = {
       ...props,
+      avatarObjectKey: props.avatarObjectKey ?? null,
+      bannerObjectKey: props.bannerObjectKey ?? null,
       membershipReviewStatus:
         props.membershipReviewStatus ?? MembershipReviewStatus.NOT_REQUESTED,
       membershipRejectionReason: props.membershipRejectionReason ?? null,
@@ -70,6 +74,14 @@ export class ChannelEntity {
 
   get bannerUrl(): string {
     return this.props.bannerUrl;
+  }
+
+  get avatarObjectKey(): string | null {
+    return this.props.avatarObjectKey;
+  }
+
+  get bannerObjectKey(): string | null {
+    return this.props.bannerObjectKey;
   }
 
   get status(): ChannelStatus {
@@ -131,6 +143,8 @@ export class ChannelEntity {
       bio: input.bio,
       avatarUrl: '',
       bannerUrl: '',
+      avatarObjectKey: null,
+      bannerObjectKey: null,
       status: ChannelStatus.ACTIVE,
       isEligibleForMembership: false,
       isMembershipClosedByAdmin: false,
@@ -146,7 +160,16 @@ export class ChannelEntity {
 
   public update(
     input: Partial<
-      Pick<ChannelProps, 'name' | 'bio' | 'avatarUrl' | 'bannerUrl' | 'status'>
+      Pick<
+        ChannelProps,
+        | 'name'
+        | 'bio'
+        | 'avatarUrl'
+        | 'bannerUrl'
+        | 'avatarObjectKey'
+        | 'bannerObjectKey'
+        | 'status'
+      >
     >,
   ): void {
     if (input.name !== undefined) {
@@ -163,9 +186,17 @@ export class ChannelEntity {
     }
     if (input.avatarUrl !== undefined) {
       this.props.avatarUrl = input.avatarUrl;
+      this.props.avatarObjectKey = null;
     }
     if (input.bannerUrl !== undefined) {
       this.props.bannerUrl = input.bannerUrl;
+      this.props.bannerObjectKey = null;
+    }
+    if (input.avatarObjectKey !== undefined) {
+      this.props.avatarObjectKey = input.avatarObjectKey;
+    }
+    if (input.bannerObjectKey !== undefined) {
+      this.props.bannerObjectKey = input.bannerObjectKey;
     }
     if (input.status !== undefined) {
       this.props.status = input.status;

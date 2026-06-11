@@ -1,5 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
+import {
+  OBJECT_STORAGE_SERVICE,
+  type IObjectStorageService,
+} from '@shared/application/interfaces/object-storage.service.interface';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import {
   ForbiddenException,
@@ -9,6 +13,10 @@ import {
   type IVideoRepository,
   VIDEO_REPOSITORY,
 } from '../../domain/repositories/video.repository';
+import {
+  type IVideoUploadSessionRepository,
+  VIDEO_UPLOAD_SESSION_REPOSITORY,
+} from '../../domain/repositories/video-upload-session.repository';
 import {
   mapVideoEntityToStudioListItem,
   type StudioVideoListItemResponse,
@@ -22,6 +30,10 @@ export class GetStudioVideoDetailUseCase extends BaseUseCase<
   constructor(
     @Inject(VIDEO_REPOSITORY)
     private readonly videoRepository: IVideoRepository,
+    @Inject(VIDEO_UPLOAD_SESSION_REPOSITORY)
+    private readonly uploadSessionRepository: IVideoUploadSessionRepository,
+    @Inject(OBJECT_STORAGE_SERVICE)
+    private readonly objectStorageService?: IObjectStorageService,
   ) {
     super();
   }
@@ -38,6 +50,14 @@ export class GetStudioVideoDetailUseCase extends BaseUseCase<
       throw new ForbiddenException(ERROR_MESSAGES.VIDEO_NOT_OWNED);
     }
 
-    return mapVideoEntityToStudioListItem(video);
+    const activeUploadSession = await this.uploadSessionRepository.findActiveByVideoId(
+      video.id,
+    );
+
+    return mapVideoEntityToStudioListItem(
+      video,
+      this.objectStorageService,
+      activeUploadSession,
+    );
   }
 }

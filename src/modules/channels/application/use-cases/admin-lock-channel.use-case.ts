@@ -1,6 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
+import {
+  OBJECT_STORAGE_SERVICE,
+  type IObjectStorageService,
+} from '@shared/application/interfaces/object-storage.service.interface';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import { NotFoundException } from '@shared/domain/exceptions/domain.exception';
 import type { IIntegrationEvent } from '@shared/domain/types/events/base-integration.event';
@@ -14,6 +18,10 @@ import {
 } from '../interfaces/channel-status-change-transaction.interface';
 import type { ChannelStatusChangedEventData } from '../interfaces/channel-status-event.publisher.interface';
 import type { ChannelResponse } from '../dtos/channel.response';
+import {
+  buildChannelAvatarUrl,
+  buildChannelBannerUrl,
+} from '../dtos/channel-image-url';
 import type { LockChannelCommand } from '../dtos/lock-channel.command';
 
 const CHANNEL_STATUS_CHANGED_TOPIC = 'channel.status.changed';
@@ -28,6 +36,8 @@ export class AdminLockChannelUseCase extends BaseUseCase<
     private readonly channelRepository: IChannelRepository,
     @Inject(CHANNEL_STATUS_CHANGE_TRANSACTION)
     private readonly channelStatusChangeTransaction: IChannelStatusChangeTransaction,
+    @Inject(OBJECT_STORAGE_SERVICE)
+    private readonly objectStorageService?: IObjectStorageService,
   ) {
     super();
   }
@@ -80,8 +90,8 @@ export class AdminLockChannelUseCase extends BaseUseCase<
       membershipRejectionReason: channel.membershipRejectionReason,
       membershipRequestedAt: channel.membershipRequestedAt,
       membershipReviewedAt: channel.membershipReviewedAt,
-      avatarUrl: channel.avatarUrl,
-      bannerUrl: channel.bannerUrl,
+      avatarUrl: buildChannelAvatarUrl(channel, this.objectStorageService),
+      bannerUrl: buildChannelBannerUrl(channel, this.objectStorageService),
       status: channel.status,
       createdAt: channel.createdAt,
       updatedAt: channel.updatedAt,

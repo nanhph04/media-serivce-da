@@ -1,5 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
+import {
+  OBJECT_STORAGE_SERVICE,
+  type IObjectStorageService,
+} from '@shared/application/interfaces/object-storage.service.interface';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import {
   BadRequestException,
@@ -23,6 +27,7 @@ import {
   CHANNEL_REPOSITORY,
   type IChannelRepository,
 } from '../../../channels/domain/repositories/channel.repository';
+import { buildChannelAvatarUrl } from '../../../channels/application/dtos/channel-image-url';
 import {
   MEMBERSHIP_TIER_REPOSITORY,
   type IMembershipTierRepository,
@@ -59,6 +64,8 @@ export class UpdateVideoMetadataUseCase extends BaseUseCase<
     private readonly channelRepository: IChannelRepository,
     @Inject(MEMBERSHIP_TIER_REPOSITORY)
     private readonly membershipTierRepository: IMembershipTierRepository,
+    @Inject(OBJECT_STORAGE_SERVICE)
+    private readonly objectStorageService?: IObjectStorageService,
   ) {
     super();
   }
@@ -104,7 +111,10 @@ export class UpdateVideoMetadataUseCase extends BaseUseCase<
       id: video.id,
       channelId: video.channelId,
       channelName: channel.name,
-      avatarUrlChannel: channel.avatarUrl,
+      avatarUrlChannel: buildChannelAvatarUrl(
+        channel,
+        this.objectStorageService,
+      ),
       membershipTiers,
       title: video.title,
       description: video.description,
@@ -112,7 +122,7 @@ export class UpdateVideoMetadataUseCase extends BaseUseCase<
       category: video.category.slug,
       tagIds: video.tags.map((tag) => tag.id),
       tags: video.tags.map((tag) => tag.slug),
-      thumbnailUrl: buildOwnerThumbnailUrl(video),
+      thumbnailUrl: buildOwnerThumbnailUrl(video, this.objectStorageService),
       thumbnailSource: video.thumbnailSource,
       thumbnailStatus: video.thumbnailStatus,
       viewCount: video.viewCount,
