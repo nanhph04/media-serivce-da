@@ -33,6 +33,7 @@ interface MinioMultipartClient {
 @Injectable()
 export class MinioService implements OnModuleInit, IObjectStorageService {
   private readonly client: Client;
+  private readonly presignClient: Client;
   private readonly rawBucket: string;
   private readonly processedBucket: string;
   private readonly publicBucket: string;
@@ -56,12 +57,25 @@ export class MinioService implements OnModuleInit, IObjectStorageService {
     );
     this.publicPort = this.resolveOptionalNumber('MINIO_PUBLIC_PORT');
     this.publicUseSSL = this.resolveOptionalBoolean('MINIO_PUBLIC_USE_SSL');
+    const accessKey = this.configService.getOrThrow<string>('MINIO_ACCESS_KEY');
+    const secretKey = this.configService.getOrThrow<string>('MINIO_SECRET_KEY');
+    const internalUseSSL = this.configService.getBooleanOrThrow('MINIO_USE_SSL');
+
     this.client = new Client({
       endPoint: this.configService.getOrThrow<string>('MINIO_ENDPOINT'),
       port: this.configService.getNumberOrThrow('MINIO_PORT'),
-      useSSL: this.configService.getBooleanOrThrow('MINIO_USE_SSL'),
-      accessKey: this.configService.getOrThrow<string>('MINIO_ACCESS_KEY'),
-      secretKey: this.configService.getOrThrow<string>('MINIO_SECRET_KEY'),
+      useSSL: internalUseSSL,
+      accessKey,
+      secretKey,
+    });
+    this.presignClient = new Client({
+      endPoint:
+        this.publicEndpoint ??
+        this.configService.getOrThrow<string>('MINIO_ENDPOINT'),
+      port: this.publicPort ?? this.configService.getNumberOrThrow('MINIO_PORT'),
+      useSSL: this.publicUseSSL ?? internalUseSSL,
+      accessKey,
+      secretKey,
     });
   }
 
@@ -101,13 +115,11 @@ export class MinioService implements OnModuleInit, IObjectStorageService {
       return this.createRawUploadUrl(objectKey, expirySeconds);
     }
 
-    const presignedUrl = await this.client.presignedPutObject(
+    return this.presignClient.presignedPutObject(
       this.getBucketName(bucket),
       objectKey,
       expirySeconds,
     );
-
-    return this.rewritePublicUrlIfNeeded(presignedUrl);
   }
 
   async createReadUrl(
@@ -115,13 +127,11 @@ export class MinioService implements OnModuleInit, IObjectStorageService {
     objectKey: string,
     expirySeconds = 900,
   ): Promise<string> {
-    const presignedUrl = await this.client.presignedGetObject(
+    return this.presignClient.presignedGetObject(
       this.getBucketName(bucket),
       objectKey,
       expirySeconds,
     );
-
-    return this.rewritePublicUrlIfNeeded(presignedUrl);
   }
 
   createObjectUrl(bucket: StorageBucket, objectKey: string): string {
@@ -148,13 +158,11 @@ export class MinioService implements OnModuleInit, IObjectStorageService {
     objectKey: string,
     expirySeconds = 900,
   ): Promise<string> {
-    const presignedUrl = await this.client.presignedPutObject(
+    return this.presignClient.presignedPutObject(
       this.rawBucket,
       objectKey,
       expirySeconds,
     );
-
-    return this.rewritePublicUrlIfNeeded(presignedUrl);
   }
 
   async createMultipartUpload(
@@ -175,7 +183,7 @@ export class MinioService implements OnModuleInit, IObjectStorageService {
     partNumber: number;
     expirySeconds?: number;
   }): Promise<string> {
-    const presignedUrl = await this.client.presignedUrl(
+    return this.presignClient.presignedUrl(
       'PUT',
       this.getBucketName(input.bucket),
       input.objectKey,
@@ -185,8 +193,6 @@ export class MinioService implements OnModuleInit, IObjectStorageService {
         uploadId: input.uploadId,
       },
     );
-
-    return this.rewritePublicUrlIfNeeded(presignedUrl);
   }
 
   async completeMultipartUpload(input: {
