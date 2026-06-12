@@ -4,15 +4,16 @@ autonumber
 autoactivate on
 hide footbox
 
-skinparam maxMessageSize 240
+skinparam maxMessageSize 550
 skinparam ParticipantPadding 36
-skinparam defaultFontSize 20
+skinparam TitleFontSize 44
+skinparam defaultFontSize 44
 skinparam sequence {
-  ActorFontSize 18
-  ParticipantFontSize 18
-  MessageFontSize 17
-  GroupFontSize 17
-  ReferenceFontSize 17
+  ActorFontSize 32
+  ParticipantFontSize 34
+  MessageFontSize 34
+  GroupFontSize 34
+  ReferenceFontSize 34
 }
 
 actor "Creator" as Creator
