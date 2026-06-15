@@ -15,6 +15,7 @@ import {
   CHANNEL_REPOSITORY,
   type IChannelRepository,
 } from '../../domain/repositories/channel.repository';
+import { ChannelStatus } from '../../domain/entities/channel.entity';
 import {
   MEMBERSHIP_TIER_REPOSITORY,
   type IMembershipTierRepository,
@@ -53,7 +54,7 @@ export class GetChannelDetailUseCase extends BaseUseCase<
   }): Promise<ChannelDetailResponse> {
     const channel = await this.channelRepository.findById(command.channelId);
 
-    if (!channel) {
+    if (!channel || channel.status !== ChannelStatus.ACTIVE) {
       throw new NotFoundException(ERROR_MESSAGES.CHANNEL_NOT_FOUND);
     }
 

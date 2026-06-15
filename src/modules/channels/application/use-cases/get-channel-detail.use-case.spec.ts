@@ -1,3 +1,4 @@
+import { NotFoundException } from '@shared/domain/exceptions/domain.exception';
 import {
   ChannelEntity,
   ChannelStatus,
@@ -68,9 +69,26 @@ describe('GetChannelDetailUseCase', () => {
     });
     expect(result.membershipTiers).toHaveLength(1);
   });
+
+  it('rejects suspended channels as not found', async () => {
+    channelRepository.findById.mockResolvedValue(
+      buildChannel({ status: ChannelStatus.SUSPENDED }),
+    );
+
+    await expect(useCase.execute({ channelId: 'channel-1' })).rejects.toThrow(
+      NotFoundException,
+    );
+    expect(membershipTierRepository.findByChannelId).not.toHaveBeenCalled();
+    expect(
+      videoQueryService.getPublicVideoSummariesByChannel,
+    ).not.toHaveBeenCalled();
+    expect(eligibilityService.getChannelEligibility).not.toHaveBeenCalled();
+  });
 });
 
-function buildChannel(): ChannelEntity {
+function buildChannel(
+  overrides: Partial<ConstructorParameters<typeof ChannelEntity>[0]> = {},
+): ChannelEntity {
   return new ChannelEntity({
     id: 'channel-1',
     userId: 'owner-1',
@@ -83,6 +101,7 @@ function buildChannel(): ChannelEntity {
     isMembershipClosedByAdmin: true,
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
     updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+    ...overrides,
   });
 }
 

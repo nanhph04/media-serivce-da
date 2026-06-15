@@ -3,9 +3,11 @@ import {
   Category,
   CategoryStatus,
 } from '../../../categories/domain/entities/category.entity';
+import { ChannelStatus } from '../../../channels/domain/entities/channel.entity';
 import { Tag, TagStatus } from '../../../tags/domain/entities/tag.entity';
 import {
   VideoEntity,
+  VideoDeletionStatus,
   VideoStatus,
   VideoThumbnailSource,
   VideoThumbnailStatus,
@@ -27,8 +29,12 @@ describe('VideoQueryService', () => {
     searchPublic: jest.fn(),
   };
   const createQueryBuilder = jest.fn();
+  const createManagerQueryBuilder = jest.fn();
   const watchProgressOrmRepository = {
     createQueryBuilder,
+    manager: {
+      createQueryBuilder: createManagerQueryBuilder,
+    },
   };
   const channelOrmRepository = {
     find: jest.fn(),
@@ -536,6 +542,98 @@ describe('VideoQueryService', () => {
     });
   });
 
+  it('filters ranked lookup results to active public-ready videos', async () => {
+    const rankRowsQueryBuilder = {
+      innerJoin: jest.fn(),
+      where: jest.fn(),
+      andWhere: jest.fn(),
+      clone: jest.fn(),
+      select: jest.fn(),
+      getRawOne: jest.fn().mockResolvedValue({ total: '2' }),
+      addSelect: jest.fn(),
+      groupBy: jest.fn(),
+      addGroupBy: jest.fn(),
+      orderBy: jest.fn(),
+      addOrderBy: jest.fn(),
+      offset: jest.fn(),
+      limit: jest.fn(),
+      getRawMany: jest.fn().mockResolvedValue([
+        { videoId: 'video-1', metric_count: '11' },
+        { videoId: 'video-2', metric_count: '7' },
+      ]),
+    };
+    rankRowsQueryBuilder.innerJoin.mockReturnValue(rankRowsQueryBuilder);
+    rankRowsQueryBuilder.where.mockReturnValue(rankRowsQueryBuilder);
+    rankRowsQueryBuilder.andWhere.mockReturnValue(rankRowsQueryBuilder);
+    rankRowsQueryBuilder.clone.mockReturnValue(rankRowsQueryBuilder);
+    rankRowsQueryBuilder.select.mockReturnValue(rankRowsQueryBuilder);
+    rankRowsQueryBuilder.addSelect.mockReturnValue(rankRowsQueryBuilder);
+    rankRowsQueryBuilder.groupBy.mockReturnValue(rankRowsQueryBuilder);
+    rankRowsQueryBuilder.addGroupBy.mockReturnValue(rankRowsQueryBuilder);
+    rankRowsQueryBuilder.orderBy.mockReturnValue(rankRowsQueryBuilder);
+    rankRowsQueryBuilder.addOrderBy.mockReturnValue(rankRowsQueryBuilder);
+    rankRowsQueryBuilder.offset.mockReturnValue(rankRowsQueryBuilder);
+    rankRowsQueryBuilder.limit.mockReturnValue(rankRowsQueryBuilder);
+
+    const rankedItemsQueryBuilder = {
+      leftJoinAndSelect: jest.fn(),
+      innerJoin: jest.fn(),
+      addSelect: jest.fn(),
+      where: jest.fn(),
+      andWhere: jest.fn(),
+      getRawAndEntities: jest.fn().mockResolvedValue({
+        raw: [{ video_id: 'video-1', channelName: 'Cinema Labs' }],
+        entities: [buildVideoOrmEntity()],
+      }),
+    };
+    rankedItemsQueryBuilder.leftJoinAndSelect.mockReturnValue(
+      rankedItemsQueryBuilder,
+    );
+    rankedItemsQueryBuilder.innerJoin.mockReturnValue(rankedItemsQueryBuilder);
+    rankedItemsQueryBuilder.addSelect.mockReturnValue(rankedItemsQueryBuilder);
+    rankedItemsQueryBuilder.where.mockReturnValue(rankedItemsQueryBuilder);
+    rankedItemsQueryBuilder.andWhere.mockReturnValue(rankedItemsQueryBuilder);
+
+    createManagerQueryBuilder
+      .mockReturnValueOnce(rankRowsQueryBuilder)
+      .mockReturnValueOnce(rankedItemsQueryBuilder);
+
+    await expect(
+      service.getRankedVideos({
+        metric: 'views',
+        period: 'day',
+        page: 1,
+        limit: 2,
+      }),
+    ).resolves.toEqual({
+      items: [
+        expect.objectContaining({
+          id: 'video-1',
+          channelName: 'Cinema Labs',
+          metricCount: 11,
+        }),
+      ],
+      pagination: { page: 1, limit: 2, total: 2, totalPages: 1 },
+    });
+
+    expect(rankedItemsQueryBuilder.andWhere).toHaveBeenCalledWith(
+      'channel.status = :channelStatus',
+      { channelStatus: ChannelStatus.ACTIVE },
+    );
+    expect(rankedItemsQueryBuilder.andWhere).toHaveBeenCalledWith(
+      'video.status = :status',
+      { status: VideoStatus.READY },
+    );
+    expect(rankedItemsQueryBuilder.andWhere).toHaveBeenCalledWith(
+      'video.deletion_status = :deletionStatus',
+      { deletionStatus: VideoDeletionStatus.ACTIVE },
+    );
+    expect(rankedItemsQueryBuilder.andWhere).toHaveBeenCalledWith(
+      'video.visibility = :visibility',
+      { visibility: VideoVisibility.PUBLIC },
+    );
+  });
+
   it('returns channel membership eligibility metrics from repository', async () => {
     videoRepository.getChannelMembershipEligibilityMetrics.mockResolvedValue({
       readyVideoCount: 5,
@@ -705,4 +803,50 @@ function buildTag(): Tag {
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
     updatedAt: new Date('2026-01-02T00:00:00.000Z'),
   });
+}
+
+function buildVideoOrmEntity(): {
+  id: string;
+  channelId: string;
+  title: string;
+  description: string;
+  category: { slug: string };
+  videoTags: Array<{ tag: { slug: string } }>;
+  status: VideoStatus;
+  price: number;
+  requiredTierLevel: number | null;
+  thumbnailUrl: string;
+  thumbnailObjectKey: string;
+  thumbnailSource: VideoThumbnailSource;
+  thumbnailStatus: VideoThumbnailStatus;
+  durationSeconds: number;
+  resolutions: string[];
+  errorMessage: string | null;
+  viewCount: number;
+  publishedAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+} {
+  return {
+    id: 'video-1',
+    channelId: 'channel-1',
+    title: 'Video',
+    description: 'Description',
+    category: { slug: 'music' },
+    videoTags: [{ tag: { slug: 'action' } }],
+    status: VideoStatus.READY,
+    price: 0,
+    requiredTierLevel: null,
+    thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
+    thumbnailObjectKey: 'videos/video-1/thumbnails/default.jpg',
+    thumbnailSource: VideoThumbnailSource.AUTO,
+    thumbnailStatus: VideoThumbnailStatus.READY,
+    durationSeconds: 120,
+    resolutions: ['720p'],
+    errorMessage: null,
+    viewCount: 10,
+    publishedAt: new Date('2026-01-01T00:00:00.000Z'),
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+  };
 }

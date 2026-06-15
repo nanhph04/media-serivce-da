@@ -25,6 +25,7 @@ import { GetSubscribedVideosUseCase } from './application/use-cases/get-subscrib
 import { GetVideoMetadataUseCase } from './application/use-cases/get-video-metadata.use-case';
 import { GenerateVideoMetadataSuggestionUseCase } from './application/use-cases/generate-video-metadata-suggestion.use-case';
 import { GetVideosByCategoryUseCase } from './application/use-cases/get-videos-by-category.use-case';
+import { HandleChannelStatusChangedUseCase } from './application/use-cases/handle-channel-status-changed.use-case';
 import { HandleVideoProcessedFailedUseCase } from './application/use-cases/handle-video-processed-failed.use-case';
 import { HandleVideoProcessedSuccessUseCase } from './application/use-cases/handle-video-processed-success.use-case';
 import { HandleVideoThumbnailFailedUseCase } from './application/use-cases/handle-video-thumbnail-failed.use-case';
@@ -55,6 +56,7 @@ import { VideoProcessingConsumer } from './infrastructure/consumers/video-proces
 import { VideoThumbnailConsumer } from './infrastructure/consumers/video-thumbnail.consumer';
 import { VideoModerationConsumer } from './infrastructure/consumers/video-moderation.consumer';
 import { VideoPaymentConsumer } from './infrastructure/consumers/video-payment.consumer';
+import { ChannelStatusChangedConsumer } from './infrastructure/consumers/channel-status-changed.consumer';
 import { VideoDeleteRefundCompletedConsumer } from './infrastructure/consumers/video-delete-refund-completed.consumer';
 import { VideoViewedConsumer } from './infrastructure/consumers/video-viewed.consumer';
 import { VideoViewFlushWorker } from './infrastructure/queue/video-view-flush.worker';
@@ -174,6 +176,7 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
     GetStudioVideosUseCase,
     GetVideosByCategoryUseCase,
     GetSubscribedVideosUseCase,
+    HandleChannelStatusChangedUseCase,
     HandleVideoProcessedSuccessUseCase,
     HandleVideoProcessedFailedUseCase,
     HandleVideoThumbnailGeneratedUseCase,
@@ -187,6 +190,7 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
     VideoThumbnailConsumer,
     VideoModerationConsumer,
     VideoPaymentConsumer,
+    ChannelStatusChangedConsumer,
     VideoDeleteRefundCompletedConsumer,
     VideoViewedConsumer,
     VideoViewFlushWorker,

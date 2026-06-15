@@ -715,6 +715,16 @@ export class VideoQueryService implements IVideoQueryService {
       .innerJoin(ChannelOrmEntity, 'channel', 'channel.id = video.channel_id')
       .addSelect('channel.name', 'channelName')
       .where('video.id IN (:...videoIds)', { videoIds })
+      .andWhere('channel.status = :channelStatus', {
+        channelStatus: ChannelStatus.ACTIVE,
+      })
+      .andWhere('video.status = :status', { status: VideoStatus.READY })
+      .andWhere('video.deletion_status = :deletionStatus', {
+        deletionStatus: VideoDeletionStatus.ACTIVE,
+      })
+      .andWhere('video.visibility = :visibility', {
+        visibility: VideoVisibility.PUBLIC,
+      })
       .getRawAndEntities();
 
     const channelNameByVideoId = new Map(
