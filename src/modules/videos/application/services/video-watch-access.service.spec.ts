@@ -129,6 +129,62 @@ describe('VideoWatchAccessService', () => {
     ).resolves.toBeUndefined();
   });
 
+  it('allows purchased users to watch a private video', async () => {
+    channelAccessService.getViewerAccessContext.mockResolvedValue({
+      channelOwnerId: 'owner-1',
+      channelStatus: ChannelStatus.ACTIVE,
+      activeMembershipTierLevel: 1,
+    });
+    unlockRepository.exists.mockResolvedValue(true);
+
+    await expect(
+      service.assertCanWatch(
+        buildVideo({
+          visibility: VideoVisibility.PRIVATE,
+          price: 10,
+          requiredTierLevel: 3,
+        }),
+        'viewer-1',
+      ),
+    ).resolves.toBeUndefined();
+  });
+
+  it('allows members with a sufficient tier to watch a private video', async () => {
+    channelAccessService.getViewerAccessContext.mockResolvedValue({
+      channelOwnerId: 'owner-1',
+      channelStatus: ChannelStatus.ACTIVE,
+      activeMembershipTierLevel: 2,
+    });
+
+    await expect(
+      service.assertCanWatch(
+        buildVideo({
+          visibility: VideoVisibility.PRIVATE,
+          requiredTierLevel: 2,
+        }),
+        'viewer-1',
+      ),
+    ).resolves.toBeUndefined();
+  });
+
+  it('rejects members with an insufficient tier for a private video', async () => {
+    channelAccessService.getViewerAccessContext.mockResolvedValue({
+      channelOwnerId: 'owner-1',
+      channelStatus: ChannelStatus.ACTIVE,
+      activeMembershipTierLevel: 1,
+    });
+
+    await expect(
+      service.assertCanWatch(
+        buildVideo({
+          visibility: VideoVisibility.PRIVATE,
+          requiredTierLevel: 2,
+        }),
+        'viewer-1',
+      ),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
   it('rejects purchased users when video is pending delete', async () => {
     channelAccessService.getViewerAccessContext.mockResolvedValue({
       channelOwnerId: 'owner-1',
@@ -209,7 +265,7 @@ describe('VideoWatchAccessService', () => {
     ).rejects.toThrow(ForbiddenException);
   });
 
-  it('rejects viewers when video is not publicly playable', async () => {
+  it('rejects viewers without purchase or membership for a private video', async () => {
     channelAccessService.getViewerAccessContext.mockResolvedValue({
       channelOwnerId: 'owner-1',
       channelStatus: ChannelStatus.ACTIVE,
@@ -223,7 +279,7 @@ describe('VideoWatchAccessService', () => {
         }),
         'viewer-1',
       ),
-    ).rejects.toThrow(NotFoundException);
+    ).rejects.toThrow(ForbiddenException);
   });
 });
 

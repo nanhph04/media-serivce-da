@@ -43,7 +43,7 @@ export class VideoWatchAccessService {
       return;
     }
 
-    this.assertViewerAvailability(video);
+    this.assertViewerPlaybackAvailability(video);
 
     if (accessContext.channelStatus !== ChannelStatus.ACTIVE) {
       throw new ForbiddenException(ERROR_MESSAGES.CHANNEL_NOT_ACTIVE);
@@ -54,14 +54,10 @@ export class VideoWatchAccessService {
       userId,
     );
 
-    if (video.price === 0 && video.requiredTierLevel === null) {
-      return;
-    }
-
     if (
-      video.requiredTierLevel !== null &&
-      accessContext.activeMembershipTierLevel !== null &&
-      accessContext.activeMembershipTierLevel >= video.requiredTierLevel
+      video.visibility === VideoVisibility.PUBLIC &&
+      video.price === 0 &&
+      video.requiredTierLevel === null
     ) {
       return;
     }
@@ -70,7 +66,66 @@ export class VideoWatchAccessService {
       return;
     }
 
+    if (
+      video.requiredTierLevel === null &&
+      accessContext.activeMembershipTierLevel !== null
+    ) {
+      return;
+    }
+
+    if (this.hasRequiredMembership(video, accessContext.activeMembershipTierLevel)) {
+      return;
+    }
+
+    if (
+      video.requiredTierLevel !== null &&
+      accessContext.activeMembershipTierLevel !== null &&
+      accessContext.activeMembershipTierLevel < video.requiredTierLevel
+    ) {
+      throw new ForbiddenException(
+        ERROR_MESSAGES.VIDEO_MEMBERSHIP_TIER_UPGRADE_REQUIRED,
+      );
+    }
+
     throw new ForbiddenException(ERROR_MESSAGES.VIDEO_WATCH_PERMISSION_DENIED);
+  }
+
+  async assertCanViewMetadata(
+    video: VideoEntity,
+    userId?: string | null,
+  ): Promise<void> {
+    this.assertNotBanned(video);
+    this.assertViewerMetadataAvailability(video);
+
+    if (video.visibility === VideoVisibility.PUBLIC) {
+      return;
+    }
+
+    if (!userId) {
+      throw new NotFoundException(ERROR_MESSAGES.VIDEO_NOT_FOUND);
+    }
+
+    const accessContext =
+      await this.channelAccessService.getViewerAccessContext(
+        video.channelId,
+        userId,
+      );
+
+    if (accessContext.channelOwnerId === userId) {
+      return;
+    }
+
+    if (accessContext.channelStatus !== ChannelStatus.ACTIVE) {
+      throw new NotFoundException(ERROR_MESSAGES.VIDEO_NOT_FOUND);
+    }
+
+    const hasPurchaseUnlock = await this.unlockRepository.exists(video.id, userId);
+
+    if (hasPurchaseUnlock || accessContext.activeMembershipTierLevel !== null) {
+      return;
+    }
+
+    throw new NotFoundException(ERROR_MESSAGES.VIDEO_NOT_FOUND);
   }
 
   private assertOwnerCanWatch(video: VideoEntity): void {
@@ -95,15 +150,31 @@ export class VideoWatchAccessService {
     }
   }
 
-  private assertViewerAvailability(video: VideoEntity): void {
+  private assertViewerPlaybackAvailability(video: VideoEntity): void {
     if (
       video.status !== VideoStatus.READY ||
-      video.visibility !== VideoVisibility.PUBLIC ||
       !video.masterPlaylistKey
     ) {
       throw new NotFoundException(
         ERROR_MESSAGES.VIDEO_NOT_AVAILABLE_FOR_PLAYBACK,
       );
     }
+  }
+
+  private assertViewerMetadataAvailability(video: VideoEntity): void {
+    if (video.status !== VideoStatus.READY || !video.isAvailableForPlayback) {
+      throw new NotFoundException(ERROR_MESSAGES.VIDEO_NOT_FOUND);
+    }
+  }
+
+  private hasRequiredMembership(
+    video: VideoEntity,
+    activeMembershipTierLevel: number | null,
+  ): boolean {
+    return (
+      video.requiredTierLevel !== null &&
+      activeMembershipTierLevel !== null &&
+      activeMembershipTierLevel >= video.requiredTierLevel
+    );
   }
 }

@@ -96,6 +96,15 @@ export class VideoMetadataResponseDto {
   @ApiProperty()
   visibility!: string;
 
+  @ApiProperty()
+  viewerAccess!: {
+    isOwner: boolean;
+    hasPurchased: boolean;
+    activeMembershipTierLevel: number | null;
+    canWatch: boolean;
+    needsMembershipUpgrade: boolean;
+  };
+
   @ApiProperty({ type: [String] })
   processingWarnings!: string[];
 
@@ -164,6 +173,7 @@ export class VideoMetadataResponseDto {
       requiredTierLevel: metadata.requiredTierLevel,
       status: metadata.status,
       visibility: metadata.visibility,
+      viewerAccess: metadata.viewerAccess,
       processingWarnings: metadata.processingWarnings,
       errorMessage: metadata.errorMessage,
       jobStatus: metadata.jobStatus,

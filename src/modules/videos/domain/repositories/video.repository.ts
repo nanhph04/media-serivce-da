@@ -111,6 +111,7 @@ export interface IVideoRepository {
     channelIds: string[],
     page: number,
     limit: number,
+    options?: { includePrivate?: boolean },
   ): Promise<VideoPageResult>;
   getAdminChannelVideoMetrics(now: Date): Promise<AdminChannelVideoMetrics>;
   getAdminVideoSummary(

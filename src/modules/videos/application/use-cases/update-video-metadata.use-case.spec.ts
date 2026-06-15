@@ -26,6 +26,7 @@ describe('UpdateVideoMetadataUseCase', () => {
   };
   const videoCacheInvalidator = {
     invalidateMetadata: jest.fn(),
+    invalidateDiscoveryLists: jest.fn(),
   };
   const categoryRepository = {
     findById: jest.fn(),
@@ -52,11 +53,12 @@ describe('UpdateVideoMetadataUseCase', () => {
     jest.clearAllMocks();
   });
 
-  it('updates metadata for owner and invalidates only metadata cache', async () => {
+  it('updates metadata for owner and invalidates metadata and discovery caches', async () => {
     const video = buildVideo();
     videoRepository.findById.mockResolvedValue(video);
     videoRepository.save.mockResolvedValue(undefined);
     videoCacheInvalidator.invalidateMetadata.mockResolvedValue(undefined);
+    videoCacheInvalidator.invalidateDiscoveryLists.mockResolvedValue(undefined);
     channelRepository.findById.mockResolvedValue(buildChannel());
     membershipTierRepository.findByChannelId.mockResolvedValue([
       buildMembershipTier(),
@@ -74,6 +76,7 @@ describe('UpdateVideoMetadataUseCase', () => {
     expect(videoCacheInvalidator.invalidateMetadata).toHaveBeenCalledWith(
       'video-1',
     );
+    expect(videoCacheInvalidator.invalidateDiscoveryLists).toHaveBeenCalled();
     expect(result).toMatchObject({
       id: 'video-1',
       channelId: 'channel-1',
@@ -122,6 +125,7 @@ describe('UpdateVideoMetadataUseCase', () => {
     ]);
     videoRepository.save.mockResolvedValue(undefined);
     videoCacheInvalidator.invalidateMetadata.mockResolvedValue(undefined);
+    videoCacheInvalidator.invalidateDiscoveryLists.mockResolvedValue(undefined);
 
     const result = await useCase.execute({
       userId: 'owner-1',
@@ -143,6 +147,7 @@ describe('UpdateVideoMetadataUseCase', () => {
     videoRepository.findById.mockResolvedValue(video);
     videoRepository.save.mockResolvedValue(undefined);
     videoCacheInvalidator.invalidateMetadata.mockResolvedValue(undefined);
+    videoCacheInvalidator.invalidateDiscoveryLists.mockResolvedValue(undefined);
     channelRepository.findById.mockResolvedValue(buildChannel());
     membershipTierRepository.findByChannelId.mockResolvedValue([]);
 
@@ -153,6 +158,7 @@ describe('UpdateVideoMetadataUseCase', () => {
     });
 
     expect(video.visibility).toBe(VideoVisibility.PRIVATE);
+    expect(videoCacheInvalidator.invalidateDiscoveryLists).toHaveBeenCalled();
     expect(result).toMatchObject({
       visibility: VideoVisibility.PRIVATE,
     });
@@ -163,6 +169,7 @@ describe('UpdateVideoMetadataUseCase', () => {
     videoRepository.findById.mockResolvedValue(video);
     videoRepository.save.mockResolvedValue(undefined);
     videoCacheInvalidator.invalidateMetadata.mockResolvedValue(undefined);
+    videoCacheInvalidator.invalidateDiscoveryLists.mockResolvedValue(undefined);
     channelRepository.findById.mockResolvedValue(buildChannel());
     membershipTierRepository.findByChannelId.mockResolvedValue([
       buildMembershipTier(),
@@ -195,6 +202,7 @@ describe('UpdateVideoMetadataUseCase', () => {
     ).rejects.toThrow(ForbiddenException);
     expect(videoRepository.save).not.toHaveBeenCalled();
     expect(videoCacheInvalidator.invalidateMetadata).not.toHaveBeenCalled();
+    expect(videoCacheInvalidator.invalidateDiscoveryLists).not.toHaveBeenCalled();
   });
 
   it('throws not found when video does not exist', async () => {
@@ -214,6 +222,7 @@ describe('UpdateVideoMetadataUseCase', () => {
     videoRepository.findById.mockResolvedValue(buildVideo());
     videoRepository.save.mockResolvedValue(undefined);
     videoCacheInvalidator.invalidateMetadata.mockResolvedValue(undefined);
+    videoCacheInvalidator.invalidateDiscoveryLists.mockResolvedValue(undefined);
     channelRepository.findById.mockResolvedValue(buildChannel());
     membershipTierRepository.findByChannelId.mockResolvedValue([
       buildMembershipTier(),

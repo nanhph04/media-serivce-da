@@ -32,7 +32,10 @@ export interface IVideoQueryService {
   getChannelMembershipEligibilityMetrics(
     channelId: string,
   ): Promise<ChannelVideoMembershipEligibilityMetrics>;
-  getVideoMetadata(videoId: string): Promise<VideoMetadataResponse>;
+  getVideoMetadata(
+    videoId: string,
+    viewerUserId?: string | null,
+  ): Promise<VideoMetadataResponse>;
   getLatestVideos(
     page: number,
     limit: number,
@@ -44,6 +47,7 @@ export interface IVideoQueryService {
     channelIds: string[],
     page: number,
     limit: number,
+    options?: { includePrivate?: boolean },
   ): Promise<PaginatedResponse<VideoListItemResponse>>;
   getStudioVideos(
     userId: string,

@@ -98,6 +98,7 @@ export class UpdateVideoMetadataUseCase extends BaseUseCase<
 
     await this.videoRepository.save(video);
     await this.videoCacheInvalidator.invalidateMetadata(video.id);
+    await this.videoCacheInvalidator.invalidateDiscoveryLists();
 
     const channel = await this.channelRepository.findById(video.channelId);
     if (!channel) {
@@ -130,6 +131,13 @@ export class UpdateVideoMetadataUseCase extends BaseUseCase<
       requiredTierLevel: video.requiredTierLevel,
       status: video.status,
       visibility: video.visibility,
+      viewerAccess: {
+        isOwner: true,
+        hasPurchased: false,
+        activeMembershipTierLevel: null,
+        canWatch: Boolean(video.masterPlaylistKey),
+        needsMembershipUpgrade: false,
+      },
       processingWarnings: video.processingWarnings,
       errorMessage: video.errorMessage,
       ...mapVideoStatusToJobFields({

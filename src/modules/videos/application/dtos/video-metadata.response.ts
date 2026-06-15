@@ -25,6 +25,13 @@ export interface VideoMetadataResponse extends VideoJobStatusFields {
   requiredTierLevel: number | null;
   status: VideoStatus;
   visibility: VideoVisibility;
+  viewerAccess: {
+    isOwner: boolean;
+    hasPurchased: boolean;
+    activeMembershipTierLevel: number | null;
+    canWatch: boolean;
+    needsMembershipUpgrade: boolean;
+  };
   processingWarnings: string[];
   errorMessage: string | null;
   publishedAt: Date | null;

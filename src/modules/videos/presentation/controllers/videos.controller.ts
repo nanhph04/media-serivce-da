@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   Param,
   Patch,
   Post,
@@ -429,8 +430,12 @@ export class VideosController {
   @ApiSuccessResponse(VideoMetadataResponseDto)
   async getMetadata(
     @Param('id') videoId: string,
+    @Headers('x-user-id') viewerUserId?: string,
   ): Promise<ApiResponse<VideoMetadataResponseDto>> {
-    const metadata = await this.getVideoMetadataUseCase.execute(videoId);
+    const metadata = await this.getVideoMetadataUseCase.execute({
+      videoId,
+      viewerUserId,
+    });
     return apiResponseContract(
       VideoMetadataResponseDto.fromApplicationDto(metadata),
     );

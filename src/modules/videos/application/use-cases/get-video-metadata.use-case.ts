@@ -8,7 +8,7 @@ import {
 
 @Injectable()
 export class GetVideoMetadataUseCase extends BaseUseCase<
-  string,
+  { videoId: string; viewerUserId?: string | null },
   VideoMetadataResponse
 > {
   constructor(
@@ -18,7 +18,13 @@ export class GetVideoMetadataUseCase extends BaseUseCase<
     super();
   }
 
-  async execute(videoId: string): Promise<VideoMetadataResponse> {
-    return this.videoQueryService.getVideoMetadata(videoId);
+  async execute(command: {
+    videoId: string;
+    viewerUserId?: string | null;
+  }): Promise<VideoMetadataResponse> {
+    return this.videoQueryService.getVideoMetadata(
+      command.videoId,
+      command.viewerUserId,
+    );
   }
 }

@@ -488,12 +488,13 @@ export class VideoRepository implements IVideoRepository {
     channelIds: string[],
     page: number,
     limit: number,
+    options: { includePrivate?: boolean } = {},
   ): Promise<VideoPageResult> {
     if (channelIds.length === 0) {
       return { items: [], total: 0 };
     }
 
-    const [rows, total] = await this.ormRepository
+    const queryBuilder = this.ormRepository
       .createQueryBuilder('video')
       .leftJoinAndSelect('video.category', 'category')
       .leftJoinAndSelect('video.videoTags', 'videoTag')
@@ -505,14 +506,18 @@ export class VideoRepository implements IVideoRepository {
       })
       .andWhere('video.status = :status', { status: VideoStatus.READY })
       .andWhere('video.isDeleted = :isDeleted', { isDeleted: false })
-      .andWhere('video.visibility = :visibility', {
-        visibility: VideoVisibility.PUBLIC,
-      })
       .orderBy('video.publishedAt', 'DESC')
       .addOrderBy('video.createdAt', 'DESC')
       .skip((page - 1) * limit)
-      .take(limit)
-      .getManyAndCount();
+      .take(limit);
+
+    if (!options.includePrivate) {
+      queryBuilder.andWhere('video.visibility = :visibility', {
+        visibility: VideoVisibility.PUBLIC,
+      });
+    }
+
+    const [rows, total] = await queryBuilder.getManyAndCount();
     return {
       items: rows.map((row) => this.toDomain(row)),
       total,

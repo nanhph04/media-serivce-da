@@ -40,6 +40,7 @@ export class GetSubscribedVideosUseCase extends BaseUseCase<
       channelIds,
       query.page,
       query.limit,
+      { includePrivate: true },
     );
   }
 }

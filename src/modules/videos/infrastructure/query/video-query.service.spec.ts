@@ -30,6 +30,12 @@ describe('VideoQueryService', () => {
   };
   const createQueryBuilder = jest.fn();
   const createManagerQueryBuilder = jest.fn();
+  const unlockRepository = {
+    exists: jest.fn(),
+  };
+  const channelAccessService = {
+    getViewerAccessContext: jest.fn(),
+  };
   const watchProgressOrmRepository = {
     createQueryBuilder,
     manager: {
@@ -53,6 +59,8 @@ describe('VideoQueryService', () => {
   };
   const service = new VideoQueryService(
     videoRepository as never,
+    unlockRepository as never,
+    channelAccessService as never,
     watchProgressOrmRepository as never,
     channelOrmRepository as never,
     membershipTierOrmRepository as never,
@@ -62,6 +70,12 @@ describe('VideoQueryService', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
+    unlockRepository.exists.mockResolvedValue(false);
+    channelAccessService.getViewerAccessContext.mockResolvedValue({
+      channelOwnerId: 'owner-1',
+      channelStatus: ChannelStatus.ACTIVE,
+      activeMembershipTierLevel: null,
+    });
     channelOrmRepository.find.mockResolvedValue([buildChannelRow()]);
     uploadSessionOrmRepository.find.mockResolvedValue([]);
   });
@@ -87,6 +101,13 @@ describe('VideoQueryService', () => {
       requiredTierLevel: 2,
       status: VideoStatus.READY,
       visibility: VideoVisibility.PUBLIC,
+      viewerAccess: {
+        isOwner: false,
+        hasPurchased: false,
+        activeMembershipTierLevel: null,
+        canWatch: false,
+        needsMembershipUpgrade: false,
+      },
       errorMessage: null,
       publishedAt: '2026-01-01T00:00:00.000Z',
       isDeleted: false,
@@ -124,6 +145,13 @@ describe('VideoQueryService', () => {
       requiredTierLevel: 2,
       status: VideoStatus.READY,
       visibility: VideoVisibility.PUBLIC,
+      viewerAccess: {
+        isOwner: false,
+        hasPurchased: false,
+        activeMembershipTierLevel: null,
+        canWatch: false,
+        needsMembershipUpgrade: false,
+      },
       errorMessage: null,
       publishedAt: new Date('2026-01-01T00:00:00.000Z'),
       isDeleted: false,
@@ -161,6 +189,13 @@ describe('VideoQueryService', () => {
       failureReason: null,
       moderationDetails: null,
       visibility: VideoVisibility.PUBLIC,
+      viewerAccess: {
+        isOwner: false,
+        hasPurchased: false,
+        activeMembershipTierLevel: null,
+        canWatch: true,
+        needsMembershipUpgrade: false,
+      },
       categoryId: 'category-1',
       category: 'music',
       tagIds: ['tag-1'],
@@ -200,6 +235,13 @@ describe('VideoQueryService', () => {
         failureReason: null,
         moderationDetails: null,
         visibility: VideoVisibility.PUBLIC,
+        viewerAccess: {
+          isOwner: false,
+          hasPurchased: false,
+          activeMembershipTierLevel: null,
+          canWatch: true,
+          needsMembershipUpgrade: false,
+        },
         processingWarnings: [],
         errorMessage: null,
         publishedAt: '2026-01-01T00:00:00.000Z',
@@ -222,6 +264,37 @@ describe('VideoQueryService', () => {
     await expect(service.getVideoMetadata('video-1')).rejects.toThrow(
       NotFoundException,
     );
+    expect(cacheService.set).not.toHaveBeenCalled();
+  });
+
+  it('returns private metadata for members and marks upgrade requirement', async () => {
+    cacheService.get.mockResolvedValue(null);
+    videoRepository.findBasicById.mockResolvedValue(
+      buildVideo({
+        visibility: VideoVisibility.PRIVATE,
+        requiredTierLevel: 2,
+      }),
+    );
+    channelOrmRepository.findOne.mockResolvedValue(buildChannelRow());
+    membershipTierOrmRepository.find.mockResolvedValue([buildMembershipTier()]);
+    channelAccessService.getViewerAccessContext.mockResolvedValue({
+      channelOwnerId: 'owner-1',
+      channelStatus: ChannelStatus.ACTIVE,
+      activeMembershipTierLevel: 1,
+    });
+
+    await expect(
+      service.getVideoMetadata('video-1', 'viewer-1'),
+    ).resolves.toMatchObject({
+      visibility: VideoVisibility.PRIVATE,
+      viewerAccess: {
+        isOwner: false,
+        hasPurchased: false,
+        activeMembershipTierLevel: 1,
+        canWatch: false,
+        needsMembershipUpgrade: true,
+      },
+    });
     expect(cacheService.set).not.toHaveBeenCalled();
   });
 
@@ -653,6 +726,8 @@ function buildVideo(
   overrides: Partial<{
     status: VideoStatus;
     visibility: VideoVisibility;
+    price: number;
+    requiredTierLevel: number | null;
   }> = {},
 ): VideoEntity {
   return new VideoEntity({
@@ -665,8 +740,8 @@ function buildVideo(
     tags: [buildTag()],
     visibility: overrides.visibility ?? VideoVisibility.PUBLIC,
     status: overrides.status ?? VideoStatus.READY,
-    price: 0,
-    requiredTierLevel: null,
+    price: overrides.price ?? 0,
+    requiredTierLevel: overrides.requiredTierLevel ?? null,
     rawFileKey: 'raw/video.mp4',
     masterPlaylistKey: 'processed/master.m3u8',
     thumbnailUrl: 'https://cdn.example.com/thumb.jpg',

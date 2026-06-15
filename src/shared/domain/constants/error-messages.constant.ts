@@ -79,6 +79,8 @@ export const ERROR_MESSAGES = {
   VIDEO_NOT_AVAILABLE_FOR_PLAYBACK: 'Video is not available for playback',
   VIDEO_WATCH_PERMISSION_DENIED:
     'You do not have permission to watch this video',
+  VIDEO_MEMBERSHIP_TIER_UPGRADE_REQUIRED:
+    'Upgrade your membership tier to watch this video',
   VIDEO_NOT_AVAILABLE_FOR_PURCHASE: 'Video is not available for purchase',
   VIDEO_DOES_NOT_REQUIRE_PURCHASE: 'Video does not require purchase',
   VIDEO_PURCHASE_PAYMENT_FAILED: 'Video purchase payment failed',

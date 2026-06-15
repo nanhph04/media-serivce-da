@@ -50,6 +50,14 @@ import {
   VIDEO_REPOSITORY,
 } from '../../domain/repositories/video.repository';
 import {
+  CHANNEL_ACCESS_SERVICE,
+  type IChannelAccessService,
+} from '../../../channels/application/interfaces/channel-access.service.interface';
+import {
+  type IVideoPurchaseUnlockRepository,
+  VIDEO_PURCHASE_UNLOCK_REPOSITORY,
+} from '../../domain/repositories/video-purchase-unlock.repository';
+import {
   type VideoEntity,
   VideoDeletionStatus,
   VideoStatus,
@@ -99,6 +107,10 @@ export class VideoQueryService implements IVideoQueryService {
   constructor(
     @Inject(VIDEO_REPOSITORY)
     private readonly videoRepository: IVideoRepository,
+    @Inject(VIDEO_PURCHASE_UNLOCK_REPOSITORY)
+    private readonly unlockRepository: IVideoPurchaseUnlockRepository,
+    @Inject(CHANNEL_ACCESS_SERVICE)
+    private readonly channelAccessService: IChannelAccessService,
     @InjectRepository(VideoWatchProgressOrmEntity)
     private readonly watchProgressOrmRepository: Repository<VideoWatchProgressOrmEntity>,
     @InjectRepository(ChannelOrmEntity)
@@ -136,9 +148,15 @@ export class VideoQueryService implements IVideoQueryService {
     );
   }
 
-  async getVideoMetadata(videoId: string): Promise<VideoMetadataResponse> {
+  async getVideoMetadata(
+    videoId: string,
+    viewerUserId?: string | null,
+  ): Promise<VideoMetadataResponse> {
     const cacheKey = VIDEO_CACHE_KEYS.metadata(videoId);
-    const cached = await this.getCachedValue<CachedVideoMetadata>(cacheKey);
+    const canUsePublicCache = !viewerUserId;
+    const cached = canUsePublicCache
+      ? await this.getCachedValue<CachedVideoMetadata>(cacheKey)
+      : null;
 
     if (cached && this.isCachedMetadataComplete(cached)) {
       return this.cachedMetadataToResponse(cached);
@@ -148,7 +166,6 @@ export class VideoQueryService implements IVideoQueryService {
     if (
       !video ||
       video.status !== VideoStatus.READY ||
-      video.visibility !== VideoVisibility.PUBLIC ||
       video.deletionStatus !== VideoDeletionStatus.ACTIVE
     ) {
       throw new NotFoundException(ERROR_MESSAGES.VIDEO_NOT_FOUND);
@@ -161,6 +178,11 @@ export class VideoQueryService implements IVideoQueryService {
     if (!channel) {
       throw new NotFoundException(ERROR_MESSAGES.VIDEO_NOT_FOUND);
     }
+    const viewerAccess = await this.resolveViewerAccess(video, viewerUserId);
+    if (video.visibility !== VideoVisibility.PUBLIC && !viewerAccess.canViewMetadata) {
+      throw new NotFoundException(ERROR_MESSAGES.VIDEO_NOT_FOUND);
+    }
+
     const membershipTiers = await this.membershipTierOrmRepository.find({
       where: { channelId: video.channelId },
       order: { level: 'ASC' },
@@ -190,6 +212,13 @@ export class VideoQueryService implements IVideoQueryService {
       requiredTierLevel: video.requiredTierLevel,
       status: video.status,
       visibility: video.visibility,
+      viewerAccess: {
+        isOwner: viewerAccess.isOwner,
+        hasPurchased: viewerAccess.hasPurchased,
+        activeMembershipTierLevel: viewerAccess.activeMembershipTierLevel,
+        canWatch: viewerAccess.canWatch,
+        needsMembershipUpgrade: viewerAccess.needsMembershipUpgrade,
+      },
       processingWarnings: video.processingWarnings,
       errorMessage: video.errorMessage,
       ...mapVideoStatusToJobFields({
@@ -205,11 +234,13 @@ export class VideoQueryService implements IVideoQueryService {
       updatedAt: video.updatedAt,
     };
 
-    await this.setCachedValue(
-      cacheKey,
-      this.metadataToCached(response),
-      VIDEO_CACHE_TTL_SECONDS.metadata,
-    );
+    if (canUsePublicCache && video.visibility === VideoVisibility.PUBLIC) {
+      await this.setCachedValue(
+        cacheKey,
+        this.metadataToCached(response),
+        VIDEO_CACHE_TTL_SECONDS.metadata,
+      );
+    }
 
     return response;
   }
@@ -282,11 +313,13 @@ export class VideoQueryService implements IVideoQueryService {
     channelIds: string[],
     page: number,
     limit: number,
+    options: { includePrivate?: boolean } = {},
   ): Promise<PaginatedResponse<VideoListItemResponse>> {
     const result = await this.videoRepository.findByChannelIds(
       channelIds,
       page,
       limit,
+      options,
     );
 
     return {
@@ -327,6 +360,81 @@ export class VideoQueryService implements IVideoQueryService {
         ),
       ),
       pagination: createPagination(filters.page, filters.limit, result.total),
+    };
+  }
+
+  private async resolveViewerAccess(
+    video: VideoEntity,
+    viewerUserId?: string | null,
+  ): Promise<{
+    canViewMetadata: boolean;
+    isOwner: boolean;
+    hasPurchased: boolean;
+    activeMembershipTierLevel: number | null;
+    canWatch: boolean;
+    needsMembershipUpgrade: boolean;
+  }> {
+    const isPublic = video.visibility === VideoVisibility.PUBLIC;
+
+    if (!viewerUserId) {
+      return {
+        canViewMetadata: isPublic,
+        isOwner: false,
+        hasPurchased: false,
+        activeMembershipTierLevel: null,
+        canWatch:
+          isPublic && video.price === 0 && video.requiredTierLevel === null,
+        needsMembershipUpgrade: false,
+      };
+    }
+
+    const accessContext =
+      await this.channelAccessService.getViewerAccessContext(
+        video.channelId,
+        viewerUserId,
+      );
+    const isOwner = accessContext.channelOwnerId === viewerUserId;
+
+    if (isOwner) {
+      return {
+        canViewMetadata: true,
+        isOwner: true,
+        hasPurchased: false,
+        activeMembershipTierLevel: accessContext.activeMembershipTierLevel,
+        canWatch: Boolean(video.masterPlaylistKey),
+        needsMembershipUpgrade: false,
+      };
+    }
+
+    const hasPurchased = await this.unlockRepository.exists(
+      video.id,
+      viewerUserId,
+    );
+    const hasAnyMembership = accessContext.activeMembershipTierLevel !== null;
+    const hasUnrestrictedMembershipAccess =
+      hasAnyMembership && video.requiredTierLevel === null;
+    const hasRequiredMembership =
+      video.requiredTierLevel !== null &&
+      accessContext.activeMembershipTierLevel !== null &&
+      accessContext.activeMembershipTierLevel >= video.requiredTierLevel;
+    const needsMembershipUpgrade =
+      video.requiredTierLevel !== null &&
+      accessContext.activeMembershipTierLevel !== null &&
+      accessContext.activeMembershipTierLevel < video.requiredTierLevel;
+    const canWatchFreePublic =
+      isPublic && video.price === 0 && video.requiredTierLevel === null;
+
+    return {
+      canViewMetadata: isPublic || hasPurchased || hasAnyMembership,
+      isOwner: false,
+      hasPurchased,
+      activeMembershipTierLevel: accessContext.activeMembershipTierLevel,
+      canWatch:
+        hasPurchased ||
+        hasUnrestrictedMembershipAccess ||
+        hasRequiredMembership ||
+        canWatchFreePublic,
+      needsMembershipUpgrade,
     };
   }
 
@@ -901,6 +1009,16 @@ export class VideoQueryService implements IVideoQueryService {
   ): CachedVideoMetadata {
     return {
       ...metadata,
+      viewerAccess: metadata.viewerAccess ?? {
+        isOwner: false,
+        hasPurchased: false,
+        activeMembershipTierLevel: null,
+        canWatch:
+          metadata.visibility === VideoVisibility.PUBLIC &&
+          metadata.price === 0 &&
+          metadata.requiredTierLevel === null,
+        needsMembershipUpgrade: false,
+      },
       thumbnailUrl:
         metadata.thumbnailStatus === VideoThumbnailStatus.READY &&
         metadata.thumbnailUrl
