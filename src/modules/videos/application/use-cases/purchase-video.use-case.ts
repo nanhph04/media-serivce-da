@@ -59,19 +59,9 @@ export class PurchaseVideoUseCase extends BaseUseCase<
       throw new BadRequestException(ERROR_MESSAGES.CANNOT_PURCHASE_OWN_VIDEO);
     }
 
-    if (
-      video.status !== VideoStatus.READY ||
-      video.visibility !== VideoVisibility.PUBLIC ||
-      !video.isAvailableForPlayback
-    ) {
+    if (video.status !== VideoStatus.READY || !video.isAvailableForPlayback) {
       throw new ConflictException(
         ERROR_MESSAGES.VIDEO_NOT_AVAILABLE_FOR_PURCHASE,
-      );
-    }
-
-    if (video.price <= 0) {
-      throw new BadRequestException(
-        ERROR_MESSAGES.VIDEO_DOES_NOT_REQUIRE_PURCHASE,
       );
     }
 
@@ -83,6 +73,18 @@ export class PurchaseVideoUseCase extends BaseUseCase<
         unlocked: true,
         paymentTransactionId: null,
       };
+    }
+
+    if (video.visibility !== VideoVisibility.PUBLIC) {
+      throw new ConflictException(
+        ERROR_MESSAGES.VIDEO_NOT_AVAILABLE_FOR_PURCHASE,
+      );
+    }
+
+    if (video.price <= 0) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.VIDEO_DOES_NOT_REQUIRE_PURCHASE,
+      );
     }
 
     const payment = await this.financePaymentClient.charge({

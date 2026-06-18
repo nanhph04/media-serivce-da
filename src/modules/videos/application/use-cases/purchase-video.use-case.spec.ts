@@ -92,6 +92,52 @@ describe('PurchaseVideoUseCase', () => {
     expect(result.paymentTransactionId).toBeNull();
   });
 
+  it('returns existing unlock for a private video without charging finance', async () => {
+    videoRepository.findById.mockResolvedValue(
+      buildVideo({ visibility: VideoVisibility.PRIVATE }),
+    );
+    unlockRepository.exists.mockResolvedValue(true);
+    const useCase = new PurchaseVideoUseCase(
+      videoRepository as never,
+      unlockRepository as never,
+      financePaymentClient as never,
+      unlockVideoUseCase as never,
+    );
+
+    const result = await useCase.execute({
+      userId: 'viewer-1',
+      videoId: 'video-1',
+    });
+
+    expect(financePaymentClient.charge).not.toHaveBeenCalled();
+    expect(unlockVideoUseCase.execute).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      videoId: 'video-1',
+      channelId: 'channel-1',
+      priceCoin: 100,
+      unlocked: true,
+      paymentTransactionId: null,
+    });
+  });
+
+  it('rejects private videos for new purchases', async () => {
+    videoRepository.findById.mockResolvedValue(
+      buildVideo({ visibility: VideoVisibility.PRIVATE }),
+    );
+    const useCase = new PurchaseVideoUseCase(
+      videoRepository as never,
+      unlockRepository as never,
+      financePaymentClient as never,
+      unlockVideoUseCase as never,
+    );
+
+    await expect(
+      useCase.execute({ userId: 'viewer-1', videoId: 'video-1' }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(financePaymentClient.charge).not.toHaveBeenCalled();
+    expect(unlockVideoUseCase.execute).not.toHaveBeenCalled();
+  });
+
   it('rejects unavailable videos before charging finance', async () => {
     videoRepository.findById.mockResolvedValue(
       buildVideo({ status: VideoStatus.DRAFT }),
