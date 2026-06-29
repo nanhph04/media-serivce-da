@@ -1,100 +1,33 @@
+import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
 import {
   BadRequestException,
   ConflictException,
 } from '@shared/domain/exceptions/domain.exception';
-import { ERROR_MESSAGES } from '@shared/domain/constants/error-messages.constant';
-import { Category } from '../../../categories/domain/entities/category.entity';
-import { Tag } from '../../../tags/domain/entities/tag.entity';
+import type { Category } from '../../../categories/domain/entities/category.entity';
+import type { Tag } from '../../../tags/domain/entities/tag.entity';
+import {
+  normalizeVideoProcessingWarnings,
+  normalizeVideoResolutions,
+  validateVideoMetadata,
+  validateVideoTitle,
+} from './video.validators';
+import {
+  VideoDeletionStatus,
+  VideoStatus,
+  VideoThumbnailSource,
+  VideoThumbnailStatus,
+  VideoVisibility,
+} from './video.types';
+import type { VideoModerationDetails, VideoProps } from './video.types';
 
-export enum VideoStatus {
-  DRAFT = 'draft',
-  PENDING_MODERATION = 'pending_moderation',
-  PROCESSING = 'processing',
-  PENDING_MANUAL_REVIEW = 'pending_manual_review',
-  REJECTED = 'rejected',
-  READY = 'ready',
-  FAILED = 'failed',
-  BANNED = 'banned',
-}
-
-export enum VideoVisibility {
-  PUBLIC = 'public',
-  PRIVATE = 'private',
-}
-
-export enum VideoDeletionStatus {
-  ACTIVE = 'active',
-  PENDING_DELETE = 'pending_delete',
-  READY_FOR_HARD_DELETE = 'ready_for_hard_delete',
-  STORAGE_DELETED = 'storage_deleted',
-}
-
-export enum VideoThumbnailSource {
-  AUTO = 'auto',
-  CUSTOM = 'custom',
-}
-
-export enum VideoThumbnailStatus {
-  PENDING = 'pending',
-  PROCESSING = 'processing',
-  READY = 'ready',
-  FAILED = 'failed',
-}
-
-export interface VideoModerationDetails {
-  reason: string;
-  confidence: number;
-  evidenceTimestampSeconds: number | null;
-  label?: string | null;
-  safeScore?: number | null;
-  nsfwScore?: number | null;
-  sampledFrameCount?: number | null;
-  thresholds?: {
-    manual: number;
-    reject: number;
-  } | null;
-}
-
-export interface VideoProps {
-  id: string;
-  channelId: string;
-  ownerId: string;
-  title: string;
-  description: string;
-  category: Category;
-  tags: Tag[];
-  visibility: VideoVisibility;
-  status: VideoStatus;
-  price: number;
-  requiredTierLevel: number | null;
-  rawFileKey: string;
-  masterPlaylistKey: string | null;
-  thumbnailObjectKey: string | null;
-  thumbnailUrl: string | null;
-  thumbnailSource: VideoThumbnailSource;
-  thumbnailStatus: VideoThumbnailStatus;
-  thumbnailGeneratedAt: Date | null;
-  thumbnailError: string | null;
-  durationSeconds: number | null;
-  resolutions: string[];
-  processingWarnings?: string[];
-  errorMessage: string | null;
-  moderationDetails?: VideoModerationDetails | null;
-  viewCount: number;
-  publishedAt: Date | null;
-  isDeleted?: boolean;
-  deletedAt?: Date | null;
-  deletedBy?: string | null;
-  deleteReason?: string | null;
-  deletionStatus?: VideoDeletionStatus;
-  deleteRequestedAt?: Date | null;
-  refundCompletedAt?: Date | null;
-  refundSummary?: Record<string, unknown> | null;
-  storageDeletedAt?: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-  statusChangedAt?: Date;
-}
+export {
+  VideoDeletionStatus,
+  VideoStatus,
+  VideoThumbnailSource,
+  VideoThumbnailStatus,
+  VideoVisibility,
+} from './video.types';
+export type { VideoModerationDetails, VideoProps } from './video.types';
 
 export class VideoEntity {
   constructor(private readonly props: VideoProps) {}
@@ -281,7 +214,11 @@ export class VideoEntity {
     requiredTierLevel: number | null;
     rawFileKey: string;
   }): VideoEntity {
-    VideoEntity.validate(input.title, input.price, input.requiredTierLevel);
+    validateVideoMetadata({
+      title: input.title,
+      price: input.price,
+      requiredTierLevel: input.requiredTierLevel,
+    });
 
     const now = new Date();
     return new VideoEntity({
@@ -499,14 +436,40 @@ export class VideoEntity {
     resolutions?: string[];
     processingWarnings?: string[];
   }): void {
+    if (this.props.status !== VideoStatus.PROCESSING) {
+      throw new ConflictException(
+        ERROR_MESSAGES.VIDEO_PROCESSING_REQUIRED_FOR_READY,
+      );
+    }
+
+    const masterPlaylistKey = input.masterPlaylistKey.trim();
+    if (!masterPlaylistKey) {
+      throw new BadRequestException(ERROR_MESSAGES.VIDEO_MASTER_PLAYLIST_REQUIRED);
+    }
+
+    if (
+      input.durationSeconds !== undefined &&
+      input.durationSeconds !== null &&
+      input.durationSeconds <= 0
+    ) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.VIDEO_DURATION_MUST_BE_POSITIVE,
+      );
+    }
+
+    const resolutions =
+      input.resolutions === undefined
+        ? this.props.resolutions
+        : normalizeVideoResolutions(input.resolutions);
+
     this.changeStatus(VideoStatus.READY);
-    this.props.masterPlaylistKey = input.masterPlaylistKey;
+    this.props.masterPlaylistKey = masterPlaylistKey;
     if (input.thumbnailUrl !== undefined && !this.props.thumbnailUrl) {
       this.props.thumbnailUrl = input.thumbnailUrl;
     }
     this.props.durationSeconds =
       input.durationSeconds ?? this.props.durationSeconds;
-    this.props.resolutions = input.resolutions ?? this.props.resolutions;
+    this.props.resolutions = resolutions;
     this.props.processingWarnings = this.normalizeProcessingWarnings(
       input.processingWarnings ?? [],
     );
@@ -526,7 +489,7 @@ export class VideoEntity {
     requiredTierLevel?: number | null;
   }): void {
     if (input.title !== undefined) {
-      VideoEntity.validateTitle(input.title);
+      validateVideoTitle(input.title);
       this.props.title = input.title;
     }
 
@@ -557,7 +520,11 @@ export class VideoEntity {
           ? this.props.requiredTierLevel
           : input.requiredTierLevel;
 
-      VideoEntity.validate(this.props.title, nextPrice, nextRequiredTierLevel);
+      validateVideoMetadata({
+        title: this.props.title,
+        price: nextPrice,
+        requiredTierLevel: nextRequiredTierLevel,
+      });
       this.props.price = nextPrice;
       this.props.requiredTierLevel = nextRequiredTierLevel;
     }
@@ -566,8 +533,20 @@ export class VideoEntity {
   }
 
   markFailed(errorMessage: string): void {
+    if (
+      this.props.status !== VideoStatus.PENDING_MODERATION &&
+      this.props.status !== VideoStatus.PROCESSING
+    ) {
+      throw new ConflictException(ERROR_MESSAGES.VIDEO_CANNOT_MARK_FAILED);
+    }
+
+    const normalizedErrorMessage = errorMessage.trim();
+    if (!normalizedErrorMessage) {
+      throw new BadRequestException(ERROR_MESSAGES.VIDEO_FAILURE_REASON_REQUIRED);
+    }
+
     this.changeStatus(VideoStatus.FAILED);
-    this.props.errorMessage = errorMessage;
+    this.props.errorMessage = normalizedErrorMessage;
   }
 
   unpublish(input: { deletedBy: string; reason: string }): void {
@@ -640,26 +619,12 @@ export class VideoEntity {
   }
 
   private setRequestedResolutions(resolutions: string[]): void {
-    const normalizedResolutions = resolutions
-      .map((resolution) => resolution.trim())
-      .filter((resolution) => resolution.length > 0);
-
-    if (normalizedResolutions.length === 0) {
-      throw new BadRequestException(ERROR_MESSAGES.VIDEO_RESOLUTION_REQUIRED);
-    }
-
-    this.props.resolutions = normalizedResolutions;
+    this.props.resolutions = normalizeVideoResolutions(resolutions);
     this.touch();
   }
 
   private normalizeProcessingWarnings(warnings: string[]): string[] {
-    return [
-      ...new Set(
-        warnings
-          .map((warning) => warning.trim())
-          .filter((warning) => warning.length > 0),
-      ),
-    ];
+    return normalizeVideoProcessingWarnings(warnings);
   }
 
   private changeStatus(status: VideoStatus): void {
@@ -669,34 +634,4 @@ export class VideoEntity {
     this.props.updatedAt = now;
   }
 
-  private static validate(
-    title: string,
-    price: number,
-    requiredTierLevel: number | null,
-  ): void {
-    VideoEntity.validateTitle(title);
-
-    if (price < 0) {
-      throw new BadRequestException(ERROR_MESSAGES.VIDEO_PRICE_NEGATIVE);
-    }
-    if (price > 0 && price % 10 !== 0) {
-      throw new BadRequestException(ERROR_MESSAGES.VIDEO_PRICE_DIVISIBLE_BY_10);
-    }
-    if (
-      requiredTierLevel !== null &&
-      (requiredTierLevel < 1 || requiredTierLevel > 3)
-    ) {
-      throw new BadRequestException(
-        'Required tier level must be between 1 and 3',
-      );
-    }
-  }
-
-  private static validateTitle(title: string): void {
-    if (!title || title.length > 200) {
-      throw new BadRequestException(
-        ERROR_MESSAGES.VIDEO_TITLE_REQUIRED_MAX_LENGTH,
-      );
-    }
-  }
 }

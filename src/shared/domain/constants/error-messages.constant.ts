@@ -91,6 +91,13 @@ export const ERROR_MESSAGES = {
   VIDEO_RAW_PREVIEW_FILE_NOT_FOUND: 'Raw video preview file not found',
   VIDEO_RAW_PREVIEW_NOT_AVAILABLE: 'Video raw preview is not available',
   VIDEO_CANNOT_MARK_PROCESSING: 'Video cannot be marked as processing',
+  VIDEO_PROCESSING_REQUIRED_FOR_READY:
+    'Video must be processing before it can be marked ready',
+  VIDEO_MASTER_PLAYLIST_REQUIRED: 'Video master playlist is required',
+  VIDEO_DURATION_MUST_BE_POSITIVE: 'Video duration must be greater than zero',
+  VIDEO_CANNOT_MARK_FAILED:
+    'Video cannot be marked as failed from its current status',
+  VIDEO_FAILURE_REASON_REQUIRED: 'Video failure reason is required',
   VIDEO_NOT_PENDING_MANUAL_REVIEW: 'Video is not pending manual review',
   VIDEO_NO_REQUESTED_RESOLUTIONS:
     'Video has no requested processing resolutions',
