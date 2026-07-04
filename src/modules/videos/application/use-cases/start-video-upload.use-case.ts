@@ -106,26 +106,46 @@ export class StartVideoUploadUseCase extends BaseUseCase<
       command.thumbnailExtension,
     );
 
-    await this.videoRepository.save(video);
-    const uploadId = await this.objectStorageService.createMultipartUpload(
-      'raw',
-      rawFileKey,
-    );
-
     const expiresAt = new Date(
       Date.now() + MULTIPART_UPLOAD_TTL_HOURS * 60 * 60 * 1000,
     );
-    await this.uploadSessionRepository.create({
-      videoId: video.id,
-      userId: command.userId,
-      rawFileKey,
-      uploadId,
-      partSizeBytes: MULTIPART_UPLOAD_PART_SIZE_BYTES,
-      fileName: command.fileName,
-      fileSize: command.fileSize,
-      fileLastModified: command.fileLastModified,
-      expiresAt,
-    });
+
+    await this.videoRepository.save(video);
+    let uploadId: string | null = null;
+    try {
+      uploadId = await this.objectStorageService.createMultipartUpload(
+        'raw',
+        rawFileKey,
+      );
+
+      await this.uploadSessionRepository.create({
+        videoId: video.id,
+        userId: command.userId,
+        rawFileKey,
+        uploadId,
+        partSizeBytes: MULTIPART_UPLOAD_PART_SIZE_BYTES,
+        fileName: command.fileName,
+        fileSize: command.fileSize,
+        fileLastModified: command.fileLastModified,
+        expiresAt,
+      });
+    } catch (error: unknown) {
+      if (uploadId) {
+        await this.objectStorageService
+          .abortMultipartUpload({
+            bucket: 'raw',
+            objectKey: rawFileKey,
+            uploadId,
+          })
+          .catch((): undefined => undefined);
+      }
+
+      await this.videoRepository
+        .deleteDraftById(video.id)
+        .catch((): undefined => undefined);
+
+      throw error;
+    }
 
     return {
       videoId: video.id,

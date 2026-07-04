@@ -179,6 +179,32 @@ describe('ConfirmVideoUploadUseCase', () => {
     expect(videoOutboxTransaction.saveVideoWithOutbox).not.toHaveBeenCalled();
   });
 
+  it('deletes confirmed raw object when DB outbox save fails after copy', async () => {
+    const outboxError = new Error('outbox save failed');
+    videoRepository.findById.mockResolvedValue(buildDraftVideo());
+    objectStorageService.objectExists.mockResolvedValue(true);
+    objectStorageService.getObjectMetadata.mockResolvedValue({
+      sizeBytes: 1024,
+    });
+    videoOutboxTransaction.saveVideoWithOutbox.mockRejectedValue(outboxError);
+
+    await expect(
+      useCase.execute({
+        userId: 'owner-1',
+        videoId: 'video-1',
+        resolutions: ['720p'],
+      }),
+    ).rejects.toThrow(outboxError);
+
+    expect(objectStorageService.deleteObject).toHaveBeenCalledWith(
+      'raw',
+      expect.stringMatching(/^uploads\/confirmed\/video-1\/.+\.mp4$/),
+    );
+    expect(
+      videoStatusEventPublisher.publishVideoStatusChanged,
+    ).not.toHaveBeenCalled();
+  });
+
   it('throws not found when video does not exist', async () => {
     videoRepository.findById.mockResolvedValue(null);
 

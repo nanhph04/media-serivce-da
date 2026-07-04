@@ -117,44 +117,53 @@ export class ConfirmVideoUploadUseCase extends BaseUseCase<
       confirmedRawFileKey,
     );
 
-    video.replaceDraftRawFile(confirmedRawFileKey);
-    if (command.thumbnailObjectKey) {
-      await this.applyCustomThumbnail(video, command.thumbnailObjectKey);
-    } else {
-      video.markAutoThumbnailProcessing();
+    try {
+      video.replaceDraftRawFile(confirmedRawFileKey);
+      if (command.thumbnailObjectKey) {
+        await this.applyCustomThumbnail(video, command.thumbnailObjectKey);
+      } else {
+        video.markAutoThumbnailProcessing();
+      }
+      const normalizedResolutions = [...command.resolutions].sort(
+        (left, right) => {
+          return (
+            (VIDEO_UPLOAD_RESOLUTION_ORDER.get(left) ??
+              Number.MAX_SAFE_INTEGER) -
+            (VIDEO_UPLOAD_RESOLUTION_ORDER.get(right) ?? Number.MAX_SAFE_INTEGER)
+          );
+        },
+      );
+
+      video.markPendingModeration({ resolutions: normalizedResolutions });
+      const event: IIntegrationEvent<VideoModerationRequestedEventData> = {
+        eventId: randomUUID(),
+        eventType: VIDEO_MODERATION_REQUESTED_TOPIC,
+        aggregateId: video.id,
+        timestamp: new Date().toISOString(),
+        version: 1,
+        traceId: randomUUID(),
+        sourceService: 'media-service',
+        data: {
+          videoId: video.id,
+          rawFileKey: video.rawFileKey,
+          rawBucket: this.objectStorageService.getBucketName('raw'),
+          resolutions: normalizedResolutions,
+          userId: command.userId,
+        },
+      };
+
+      await this.videoOutboxTransaction.saveVideoWithOutbox(video, {
+        topic: VIDEO_MODERATION_REQUESTED_TOPIC,
+        messageKey: video.id,
+        payload: event,
+      });
+    } catch (error: unknown) {
+      await this.objectStorageService
+        .deleteObject('raw', confirmedRawFileKey)
+        .catch((): undefined => undefined);
+
+      throw error;
     }
-    const normalizedResolutions = [...command.resolutions].sort(
-      (left, right) => {
-        return (
-          (VIDEO_UPLOAD_RESOLUTION_ORDER.get(left) ?? Number.MAX_SAFE_INTEGER) -
-          (VIDEO_UPLOAD_RESOLUTION_ORDER.get(right) ?? Number.MAX_SAFE_INTEGER)
-        );
-      },
-    );
-
-    video.markPendingModeration({ resolutions: normalizedResolutions });
-    const event: IIntegrationEvent<VideoModerationRequestedEventData> = {
-      eventId: randomUUID(),
-      eventType: VIDEO_MODERATION_REQUESTED_TOPIC,
-      aggregateId: video.id,
-      timestamp: new Date().toISOString(),
-      version: 1,
-      traceId: randomUUID(),
-      sourceService: 'media-service',
-      data: {
-        videoId: video.id,
-        rawFileKey: video.rawFileKey,
-        rawBucket: this.objectStorageService.getBucketName('raw'),
-        resolutions: normalizedResolutions,
-        userId: command.userId,
-      },
-    };
-
-    await this.videoOutboxTransaction.saveVideoWithOutbox(video, {
-      topic: VIDEO_MODERATION_REQUESTED_TOPIC,
-      messageKey: video.id,
-      payload: event,
-    });
     this.publishVideoStatusChanged(video);
     await this.deleteDraftRawFileIfPresent(draftRawFileKey);
 
