@@ -38,6 +38,7 @@ import { CompleteVideoUploadUseCase } from './application/use-cases/complete-vid
 import { CreateVideoUploadPartUrlsUseCase } from './application/use-cases/create-video-upload-part-urls.use-case';
 import { GetVideoUploadStatusUseCase } from './application/use-cases/get-video-upload-status.use-case';
 import { RecordVideoUploadPartCompletedUseCase } from './application/use-cases/record-video-upload-part-completed.use-case';
+import { RenewVideoUploadSessionUseCase } from './application/use-cases/renew-video-upload-session.use-case';
 import { StartVideoUploadUseCase } from './application/use-cases/start-video-upload.use-case';
 import { ListAdminVideosUseCase } from './application/use-cases/list-admin-videos.use-case';
 import { ModerateAdminVideoUseCase } from './application/use-cases/moderate-admin-video.use-case';
@@ -147,6 +148,7 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
     RecordVideoUploadPartCompletedUseCase,
     GetVideoUploadStatusUseCase,
     CompleteVideoUploadUseCase,
+    RenewVideoUploadSessionUseCase,
     ConfirmVideoUploadUseCase,
     CancelVideoUploadUseCase,
     DeleteFailedVideoUseCase,

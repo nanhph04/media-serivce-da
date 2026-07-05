@@ -38,6 +38,7 @@ import { CreateVideoUploadPartUrlsUseCase } from '../../application/use-cases/cr
 import { RecordVideoUploadPartCompletedUseCase } from '../../application/use-cases/record-video-upload-part-completed.use-case';
 import { GetVideoUploadStatusUseCase } from '../../application/use-cases/get-video-upload-status.use-case';
 import { CompleteVideoUploadUseCase } from '../../application/use-cases/complete-video-upload.use-case';
+import { RenewVideoUploadSessionUseCase } from '../../application/use-cases/renew-video-upload-session.use-case';
 import { PlayVideoUseCase } from '../../application/use-cases/play-video.use-case';
 import { PurchaseVideoUseCase } from '../../application/use-cases/purchase-video.use-case';
 import { RefreshPlaybackTokenUseCase } from '../../application/use-cases/refresh-playback-token.use-case';
@@ -60,6 +61,7 @@ import {
 } from '../dtos/video-upload-session.request';
 import {
   CompleteVideoUploadResponseDto,
+  RenewVideoUploadSessionResponseDto,
   VideoUploadPartCompletedResponseDto,
   VideoUploadPartUrlsResponseDto,
   VideoUploadStatusResponseDto,
@@ -119,6 +121,7 @@ export class VideosController {
     private readonly recordVideoUploadPartCompletedUseCase: RecordVideoUploadPartCompletedUseCase,
     private readonly getVideoUploadStatusUseCase: GetVideoUploadStatusUseCase,
     private readonly completeVideoUploadUseCase: CompleteVideoUploadUseCase,
+    private readonly renewVideoUploadSessionUseCase: RenewVideoUploadSessionUseCase,
   ) {}
 
   @Get('studio/videos')
@@ -261,6 +264,22 @@ export class VideosController {
   ): Promise<ApiResponse<CompleteVideoUploadResponseDto>> {
     return apiResponseContract(
       await this.completeVideoUploadUseCase.execute({
+        userId,
+        videoId,
+        uploadId,
+      }),
+    );
+  }
+
+  @Post('studio/videos/:videoId/uploads/:uploadId/renew')
+  @ApiSuccessResponse(RenewVideoUploadSessionResponseDto)
+  async renewUploadSession(
+    @CurrentUserId() userId: string,
+    @Param('videoId') videoId: string,
+    @Param('uploadId') uploadId: string,
+  ): Promise<ApiResponse<RenewVideoUploadSessionResponseDto>> {
+    return apiResponseContract(
+      await this.renewVideoUploadSessionUseCase.execute({
         userId,
         videoId,
         uploadId,

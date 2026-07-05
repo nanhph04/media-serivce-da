@@ -98,6 +98,10 @@ export class VideoUploadSessionRepository implements IVideoUploadSessionReposito
     });
   }
 
+  async renewExpiry(sessionId: string, expiresAt: Date): Promise<void> {
+    await this.sessionRepository.update(sessionId, { expiresAt });
+  }
+
   async findActiveExpired(
     limit: number,
     now: Date,

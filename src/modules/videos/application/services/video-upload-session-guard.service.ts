@@ -56,6 +56,9 @@ export class VideoUploadSessionGuardService {
     if (session.status !== VideoUploadSessionStatus.ACTIVE) {
       throw new ConflictException(ERROR_MESSAGES.UPLOAD_SESSION_NOT_ACTIVE);
     }
+    if (session.expiresAt.getTime() <= Date.now()) {
+      throw new ConflictException(ERROR_MESSAGES.UPLOAD_SESSION_NOT_ACTIVE);
+    }
 
     return session;
   }

@@ -36,11 +36,12 @@ import {
   type IVideoUploadSessionRepository,
   VIDEO_UPLOAD_SESSION_REPOSITORY,
 } from '../../domain/repositories/video-upload-session.repository';
+import {
+  MULTIPART_UPLOAD_PART_SIZE_BYTES,
+  MULTIPART_UPLOAD_TTL_HOURS,
+} from '../constants/video-upload.constants';
 import type { StartVideoUploadCommand } from '../dtos/start-video-upload.command';
 import type { StartVideoUploadResponse } from '../dtos/start-video-upload.response';
-
-const MULTIPART_UPLOAD_PART_SIZE_BYTES = 16 * 1024 * 1024;
-const MULTIPART_UPLOAD_TTL_HOURS = 24;
 
 @Injectable()
 export class StartVideoUploadUseCase extends BaseUseCase<

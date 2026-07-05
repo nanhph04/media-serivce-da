@@ -41,3 +41,9 @@ export interface CompleteVideoUploadResponse {
   rawFileKey: string;
   completed: boolean;
 }
+
+export interface RenewVideoUploadSessionResponse {
+  videoId: string;
+  uploadId: string;
+  expiresAt: string;
+}

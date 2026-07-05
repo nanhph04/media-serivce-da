@@ -89,3 +89,14 @@ export class CompleteVideoUploadResponseDto {
   @ApiProperty()
   completed!: boolean;
 }
+
+export class RenewVideoUploadSessionResponseDto {
+  @ApiProperty()
+  videoId!: string;
+
+  @ApiProperty()
+  uploadId!: string;
+
+  @ApiProperty()
+  expiresAt!: string;
+}

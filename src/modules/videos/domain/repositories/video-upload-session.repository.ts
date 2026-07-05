@@ -59,5 +59,6 @@ export interface IVideoUploadSessionRepository {
   }): Promise<void>;
   markCompleted(sessionId: string): Promise<void>;
   markAborted(sessionId: string): Promise<void>;
+  renewExpiry(sessionId: string, expiresAt: Date): Promise<void>;
   findActiveExpired(limit: number, now: Date): Promise<VideoUploadSession[]>;
 }

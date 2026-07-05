@@ -11,16 +11,17 @@ import {
   type IVideoRepository,
   VIDEO_REPOSITORY,
 } from '../../domain/repositories/video.repository';
+import {
+  CREATOR_DELETE_REASON,
+  REFUND_WINDOW_HOURS,
+  VIDEO_DELETE_REQUESTED_TOPIC,
+} from '../constants/video-delete.constants';
 import type { VideoDeleteRequestedEventData } from '../dtos/video-delete-requested.event-data';
 import type { UnpublishVideoResponse } from '../dtos/unpublish-video.response';
 import {
   VIDEO_OUTBOX_TRANSACTION,
   type IVideoOutboxTransaction,
 } from '../interfaces/video-outbox-transaction.interface';
-
-const CREATOR_DELETE_REASON = 'creator_delete';
-const REFUND_WINDOW_HOURS = 72;
-const VIDEO_DELETE_REQUESTED_TOPIC = 'video.delete.requested';
 
 @Injectable()
 export class UnpublishVideoUseCase extends BaseUseCase<

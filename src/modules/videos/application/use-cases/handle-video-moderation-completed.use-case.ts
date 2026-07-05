@@ -32,10 +32,11 @@ import {
   VIDEO_STATUS_EVENT_PUBLISHER,
   type IVideoStatusEventPublisher,
 } from '../interfaces/video-status-event-publisher.interface';
+import {
+  EVENT_PROCESSED_TTL_SECONDS,
+  EVENT_PROCESSING_LOCK_TTL_SECONDS,
+} from '../constants/video-event.constants';
 import { mapVideoStatusToJobFields } from '../dtos/video-job-status';
-
-const EVENT_PROCESSED_TTL_SECONDS = 60 * 60 * 24;
-const EVENT_PROCESSING_LOCK_TTL_SECONDS = 300;
 
 @Injectable()
 export class HandleVideoModerationCompletedUseCase extends BaseUseCase<

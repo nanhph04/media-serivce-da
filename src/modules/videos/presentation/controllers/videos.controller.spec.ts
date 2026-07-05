@@ -81,6 +81,9 @@ describe('VideosController', () => {
   const completeVideoUploadUseCase = {
     execute: jest.fn(),
   };
+  const renewVideoUploadSessionUseCase = {
+    execute: jest.fn(),
+  };
   const controller = new VideosController(
     confirmVideoUploadUseCase as never,
     cancelVideoUploadUseCase as never,
@@ -107,6 +110,7 @@ describe('VideosController', () => {
     recordVideoUploadPartCompletedUseCase as never,
     getVideoUploadStatusUseCase as never,
     completeVideoUploadUseCase as never,
+    renewVideoUploadSessionUseCase as never,
   );
 
   beforeEach(() => {
@@ -134,7 +138,10 @@ describe('VideosController', () => {
 
     const result = await controller.getMetadata('video-1');
 
-    expect(getVideoMetadataUseCase.execute).toHaveBeenCalledWith('video-1');
+    expect(getVideoMetadataUseCase.execute).toHaveBeenCalledWith({
+      videoId: 'video-1',
+      viewerUserId: undefined,
+    });
     expect(result).toEqual({
       id: 'video-1',
       channelId: 'channel-1',
@@ -230,6 +237,31 @@ describe('VideosController', () => {
       thumbnailObjectKey: null,
       thumbnailBucket: null,
       thumbnailUploadUrl: null,
+    });
+  });
+
+  it('renews upload session expiry', async () => {
+    renewVideoUploadSessionUseCase.execute.mockResolvedValue({
+      videoId: 'video-1',
+      uploadId: 'upload-1',
+      expiresAt: '2026-05-22T10:00:00.000Z',
+    });
+
+    const result = await controller.renewUploadSession(
+      'owner-1',
+      'video-1',
+      'upload-1',
+    );
+
+    expect(renewVideoUploadSessionUseCase.execute).toHaveBeenCalledWith({
+      userId: 'owner-1',
+      videoId: 'video-1',
+      uploadId: 'upload-1',
+    });
+    expect(result).toEqual({
+      videoId: 'video-1',
+      uploadId: 'upload-1',
+      expiresAt: '2026-05-22T10:00:00.000Z',
     });
   });
 

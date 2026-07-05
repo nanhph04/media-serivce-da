@@ -30,6 +30,10 @@ import {
   VIDEO_STATUS_EVENT_PUBLISHER,
   type IVideoStatusEventPublisher,
 } from '../interfaces/video-status-event-publisher.interface';
+import {
+  MAX_THUMBNAIL_SIZE_BYTES,
+  VIDEO_MODERATION_REQUESTED_TOPIC,
+} from '../constants/video-moderation.constants';
 import { VIDEO_UPLOAD_RESOLUTIONS } from '../dtos/video-upload-resolution';
 import type { ConfirmVideoUploadCommand } from '../dtos/confirm-video-upload.command';
 import type { ConfirmVideoUploadResponse } from '../dtos/confirm-video-upload.response';
@@ -38,8 +42,6 @@ import { mapVideoStatusToJobFields } from '../dtos/video-job-status';
 const VIDEO_UPLOAD_RESOLUTION_ORDER = new Map<string, number>(
   VIDEO_UPLOAD_RESOLUTIONS.map((resolution, index) => [resolution, index]),
 );
-const MAX_THUMBNAIL_SIZE_BYTES = 5 * 1024 * 1024;
-const VIDEO_MODERATION_REQUESTED_TOPIC = 'video.moderation.requested';
 
 interface VideoModerationRequestedEventData {
   videoId: string;

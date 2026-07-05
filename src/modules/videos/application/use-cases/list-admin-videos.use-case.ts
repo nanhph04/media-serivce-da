@@ -26,12 +26,13 @@ import type {
   AdminVideoListItemResponse,
   AdminVideosPageResponse,
 } from '../dtos/admin-video.response';
+import {
+  DEFAULT_LIMIT,
+  DEFAULT_PAGE,
+  MAX_LIMIT,
+} from '../constants/video-pagination.constants';
 import type { ListAdminVideosQuery } from '../dtos/list-admin-videos.query';
 import { mapVideoEntityToStudioListItem } from '../dtos/studio-video-list-item.response';
-
-const DEFAULT_PAGE = 1;
-const DEFAULT_LIMIT = 20;
-const MAX_LIMIT = 100;
 
 @Injectable()
 export class ListAdminVideosUseCase extends BaseUseCase<
