@@ -4,10 +4,7 @@ import {
   IDEMPOTENCY_STORE,
   type IIdempotencyStore,
 } from '@shared/application/interfaces/cache-store.interface';
-import {
-  VIDEO_PROCESSING_JOB_DISPATCHER,
-  type IVideoProcessingJobDispatcher,
-} from '@shared/application/interfaces/video-processing-job-dispatcher.interface';
+import type { VideoProcessingJobPayload } from '@shared/application/interfaces/video-processing-job-dispatcher.interface';
 import {
   OBJECT_STORAGE_SERVICE,
   type IObjectStorageService,
@@ -29,6 +26,10 @@ import {
   type IVideoModerationOutcomePublisher,
 } from '../interfaces/video-moderation-outcome-publisher.interface';
 import {
+  VIDEO_PROCESSING_DISPATCH_TRANSACTION,
+  type IVideoProcessingDispatchTransaction,
+} from '../interfaces/video-processing-dispatch-transaction.interface';
+import {
   VIDEO_STATUS_EVENT_PUBLISHER,
   type IVideoStatusEventPublisher,
 } from '../interfaces/video-status-event-publisher.interface';
@@ -46,8 +47,8 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
   constructor(
     @Inject(VIDEO_REPOSITORY)
     private readonly videoRepository: IVideoRepository,
-    @Inject(VIDEO_PROCESSING_JOB_DISPATCHER)
-    private readonly videoProcessingJobDispatcher: IVideoProcessingJobDispatcher,
+    @Inject(VIDEO_PROCESSING_DISPATCH_TRANSACTION)
+    private readonly videoProcessingDispatchTransaction: IVideoProcessingDispatchTransaction,
     @Inject(OBJECT_STORAGE_SERVICE)
     private readonly objectStorageService: IObjectStorageService,
     @Inject(VIDEO_MODERATION_OUTCOME_PUBLISHER)
@@ -114,22 +115,15 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
 
     if (command.data.status === 'SAFE') {
       video.markProcessing({ resolutions: command.data.resolutions });
-      await this.videoRepository.save(video);
+      const payload = this.createTranscodePayload(video, command.data);
+      await this.videoProcessingDispatchTransaction.saveVideoWithProcessingDispatch(
+        video,
+        {
+          jobId: this.createTranscodeJobId(video.id),
+          payload,
+        },
+      );
       this.publishVideoStatusChanged(video);
-      await this.videoProcessingJobDispatcher.enqueueTranscodeJob({
-        videoId: command.data.videoId,
-        rawFileKey: command.data.rawFileKey,
-        resolution: command.data.resolutions,
-        userId: command.data.userId,
-        thumbnailTargetObjectKey:
-          video.thumbnailSource === VideoThumbnailSource.AUTO
-            ? this.createAutoThumbnailObjectKey(video.id)
-            : undefined,
-        thumbnailTargetBucket:
-          video.thumbnailSource === VideoThumbnailSource.AUTO
-            ? this.objectStorageService.getBucketName('public')
-            : undefined,
-      });
       await this.publishOutcome({
         videoId: command.data.videoId,
         moderationStatus: command.data.status,
@@ -233,6 +227,30 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
 
   private createAutoThumbnailObjectKey(videoId: string): string {
     return `videos/${videoId}/thumbnails/default.jpg`;
+  }
+
+  private createTranscodeJobId(videoId: string): string {
+    return `transcode-${videoId}`;
+  }
+
+  private createTranscodePayload(
+    video: VideoEntity,
+    data: HandleVideoModerationCompletedCommand['data'],
+  ): VideoProcessingJobPayload {
+    return {
+      videoId: data.videoId,
+      rawFileKey: data.rawFileKey,
+      resolution: data.resolutions,
+      userId: data.userId,
+      thumbnailTargetObjectKey:
+        video.thumbnailSource === VideoThumbnailSource.AUTO
+          ? this.createAutoThumbnailObjectKey(video.id)
+          : undefined,
+      thumbnailTargetBucket:
+        video.thumbnailSource === VideoThumbnailSource.AUTO
+          ? this.objectStorageService.getBucketName('public')
+          : undefined,
+    };
   }
 
   private async markEventProcessed(processedKey: string): Promise<void> {

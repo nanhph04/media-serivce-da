@@ -64,6 +64,7 @@ import { VideoViewFlushWorker } from './infrastructure/queue/video-view-flush.wo
 import { VideoDraftUploadCleanupWorker } from './infrastructure/queue/video-draft-upload-cleanup.worker';
 import { VideoHardDeleteCleanupWorker } from './infrastructure/queue/video-hard-delete-cleanup.worker';
 import { VideoProcessingWatchdogWorker } from './infrastructure/queue/video-processing-watchdog.worker';
+import { VideoProcessingDispatchWorker } from './infrastructure/queue/video-processing-dispatch.worker';
 import { VideoModerationRequestPublisher } from './infrastructure/messaging/video-moderation-request.publisher';
 import { VideoModerationOutcomePublisher } from './infrastructure/messaging/video-moderation-outcome.publisher';
 import { VideoDeleteRequestPublisher } from './infrastructure/messaging/video-delete-request.publisher';
@@ -82,6 +83,8 @@ import { VideoViewStatRepository } from './infrastructure/persistence/video-view
 import { VideoOrmEntity } from './infrastructure/persistence/video.orm-entity';
 import { VideoRepository } from './infrastructure/persistence/video.repository';
 import { VideoOutboxTransactionService } from './infrastructure/persistence/video-outbox-transaction.service';
+import { VideoProcessingDispatchOrmEntity } from './infrastructure/persistence/video-processing-dispatch.orm-entity';
+import { VideoProcessingDispatchTransactionService } from './infrastructure/persistence/video-processing-dispatch-transaction.service';
 import { VideoUploadPartOrmEntity } from './infrastructure/persistence/video-upload-part.orm-entity';
 import { VideoUploadSessionOrmEntity } from './infrastructure/persistence/video-upload-session.orm-entity';
 import { VideoUploadSessionRepository } from './infrastructure/persistence/video-upload-session.repository';
@@ -105,6 +108,7 @@ import { VIDEO_WORKER_HEALTH_CHECKER } from './application/interfaces/video-work
 import { VIDEO_STATUS_EVENT_PUBLISHER } from './application/interfaces/video-status-event-publisher.interface';
 import { VIDEO_STATUS_EVENT_STREAM } from './application/interfaces/video-status-event-stream.interface';
 import { VIDEO_OUTBOX_TRANSACTION } from './application/interfaces/video-outbox-transaction.interface';
+import { VIDEO_PROCESSING_DISPATCH_TRANSACTION } from './application/interfaces/video-processing-dispatch-transaction.interface';
 import { VIDEO_PURCHASE_UNLOCK_REPOSITORY } from './domain/repositories/video-purchase-unlock.repository';
 import { VIDEO_REPOSITORY } from './domain/repositories/video.repository';
 import { VIDEO_UPLOAD_SESSION_REPOSITORY } from './domain/repositories/video-upload-session.repository';
@@ -123,6 +127,7 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
       VideoUploadPartOrmEntity,
       ChannelOrmEntity,
       MembershipTierOrmEntity,
+      VideoProcessingDispatchOrmEntity,
     ]),
     CategoriesModule,
     TagsModule,
@@ -141,6 +146,7 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
     VideoViewAggregationService,
     VideoStatusSseService,
     VideoOutboxTransactionService,
+    VideoProcessingDispatchTransactionService,
     VideoUploadSessionGuardService,
     VideoWatchAccessService,
     StartVideoUploadUseCase,
@@ -199,6 +205,7 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
     VideoDraftUploadCleanupWorker,
     VideoHardDeleteCleanupWorker,
     VideoProcessingWatchdogWorker,
+    VideoProcessingDispatchWorker,
     VideoModerationRequestPublisher,
     VideoModerationOutcomePublisher,
     VideoDeleteRequestPublisher,
@@ -240,6 +247,10 @@ import { VIDEO_WATCH_PROGRESS_REPOSITORY } from './domain/repositories/video-wat
     {
       provide: VIDEO_OUTBOX_TRANSACTION,
       useExisting: VideoOutboxTransactionService,
+    },
+    {
+      provide: VIDEO_PROCESSING_DISPATCH_TRANSACTION,
+      useExisting: VideoProcessingDispatchTransactionService,
     },
     {
       provide: VIDEO_VIEW_AGGREGATION,

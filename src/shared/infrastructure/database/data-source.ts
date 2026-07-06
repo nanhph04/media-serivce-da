@@ -9,6 +9,7 @@ import { ChannelOrmEntity } from '../../../modules/channels/infrastructure/persi
 import { MembershipTierOrmEntity } from '../../../modules/channels/infrastructure/persistence/membership-tier.orm-entity';
 import { TagOrmEntity } from '../../../modules/tags/infrastructure/persistence/tag.orm-entity';
 import { VideoCategoryOrmEntity } from '../../../modules/videos/infrastructure/persistence/video-category.orm-entity';
+import { VideoProcessingDispatchOrmEntity } from '../../../modules/videos/infrastructure/persistence/video-processing-dispatch.orm-entity';
 import { VideoPurchaseUnlockOrmEntity } from '../../../modules/videos/infrastructure/persistence/video-purchase-unlock.orm-entity';
 import { VideoTagOrmEntity } from '../../../modules/videos/infrastructure/persistence/video-tag.orm-entity';
 import { VideoUploadPartOrmEntity } from '../../../modules/videos/infrastructure/persistence/video-upload-part.orm-entity';
@@ -72,6 +73,7 @@ export default new DataSource({
     TagOrmEntity,
     VideoOrmEntity,
     VideoPurchaseUnlockOrmEntity,
+    VideoProcessingDispatchOrmEntity,
     VideoCategoryOrmEntity,
     VideoTagOrmEntity,
     VideoUploadSessionOrmEntity,

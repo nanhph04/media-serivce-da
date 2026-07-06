@@ -30,8 +30,8 @@ const cacheInvalidator = {
   invalidateMetadata: jest.fn(),
   invalidateDiscoveryLists: jest.fn(),
 };
-const videoProcessingJobDispatcher = {
-  enqueueTranscodeJob: jest.fn(),
+const videoProcessingDispatchTransaction = {
+  saveVideoWithProcessingDispatch: jest.fn(),
 };
 const objectStorageService = {
   getBucketName: jest.fn(),
@@ -48,7 +48,7 @@ describe('Admin video detail and moderation use cases', () => {
     jest.clearAllMocks();
     cacheInvalidator.invalidateMetadata.mockResolvedValue(undefined);
     cacheInvalidator.invalidateDiscoveryLists.mockResolvedValue(undefined);
-    videoProcessingJobDispatcher.enqueueTranscodeJob.mockResolvedValue(
+    videoProcessingDispatchTransaction.saveVideoWithProcessingDispatch.mockResolvedValue(
       undefined,
     );
     objectStorageService.getBucketName.mockReturnValue('media-public');
@@ -103,8 +103,7 @@ describe('Admin video detail and moderation use cases', () => {
 
   it('approves pending manual review video by queueing processing', async () => {
     const video = buildVideo(VideoStatus.PENDING_MANUAL_REVIEW);
-    const save = jest.fn().mockResolvedValue(undefined);
-    const useCase = createModerateAdminVideoUseCase({ video, save });
+    const useCase = createModerateAdminVideoUseCase({ video });
 
     const result = await useCase.execute({
       adminId: 'admin-1',
@@ -121,16 +120,18 @@ describe('Admin video detail and moderation use cases', () => {
       confidence: 0.8,
       evidenceTimestampSeconds: null,
     });
-    expect(save).toHaveBeenCalledWith(video);
     expect(
-      videoProcessingJobDispatcher.enqueueTranscodeJob,
-    ).toHaveBeenCalledWith({
-      videoId: 'video-1',
-      rawFileKey: 'raw.mp4',
-      resolution: ['720p'],
-      userId: 'owner-1',
-      thumbnailTargetObjectKey: 'videos/video-1/thumbnails/default.jpg',
-      thumbnailTargetBucket: 'media-public',
+      videoProcessingDispatchTransaction.saveVideoWithProcessingDispatch,
+    ).toHaveBeenCalledWith(video, {
+      jobId: 'transcode-video-1',
+      payload: {
+        videoId: 'video-1',
+        rawFileKey: 'raw.mp4',
+        resolution: ['720p'],
+        userId: 'owner-1',
+        thumbnailTargetObjectKey: 'videos/video-1/thumbnails/default.jpg',
+        thumbnailTargetBucket: 'media-public',
+      },
     });
     expect(
       videoStatusEventPublisher.publishVideoStatusChanged,
@@ -177,14 +178,17 @@ describe('Admin video detail and moderation use cases', () => {
     });
 
     expect(
-      videoProcessingJobDispatcher.enqueueTranscodeJob,
-    ).toHaveBeenCalledWith({
-      videoId: 'video-1',
-      rawFileKey: 'raw.mp4',
-      resolution: ['720p'],
-      userId: 'owner-1',
-      thumbnailTargetObjectKey: undefined,
-      thumbnailTargetBucket: undefined,
+      videoProcessingDispatchTransaction.saveVideoWithProcessingDispatch,
+    ).toHaveBeenCalledWith(video, {
+      jobId: 'transcode-video-1',
+      payload: {
+        videoId: 'video-1',
+        rawFileKey: 'raw.mp4',
+        resolution: ['720p'],
+        userId: 'owner-1',
+        thumbnailTargetObjectKey: undefined,
+        thumbnailTargetBucket: undefined,
+      },
     });
   });
 
@@ -203,7 +207,7 @@ describe('Admin video detail and moderation use cases', () => {
     expect(result.status).toBe(VideoStatus.REJECTED);
     expect(result.errorMessage).toBe('Policy issue');
     expect(
-      videoProcessingJobDispatcher.enqueueTranscodeJob,
+      videoProcessingDispatchTransaction.saveVideoWithProcessingDispatch,
     ).not.toHaveBeenCalled();
     expect(
       videoStatusEventPublisher.publishVideoStatusChanged,
@@ -289,7 +293,7 @@ function createModerateAdminVideoUseCase(input?: {
   return new ModerateAdminVideoUseCase(
     createVideoRepository(input),
     cacheInvalidator,
-    videoProcessingJobDispatcher,
+    videoProcessingDispatchTransaction,
     objectStorageService as never,
     moderationOutcomePublisher,
     videoStatusEventPublisher,

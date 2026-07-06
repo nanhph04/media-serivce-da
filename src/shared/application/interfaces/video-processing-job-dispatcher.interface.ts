@@ -11,6 +11,13 @@ export interface VideoProcessingJobPayload {
   thumbnailTargetBucket?: string;
 }
 
+export interface VideoProcessingJobOptions {
+  jobId?: string;
+}
+
 export interface IVideoProcessingJobDispatcher {
-  enqueueTranscodeJob(payload: VideoProcessingJobPayload): Promise<void>;
+  enqueueTranscodeJob(
+    payload: VideoProcessingJobPayload,
+    options?: VideoProcessingJobOptions,
+  ): Promise<void>;
 }

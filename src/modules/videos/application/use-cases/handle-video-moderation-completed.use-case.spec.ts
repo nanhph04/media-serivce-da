@@ -10,8 +10,8 @@ describe('HandleVideoModerationCompletedUseCase', () => {
     findById: jest.fn(),
     save: jest.fn(),
   };
-  const videoProcessingJobDispatcher = {
-    enqueueTranscodeJob: jest.fn(),
+  const videoProcessingDispatchTransaction = {
+    saveVideoWithProcessingDispatch: jest.fn(),
   };
   const objectStorageService = {
     getBucketName: jest.fn(),
@@ -40,7 +40,7 @@ describe('HandleVideoModerationCompletedUseCase', () => {
     idempotencyStore.setIfNotExists.mockResolvedValue(true);
     idempotencyStore.delete.mockResolvedValue(undefined);
     videoRepository.save.mockResolvedValue(undefined);
-    videoProcessingJobDispatcher.enqueueTranscodeJob.mockResolvedValue(
+    videoProcessingDispatchTransaction.saveVideoWithProcessingDispatch.mockResolvedValue(
       undefined,
     );
     objectStorageService.getBucketName.mockReturnValue('media-public');
@@ -49,7 +49,7 @@ describe('HandleVideoModerationCompletedUseCase', () => {
     );
     useCase = new HandleVideoModerationCompletedUseCase(
       videoRepository as never,
-      videoProcessingJobDispatcher as never,
+      videoProcessingDispatchTransaction as never,
       objectStorageService as never,
       moderationOutcomePublisher as never,
       idempotencyStore as never,
@@ -58,7 +58,7 @@ describe('HandleVideoModerationCompletedUseCase', () => {
     );
   });
 
-  it('marks safe moderated video as processing and enqueues transcode job', async () => {
+  it('marks safe moderated video as processing and persists transcode dispatch intent', async () => {
     videoRepository.findById.mockResolvedValue(buildVideo());
 
     await useCase.execute({
@@ -76,19 +76,26 @@ describe('HandleVideoModerationCompletedUseCase', () => {
       },
     });
 
-    const savedVideo = videoRepository.save.mock.calls[0][0] as VideoEntity;
+    const savedVideo = videoProcessingDispatchTransaction
+      .saveVideoWithProcessingDispatch.mock.calls[0][0] as VideoEntity;
     expect(savedVideo.status).toBe(VideoStatus.PROCESSING);
     expect(savedVideo.resolutions).toEqual(['480p', '720p']);
     expect(
-      videoProcessingJobDispatcher.enqueueTranscodeJob,
-    ).toHaveBeenCalledWith({
-      videoId: 'video-1',
-      rawFileKey: 'uploads/raw/channel-1/video.mp4',
-      resolution: ['480p', '720p'],
-      userId: 'owner-1',
-      thumbnailTargetObjectKey: 'videos/video-1/thumbnails/default.jpg',
-      thumbnailTargetBucket: 'media-public',
-    });
+      videoProcessingDispatchTransaction.saveVideoWithProcessingDispatch,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'video-1', status: VideoStatus.PROCESSING }),
+      {
+        jobId: 'transcode-video-1',
+        payload: {
+          videoId: 'video-1',
+          rawFileKey: 'uploads/raw/channel-1/video.mp4',
+          resolution: ['480p', '720p'],
+          userId: 'owner-1',
+          thumbnailTargetObjectKey: 'videos/video-1/thumbnails/default.jpg',
+          thumbnailTargetBucket: 'media-public',
+        },
+      },
+    );
     expect(
       moderationOutcomePublisher.publishModerationOutcome,
     ).toHaveBeenCalledWith({
@@ -169,7 +176,7 @@ describe('HandleVideoModerationCompletedUseCase', () => {
       thresholds: { manual: 0.6, reject: 0.9 },
     });
     expect(
-      videoProcessingJobDispatcher.enqueueTranscodeJob,
+      videoProcessingDispatchTransaction.saveVideoWithProcessingDispatch,
     ).not.toHaveBeenCalled();
     expect(
       moderationOutcomePublisher.publishModerationOutcome,
@@ -212,7 +219,7 @@ describe('HandleVideoModerationCompletedUseCase', () => {
       evidenceTimestampSeconds: 45,
     });
     expect(
-      videoProcessingJobDispatcher.enqueueTranscodeJob,
+      videoProcessingDispatchTransaction.saveVideoWithProcessingDispatch,
     ).not.toHaveBeenCalled();
     expect(
       moderationOutcomePublisher.publishModerationOutcome,
@@ -250,7 +257,7 @@ describe('HandleVideoModerationCompletedUseCase', () => {
     expect(savedVideo.status).toBe(VideoStatus.FAILED);
     expect(savedVideo.errorMessage).toBe('MinIO download failed');
     expect(
-      videoProcessingJobDispatcher.enqueueTranscodeJob,
+      videoProcessingDispatchTransaction.saveVideoWithProcessingDispatch,
     ).not.toHaveBeenCalled();
     expect(
       moderationOutcomePublisher.publishModerationOutcome,
@@ -286,7 +293,7 @@ describe('HandleVideoModerationCompletedUseCase', () => {
 
     expect(videoRepository.findById).not.toHaveBeenCalled();
     expect(
-      videoProcessingJobDispatcher.enqueueTranscodeJob,
+      videoProcessingDispatchTransaction.saveVideoWithProcessingDispatch,
     ).not.toHaveBeenCalled();
     expect(
       moderationOutcomePublisher.publishModerationOutcome,
@@ -314,7 +321,7 @@ describe('HandleVideoModerationCompletedUseCase', () => {
 
     expect(videoRepository.findById).not.toHaveBeenCalled();
     expect(
-      videoProcessingJobDispatcher.enqueueTranscodeJob,
+      videoProcessingDispatchTransaction.saveVideoWithProcessingDispatch,
     ).not.toHaveBeenCalled();
     expect(
       moderationOutcomePublisher.publishModerationOutcome,
@@ -351,8 +358,8 @@ describe('HandleVideoModerationCompletedUseCase', () => {
 
       expect(videoRepository.save).not.toHaveBeenCalled();
       expect(
-        videoProcessingJobDispatcher.enqueueTranscodeJob,
-      ).not.toHaveBeenCalled();
+      videoProcessingDispatchTransaction.saveVideoWithProcessingDispatch,
+    ).not.toHaveBeenCalled();
       expect(
         moderationOutcomePublisher.publishModerationOutcome,
       ).not.toHaveBeenCalled();
@@ -369,10 +376,10 @@ describe('HandleVideoModerationCompletedUseCase', () => {
 
   it.each([
     {
-      name: 'enqueue failure',
+      name: 'dispatch transaction failure',
       fail: () => {
-        videoProcessingJobDispatcher.enqueueTranscodeJob.mockRejectedValueOnce(
-          new Error('queue down'),
+        videoProcessingDispatchTransaction.saveVideoWithProcessingDispatch.mockRejectedValueOnce(
+          new Error('database down'),
         );
       },
     },
@@ -442,7 +449,9 @@ describe('HandleVideoModerationCompletedUseCase', () => {
       }),
     ).rejects.toThrow('redis down');
 
-    expect(videoProcessingJobDispatcher.enqueueTranscodeJob).toHaveBeenCalled();
+      expect(
+        videoProcessingDispatchTransaction.saveVideoWithProcessingDispatch,
+      ).toHaveBeenCalled();
     expect(
       moderationOutcomePublisher.publishModerationOutcome,
     ).toHaveBeenCalled();

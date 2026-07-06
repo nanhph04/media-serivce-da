@@ -3,8 +3,11 @@ import { Queue } from 'bullmq';
 import { ConfigService } from '../config/config.service';
 import type {
   IVideoProcessingJobDispatcher,
+  VideoProcessingJobOptions,
   VideoProcessingJobPayload,
 } from '../../application/interfaces/video-processing-job-dispatcher.interface';
+
+const COMPLETED_TRANSCODE_JOB_RETENTION_SECONDS = 24 * 60 * 60;
 
 @Injectable()
 export class VideoQueueService
@@ -26,16 +29,27 @@ export class VideoQueueService
     );
   }
 
-  async enqueueTranscodeJob(payload: VideoProcessingJobPayload): Promise<void> {
+  async enqueueTranscodeJob(
+    payload: VideoProcessingJobPayload,
+    options?: VideoProcessingJobOptions,
+  ): Promise<void> {
     await this.queue.add('transcode-job', payload, {
+      jobId: options?.jobId ?? this.createTranscodeJobId(payload.videoId),
       attempts: 3,
       backoff: {
         type: 'exponential',
         delay: 5000,
       },
-      removeOnComplete: true,
+      removeOnComplete: {
+        age: COMPLETED_TRANSCODE_JOB_RETENTION_SECONDS,
+        count: 1000,
+      },
       removeOnFail: 100,
     });
+  }
+
+  private createTranscodeJobId(videoId: string): string {
+    return `transcode-${videoId}`;
   }
 
   async onModuleDestroy(): Promise<void> {

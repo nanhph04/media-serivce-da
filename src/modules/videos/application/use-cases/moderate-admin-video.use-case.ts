@@ -3,10 +3,7 @@ import {
   OBJECT_STORAGE_SERVICE,
   type IObjectStorageService,
 } from '@shared/application/interfaces/object-storage.service.interface';
-import {
-  VIDEO_PROCESSING_JOB_DISPATCHER,
-  type IVideoProcessingJobDispatcher,
-} from '@shared/application/interfaces/video-processing-job-dispatcher.interface';
+import type { VideoProcessingJobPayload } from '@shared/application/interfaces/video-processing-job-dispatcher.interface';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import {
   BadRequestException,
@@ -33,6 +30,10 @@ import {
   VIDEO_STATUS_EVENT_PUBLISHER,
   type IVideoStatusEventPublisher,
 } from '../interfaces/video-status-event-publisher.interface';
+import {
+  VIDEO_PROCESSING_DISPATCH_TRANSACTION,
+  type IVideoProcessingDispatchTransaction,
+} from '../interfaces/video-processing-dispatch-transaction.interface';
 import { mapVideoStatusToJobFields } from '../dtos/video-job-status';
 import {
   VideoThumbnailSource,
@@ -49,8 +50,8 @@ export class ModerateAdminVideoUseCase extends BaseUseCase<
     private readonly videoRepository: IVideoRepository,
     @Inject(VIDEO_CACHE_INVALIDATOR)
     private readonly videoCacheInvalidator: IVideoCacheInvalidator,
-    @Inject(VIDEO_PROCESSING_JOB_DISPATCHER)
-    private readonly videoProcessingJobDispatcher: IVideoProcessingJobDispatcher,
+    @Inject(VIDEO_PROCESSING_DISPATCH_TRANSACTION)
+    private readonly videoProcessingDispatchTransaction: IVideoProcessingDispatchTransaction,
     @Inject(OBJECT_STORAGE_SERVICE)
     private readonly objectStorageService: IObjectStorageService,
     @Inject(VIDEO_MODERATION_OUTCOME_PUBLISHER)
@@ -77,22 +78,15 @@ export class ModerateAdminVideoUseCase extends BaseUseCase<
 
     if (command.action === 'approve') {
       video.approveManualReviewForProcessing();
-      await this.videoRepository.save(video);
+      const payload = this.createTranscodePayload(video);
+      await this.videoProcessingDispatchTransaction.saveVideoWithProcessingDispatch(
+        video,
+        {
+          jobId: this.createTranscodeJobId(video.id),
+          payload,
+        },
+      );
       this.publishVideoStatusChanged(video);
-      await this.videoProcessingJobDispatcher.enqueueTranscodeJob({
-        videoId: video.id,
-        rawFileKey: video.rawFileKey,
-        resolution: video.resolutions,
-        userId: video.ownerId,
-        thumbnailTargetObjectKey:
-          video.thumbnailSource === VideoThumbnailSource.AUTO
-            ? this.createAutoThumbnailObjectKey(video.id)
-            : undefined,
-        thumbnailTargetBucket:
-          video.thumbnailSource === VideoThumbnailSource.AUTO
-            ? this.objectStorageService.getBucketName('public')
-            : undefined,
-      });
       await this.moderationOutcomePublisher.publishModerationOutcome({
         videoId: video.id,
         moderationStatus: 'PENDING_MANUAL_REVIEW',
@@ -121,6 +115,27 @@ export class ModerateAdminVideoUseCase extends BaseUseCase<
 
   private createAutoThumbnailObjectKey(videoId: string): string {
     return `videos/${videoId}/thumbnails/default.jpg`;
+  }
+
+  private createTranscodeJobId(videoId: string): string {
+    return `transcode-${videoId}`;
+  }
+
+  private createTranscodePayload(video: VideoEntity): VideoProcessingJobPayload {
+    return {
+      videoId: video.id,
+      rawFileKey: video.rawFileKey,
+      resolution: video.resolutions,
+      userId: video.ownerId,
+      thumbnailTargetObjectKey:
+        video.thumbnailSource === VideoThumbnailSource.AUTO
+          ? this.createAutoThumbnailObjectKey(video.id)
+          : undefined,
+      thumbnailTargetBucket:
+        video.thumbnailSource === VideoThumbnailSource.AUTO
+          ? this.objectStorageService.getBucketName('public')
+          : undefined,
+    };
   }
 
   private publishVideoStatusChanged(video: VideoEntity): void {
