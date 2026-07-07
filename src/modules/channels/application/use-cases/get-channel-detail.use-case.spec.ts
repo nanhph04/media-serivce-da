@@ -1,4 +1,7 @@
-import { NotFoundException } from '@shared/domain/exceptions/domain.exception';
+import {
+  ForbiddenException,
+  NotFoundException,
+} from '@shared/domain/exceptions/domain.exception';
 import {
   ChannelEntity,
   ChannelStatus,
@@ -78,6 +81,21 @@ describe('GetChannelDetailUseCase', () => {
     await expect(useCase.execute({ channelId: 'channel-1' })).rejects.toThrow(
       NotFoundException,
     );
+    expect(membershipTierRepository.findByChannelId).not.toHaveBeenCalled();
+    expect(
+      videoQueryService.getPublicVideoSummariesByChannel,
+    ).not.toHaveBeenCalled();
+    expect(eligibilityService.getChannelEligibility).not.toHaveBeenCalled();
+  });
+
+  it('rejects suspended channel owner access as forbidden', async () => {
+    channelRepository.findById.mockResolvedValue(
+      buildChannel({ status: ChannelStatus.SUSPENDED }),
+    );
+
+    await expect(
+      useCase.execute({ channelId: 'channel-1', viewerUserId: 'owner-1' }),
+    ).rejects.toThrow(ForbiddenException);
     expect(membershipTierRepository.findByChannelId).not.toHaveBeenCalled();
     expect(
       videoQueryService.getPublicVideoSummariesByChannel,

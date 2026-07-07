@@ -5,7 +5,10 @@ import {
   type IObjectStorageService,
 } from '@shared/application/interfaces/object-storage.service.interface';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
-import { NotFoundException } from '@shared/domain/exceptions/domain.exception';
+import {
+  ForbiddenException,
+  NotFoundException,
+} from '@shared/domain/exceptions/domain.exception';
 import {
   VIDEO_QUERY_SERVICE,
   type IVideoQueryService,
@@ -31,7 +34,7 @@ import {
 
 @Injectable()
 export class GetChannelDetailUseCase extends BaseUseCase<
-  { channelId: string },
+  { channelId: string; viewerUserId?: string | null },
   ChannelDetailResponse
 > {
   constructor(
@@ -51,10 +54,19 @@ export class GetChannelDetailUseCase extends BaseUseCase<
 
   async execute(command: {
     channelId: string;
+    viewerUserId?: string | null;
   }): Promise<ChannelDetailResponse> {
     const channel = await this.channelRepository.findById(command.channelId);
 
-    if (!channel || channel.status !== ChannelStatus.ACTIVE) {
+    if (!channel) {
+      throw new NotFoundException(ERROR_MESSAGES.CHANNEL_NOT_FOUND);
+    }
+
+    if (channel.status !== ChannelStatus.ACTIVE) {
+      if (command.viewerUserId === channel.userId) {
+        throw new ForbiddenException(ERROR_MESSAGES.CHANNEL_NOT_ACTIVE);
+      }
+
       throw new NotFoundException(ERROR_MESSAGES.CHANNEL_NOT_FOUND);
     }
 

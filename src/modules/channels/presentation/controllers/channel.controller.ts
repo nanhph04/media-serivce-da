@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Headers,
   Get,
   Param,
   Patch,
@@ -175,8 +176,12 @@ export class ChannelController {
   @ApiSuccessResponse(ChannelDetailResponseDto)
   async getChannelDetail(
     @Param('id') channelId: string,
+    @Headers('x-user-id') viewerUserId?: string,
   ): Promise<ApiResponse<ChannelDetailResponseDto>> {
-    const result = await this.getChannelDetailUseCase.execute({ channelId });
+    const result = await this.getChannelDetailUseCase.execute({
+      channelId,
+      viewerUserId,
+    });
     return apiResponseContract(toChannelDetailResponseDto(result));
   }
 

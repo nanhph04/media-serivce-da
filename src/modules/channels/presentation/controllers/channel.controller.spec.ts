@@ -80,6 +80,22 @@ describe('ChannelController', () => {
       membershipReviewedAt: null,
     });
   });
+
+  it('passes optional viewer identity to channel detail use case', async () => {
+    getChannelDetailUseCase.execute.mockResolvedValue(buildChannelDetail());
+
+    await (
+      controller.getChannelDetail as (
+        channelId: string,
+        viewerUserId?: string,
+      ) => Promise<unknown>
+    )('channel-1', 'owner-1');
+
+    expect(getChannelDetailUseCase.execute).toHaveBeenCalledWith({
+      channelId: 'channel-1',
+      viewerUserId: 'owner-1',
+    });
+  });
 });
 
 function getRoutePaths(methodName: keyof ChannelController): string | string[] {
@@ -87,4 +103,38 @@ function getRoutePaths(methodName: keyof ChannelController): string | string[] {
     PATH_METADATA,
     ChannelController.prototype[methodName],
   ) as string | string[];
+}
+
+function buildChannelDetail(): unknown {
+  const date = new Date('2026-01-01T00:00:00.000Z');
+
+  return {
+    channel: {
+      id: 'channel-1',
+      userId: 'owner-1',
+      name: 'Channel',
+      bio: 'Bio',
+      isEligibleForMembership: false,
+      isMembershipClosedByAdmin: false,
+      membershipReviewStatus: 'not_requested',
+      membershipRejectionReason: null,
+      membershipRequestedAt: null,
+      membershipReviewedAt: null,
+      avatarUrl: '',
+      bannerUrl: '',
+      status: ChannelStatus.ACTIVE,
+      createdAt: date,
+      updatedAt: date,
+    },
+    membershipEligibility: {
+      isEligible: false,
+      readyVideoCount: 0,
+      minReadyVideoCount: 5,
+      totalVideoViews: 0,
+      minTotalVideoViews: 1000,
+      missingRequirements: [],
+    },
+    membershipTiers: [],
+    publicVideos: [],
+  };
 }
