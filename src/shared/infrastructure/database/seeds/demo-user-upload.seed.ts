@@ -626,6 +626,7 @@ async function uploadLikeUser(input: {
   });
   await input.dependencies.confirmVideoUploadUseCase.execute({
     userId: input.userId,
+    traceId: `demo-seed-${upload.videoId}`,
     videoId: upload.videoId,
     uploadId: upload.uploadId,
     resolutions: ['480p', '720p'],

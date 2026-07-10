@@ -25,6 +25,7 @@ export class VideoModerationConsumer implements OnModuleInit {
       async ({ value }) => {
         await this.handleVideoModerationCompletedUseCase.execute({
           eventId: value.eventId,
+          traceId: value.traceId,
           data: value.data,
         });
       },

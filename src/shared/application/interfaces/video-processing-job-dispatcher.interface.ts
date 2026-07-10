@@ -4,6 +4,7 @@ export const VIDEO_PROCESSING_JOB_DISPATCHER = Symbol(
 
 export interface VideoProcessingJobPayload {
   videoId: string;
+  traceId: string;
   rawFileKey: string;
   resolution: string[];
   userId: string;

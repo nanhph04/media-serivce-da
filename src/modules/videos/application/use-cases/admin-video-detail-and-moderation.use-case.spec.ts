@@ -111,6 +111,7 @@ describe('Admin video detail and moderation use cases', () => {
 
     const result = await useCase.execute({
       adminId: 'admin-1',
+      traceId: 'trace-admin-1',
       role: 'admin',
       videoId: 'video-1',
       action: 'approve',
@@ -132,6 +133,7 @@ describe('Admin video detail and moderation use cases', () => {
         jobId: 'transcode-video-1',
         payload: {
           videoId: 'video-1',
+          traceId: 'trace-admin-1',
           rawFileKey: 'raw.mp4',
           resolution: ['720p'],
           userId: 'owner-1',

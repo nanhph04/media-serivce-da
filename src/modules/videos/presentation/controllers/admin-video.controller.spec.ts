@@ -226,13 +226,14 @@ describe('AdminVideoController', () => {
       buildAdminVideo({ status: VideoStatus.REJECTED }),
     );
 
-    await controller.moderateVideo('admin-1', 'admin', 'video-1', {
+    await controller.moderateVideo('admin-1', 'admin', 'trace-admin-1', 'video-1', {
       action: 'reject',
       reason: 'Policy issue',
     });
 
     expect(moderateAdminVideoUseCase.execute).toHaveBeenCalledWith({
       adminId: 'admin-1',
+      traceId: 'trace-admin-1',
       role: 'admin',
       videoId: 'video-1',
       action: 'reject',

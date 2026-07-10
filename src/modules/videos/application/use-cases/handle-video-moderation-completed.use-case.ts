@@ -115,7 +115,7 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
 
     if (command.data.status === 'SAFE') {
       video.markProcessing();
-      const payload = this.createTranscodePayload(video);
+      const payload = this.createTranscodePayload(video, command.traceId);
       await this.videoProcessingDispatchTransaction.saveVideoWithProcessingDispatch(
         video,
         {
@@ -232,9 +232,13 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
     return `transcode-${videoId}`;
   }
 
-  private createTranscodePayload(video: VideoEntity): VideoProcessingJobPayload {
+  private createTranscodePayload(
+    video: VideoEntity,
+    traceId: string,
+  ): VideoProcessingJobPayload {
     return {
       videoId: video.id,
+      traceId,
       rawFileKey: video.rawFileKey,
       resolution: video.resolutions,
       userId: video.ownerId,

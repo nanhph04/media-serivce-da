@@ -27,6 +27,7 @@ describe('VideoModerationConsumer', () => {
       | ((payload: {
           value: {
             eventId: string;
+            traceId: string;
             data: {
               videoId: string;
               status: 'SAFE';
@@ -59,6 +60,7 @@ describe('VideoModerationConsumer', () => {
     await handler?.({
       value: {
         eventId: 'event-1',
+        traceId: 'trace-submit-1',
         data: {
           videoId: 'video-1',
           status: 'SAFE',
@@ -75,6 +77,7 @@ describe('VideoModerationConsumer', () => {
 
     expect(handleVideoModerationCompletedUseCase.execute).toHaveBeenCalledWith({
       eventId: 'event-1',
+      traceId: 'trace-submit-1',
       data: {
         videoId: 'video-1',
         status: 'SAFE',

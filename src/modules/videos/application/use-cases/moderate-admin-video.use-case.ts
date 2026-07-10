@@ -80,7 +80,7 @@ export class ModerateAdminVideoUseCase extends BaseUseCase<
 
     if (command.action === 'approve') {
       video.approveManualReviewForProcessing();
-      const payload = this.createTranscodePayload(video);
+      const payload = this.createTranscodePayload(video, command.traceId);
       const didSave = await this.videoProcessingDispatchTransaction.saveVideoWithProcessingDispatchIfStatus(
         video,
         {
@@ -129,9 +129,13 @@ export class ModerateAdminVideoUseCase extends BaseUseCase<
     return `transcode-${videoId}`;
   }
 
-  private createTranscodePayload(video: VideoEntity): VideoProcessingJobPayload {
+  private createTranscodePayload(
+    video: VideoEntity,
+    traceId: string,
+  ): VideoProcessingJobPayload {
     return {
       videoId: video.id,
+      traceId,
       rawFileKey: video.rawFileKey,
       resolution: video.resolutions,
       userId: video.ownerId,

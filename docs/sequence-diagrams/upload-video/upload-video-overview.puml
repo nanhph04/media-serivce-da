@@ -22,6 +22,8 @@ participant "API Gateway" as GW
 participant "Media Service" as MS
 participant "Object Storage" as Storage
 queue "Message Broker" as Broker
+database "Media DB" as DB
+queue "BullMQ" as BullMQ
 participant "Moderation Service" as Moderation
 participant "Media Processing Service" as Processing
 
@@ -85,12 +87,15 @@ else Đã đăng nhập
   FE --> Creator: Hiển thị video đang chờ kiểm duyệt
 end
 
-ref over Broker, Processing, MS
-  Chi tiết 4: Nhận kết quả xử lý video
+ref over Broker, MS, DB, BullMQ, Processing
+  Chi tiết 4: Nhận kết quả kiểm duyệt và điều phối xử lý video
 end ref
 
 Moderation ->> Broker: Phát kết quả duyệt video
-Broker ->> Processing: Chuyển video được duyệt để xử lý
+Broker ->> MS: Chuyển video.moderation.completed
+MS -> DB: Cập nhật video và ghi processing dispatch
+MS -> BullMQ: Worker dispatch enqueue transcode-job
+BullMQ ->> Processing: Giao job xử lý video
 Processing ->> Broker: Phát kết quả xử lý video
 Broker ->> MS: Chuyển video.processed.success hoặc video.processed.failed
 MS -> MS: Cập nhật trạng thái video

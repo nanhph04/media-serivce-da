@@ -321,6 +321,7 @@ export class VideosController {
   @ApiCreatedSuccessResponse(ConfirmVideoUploadResponseDto)
   async submitUpload(
     @CurrentUserId() userId: string,
+    @CurrentRequestId() traceId: string,
     @Param('videoId') videoId: string,
     @Param('uploadId') uploadId: string,
     @Body() dto: ConfirmVideoUploadRequestDto,
@@ -328,6 +329,7 @@ export class VideosController {
     return apiResponseContract(
       await this.confirmVideoUploadUseCase.execute({
         userId,
+        traceId,
         videoId,
         uploadId,
         resolutions: dto.resolutions,

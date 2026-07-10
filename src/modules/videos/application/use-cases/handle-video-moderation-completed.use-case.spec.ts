@@ -69,6 +69,7 @@ describe('HandleVideoModerationCompletedUseCase', () => {
 
     await useCase.execute({
       eventId: 'event-1',
+      traceId: 'trace-submit-1',
       data: {
         videoId: 'video-1',
         status: 'SAFE',
@@ -94,6 +95,7 @@ describe('HandleVideoModerationCompletedUseCase', () => {
         jobId: 'transcode-video-1',
         payload: {
           videoId: 'video-1',
+          traceId: 'trace-submit-1',
           rawFileKey: 'uploads/raw/db/video.mp4',
           resolution: ['1080p'],
           userId: 'db-owner-1',

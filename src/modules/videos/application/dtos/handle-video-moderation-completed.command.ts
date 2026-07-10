@@ -2,5 +2,6 @@ import type { VideoModerationCompletedEventData } from './video-moderation-compl
 
 export interface HandleVideoModerationCompletedCommand {
   eventId: string;
+  traceId: string;
   data: VideoModerationCompletedEventData;
 }

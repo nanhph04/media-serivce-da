@@ -152,7 +152,7 @@ export class ConfirmVideoUploadUseCase extends BaseUseCase<
         aggregateId: video.id,
         timestamp: new Date().toISOString(),
         version: 1,
-        traceId: randomUUID(),
+        traceId: command.traceId,
         sourceService: 'media-service',
         data: {
           videoId: video.id,

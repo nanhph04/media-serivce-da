@@ -274,17 +274,19 @@ describe('VideosController', () => {
     const result = await (
       controller.submitUpload as unknown as (
         userId: string,
+        traceId: string,
         videoId: string,
         uploadId: string,
         dto: { resolutions: string[]; thumbnailObjectKey?: string | null },
       ) => Promise<unknown>
-    )('owner-1', 'video-1', 'upload-1', {
+    )('owner-1', 'trace-submit-1', 'video-1', 'upload-1', {
       resolutions: ['720p'],
       thumbnailObjectKey: null,
     });
 
     expect(confirmVideoUploadUseCase.execute).toHaveBeenCalledWith({
       userId: 'owner-1',
+      traceId: 'trace-submit-1',
       videoId: 'video-1',
       uploadId: 'upload-1',
       resolutions: ['720p'],

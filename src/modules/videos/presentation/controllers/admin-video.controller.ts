@@ -11,6 +11,7 @@ import { ApiHeader, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ApiSuccessResponse } from '@shared/presentation/decorators/api-success-response.decorator';
 import { CurrentUserId } from '@shared/presentation/decorators/user-id.decorator';
 import { CurrentUserRole } from '@shared/presentation/decorators/user-role.decorator';
+import { CurrentRequestId } from '@shared/presentation/decorators/request-id.decorator';
 import {
   ApiResponse,
   apiResponseContract,
@@ -158,11 +159,13 @@ export class AdminVideoController {
   async moderateVideo(
     @CurrentUserId() adminId: string,
     @CurrentUserRole() role: string | undefined,
+    @CurrentRequestId() traceId: string,
     @Param('id') videoId: string,
     @Body() dto: ModerateAdminVideoRequestDto,
   ): Promise<ApiResponse<AdminVideoListItemResponseDto>> {
     const result = await this.moderateAdminVideoUseCase.execute({
       adminId,
+      traceId,
       role,
       videoId,
       action: dto.action,

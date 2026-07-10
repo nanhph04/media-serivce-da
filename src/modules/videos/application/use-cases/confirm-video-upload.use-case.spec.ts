@@ -115,6 +115,7 @@ describe('ConfirmVideoUploadUseCase', () => {
 
     const result = await useCase.execute({
       userId: 'owner-1',
+      traceId: 'trace-submit-1',
       videoId: 'video-1',
       uploadId: 'upload-1',
       resolutions: ['1080p', '480p', '720p'],
@@ -133,6 +134,7 @@ describe('ConfirmVideoUploadUseCase', () => {
       payload: {
         eventType: 'video.moderation.requested',
         aggregateId: 'video-1',
+        traceId: 'trace-submit-1',
         sourceService: 'media-service',
         data: {
           videoId: 'video-1',
