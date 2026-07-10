@@ -29,6 +29,10 @@ import {
 } from '../interfaces/video-status-event-publisher.interface';
 import { mapVideoStatusToJobFields } from '../dtos/video-job-status';
 import type { VideoEntity } from '../../domain/entities/video.entity';
+import {
+  EVENT_PROCESSED_TTL_SECONDS,
+  EVENT_PROCESSING_LOCK_TTL_SECONDS,
+} from '../constants/video-event.constants';
 
 @Injectable()
 export class HandleVideoProcessedSuccessUseCase extends BaseUseCase<
@@ -55,10 +59,34 @@ export class HandleVideoProcessedSuccessUseCase extends BaseUseCase<
   }
 
   async execute(command: HandleVideoProcessedSuccessCommand): Promise<void> {
-    if (!(await this.markEventProcessed(command.eventId))) {
+    const processedKey = this.getProcessedKey(command.eventId);
+    const processingKey = this.getProcessingKey(command.eventId);
+    if (await this.idempotencyStore.exists(processedKey)) {
       return;
     }
 
+    const hasProcessingLock = await this.idempotencyStore.setIfNotExists(
+      processingKey,
+      '1',
+      EVENT_PROCESSING_LOCK_TTL_SECONDS,
+    );
+    if (!hasProcessingLock) {
+      return;
+    }
+
+    try {
+      await this.processVideoProcessedSuccess(command);
+      await this.markEventProcessed(processedKey);
+      await this.idempotencyStore.delete(processingKey);
+    } catch (error: unknown) {
+      await this.releaseProcessingLock(processingKey);
+      throw error;
+    }
+  }
+
+  private async processVideoProcessedSuccess(
+    command: HandleVideoProcessedSuccessCommand,
+  ): Promise<void> {
     const video = await this.videoRepository.findById(command.data.videoId);
     if (!video) {
       return;
@@ -101,12 +129,31 @@ export class HandleVideoProcessedSuccessUseCase extends BaseUseCase<
     await this.deleteRawFileIfPresent(video.id, video.rawFileKey);
   }
 
-  private async markEventProcessed(eventId: string): Promise<boolean> {
-    return this.idempotencyStore.setIfNotExists(
-      `media:event:${eventId}`,
+  private async markEventProcessed(processedKey: string): Promise<void> {
+    await this.idempotencyStore.setIfNotExists(
+      processedKey,
       '1',
-      60 * 60 * 24,
+      EVENT_PROCESSED_TTL_SECONDS,
     );
+  }
+
+  private async releaseProcessingLock(processingKey: string): Promise<void> {
+    try {
+      await this.idempotencyStore.delete(processingKey);
+    } catch (error: unknown) {
+      this.loggerService.logWarn('Failed to release processed success lock', {
+        processingKey,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  private getProcessedKey(eventId: string): string {
+    return `media:event:${eventId}`;
+  }
+
+  private getProcessingKey(eventId: string): string {
+    return `media:event:processing:${eventId}`;
   }
 
   private async deleteRawFileIfPresent(

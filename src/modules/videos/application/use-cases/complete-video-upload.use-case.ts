@@ -5,9 +5,14 @@ import {
   type IObjectStorageService,
 } from '@shared/application/interfaces/object-storage.service.interface';
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
-import { BadRequestException } from '@shared/domain/exceptions/domain.exception';
+import {
+  BadRequestException,
+  ConflictException,
+} from '@shared/domain/exceptions/domain.exception';
 import {
   type IVideoUploadSessionRepository,
+  type VideoUploadSession,
+  VideoUploadSessionStatus,
   VIDEO_UPLOAD_SESSION_REPOSITORY,
 } from '../../domain/repositories/video-upload-session.repository';
 import { VideoUploadSessionGuardService } from '../services/video-upload-session-guard.service';
@@ -34,7 +39,17 @@ export class CompleteVideoUploadUseCase extends BaseUseCase<
     uploadId: string;
   }): Promise<CompleteVideoUploadResponse> {
     const session =
-      await this.uploadSessionGuardService.getActiveOwnedDraftSession(command);
+      await this.uploadSessionGuardService.getOwnedDraftSession(command);
+    if (session.status === VideoUploadSessionStatus.COMPLETED) {
+      return this.toResponse(session);
+    }
+    if (
+      session.status !== VideoUploadSessionStatus.ACTIVE ||
+      session.expiresAt.getTime() <= Date.now()
+    ) {
+      throw new ConflictException(ERROR_MESSAGES.UPLOAD_SESSION_NOT_ACTIVE);
+    }
+
     const totalParts = Math.ceil(session.fileSize / session.partSizeBytes);
     const completedPartNumbers = new Set(
       session.parts.map((part) => part.partNumber),
@@ -53,14 +68,35 @@ export class CompleteVideoUploadUseCase extends BaseUseCase<
         etag: part.etag,
       }));
 
-    await this.objectStorageService.completeMultipartUpload({
-      bucket: 'raw',
-      objectKey: session.rawFileKey,
-      uploadId: session.uploadId,
-      parts,
-    });
+    const isAlreadyCompletedInStorage = await this.objectStorageService.objectExists(
+      'raw',
+      session.rawFileKey,
+    );
+    if (!isAlreadyCompletedInStorage) {
+      try {
+        await this.objectStorageService.completeMultipartUpload({
+          bucket: 'raw',
+          objectKey: session.rawFileKey,
+          uploadId: session.uploadId,
+          parts,
+        });
+      } catch (error) {
+        const existsAfterFailure = await this.objectStorageService.objectExists(
+          'raw',
+          session.rawFileKey,
+        );
+        if (!existsAfterFailure) {
+          throw error;
+        }
+      }
+    }
+
     await this.uploadSessionRepository.markCompleted(session.id);
 
+    return this.toResponse(session);
+  }
+
+  private toResponse(session: VideoUploadSession): CompleteVideoUploadResponse {
     return {
       videoId: session.videoId,
       uploadId: session.uploadId,

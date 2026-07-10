@@ -14,7 +14,9 @@ describe('HandleVideoProcessedSuccessUseCase', () => {
     syncChannelEligibility: jest.fn(),
   };
   const cacheService = {
+    exists: jest.fn(),
     setIfNotExists: jest.fn(),
+    delete: jest.fn(),
   };
   const objectStorageService = {
     objectExists: jest.fn(),
@@ -36,7 +38,9 @@ describe('HandleVideoProcessedSuccessUseCase', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    cacheService.exists.mockResolvedValue(false);
     cacheService.setIfNotExists.mockResolvedValue(true);
+    cacheService.delete.mockResolvedValue(undefined);
     objectStorageService.objectExists.mockResolvedValue(true);
     objectStorageService.deleteObject.mockResolvedValue(undefined);
     videoRepository.save.mockResolvedValue(undefined);
@@ -234,7 +238,7 @@ describe('HandleVideoProcessedSuccessUseCase', () => {
   });
 
   it('skips duplicate processed success events', async () => {
-    cacheService.setIfNotExists.mockResolvedValue(false);
+    cacheService.exists.mockResolvedValue(true);
 
     await useCase.execute({
       eventId: 'event-1',
@@ -279,6 +283,38 @@ describe('HandleVideoProcessedSuccessUseCase', () => {
     expect(eligibilityService.syncChannelEligibility).not.toHaveBeenCalled();
     expect(objectStorageService.objectExists).not.toHaveBeenCalled();
     expect(objectStorageService.deleteObject).not.toHaveBeenCalled();
+  });
+
+  it('does not mark success event processed when saving the ready video fails', async () => {
+    videoRepository.findById.mockResolvedValue(
+      buildVideo({ status: VideoStatus.PROCESSING }),
+    );
+    videoRepository.save.mockRejectedValue(new Error('PostgreSQL unavailable'));
+
+    await expect(
+      useCase.execute({
+        eventId: 'event-1',
+        data: {
+          videoId: 'video-1',
+          masterPlaylistKey: 'processed/master.m3u8',
+          durationSeconds: 120,
+          thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
+          resolution: ['1080p'],
+        },
+      }),
+    ).rejects.toThrow('PostgreSQL unavailable');
+
+    expect(cacheService.setIfNotExists).not.toHaveBeenCalledWith(
+      'media:event:event-1',
+      '1',
+      60 * 60 * 24,
+    );
+    expect(cacheService.delete).toHaveBeenCalledWith(
+      'media:event:processing:event-1',
+    );
+    expect(videoCacheInvalidator.invalidateMetadata).not.toHaveBeenCalled();
+    expect(eligibilityService.syncChannelEligibility).not.toHaveBeenCalled();
+    expect(objectStorageService.objectExists).not.toHaveBeenCalled();
   });
 });
 

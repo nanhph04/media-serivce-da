@@ -11,7 +11,9 @@ describe('HandleVideoProcessedFailedUseCase', () => {
     save: jest.fn(),
   };
   const idempotencyStore = {
+    exists: jest.fn(),
     setIfNotExists: jest.fn(),
+    delete: jest.fn(),
   };
   const logger = {
     setContext: jest.fn(),
@@ -25,7 +27,9 @@ describe('HandleVideoProcessedFailedUseCase', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    idempotencyStore.exists.mockResolvedValue(false);
     idempotencyStore.setIfNotExists.mockResolvedValue(true);
+    idempotencyStore.delete.mockResolvedValue(undefined);
     videoRepository.save.mockResolvedValue(undefined);
     useCase = new HandleVideoProcessedFailedUseCase(
       videoRepository as never,
@@ -89,6 +93,35 @@ describe('HandleVideoProcessedFailedUseCase', () => {
         currentStatus: status,
       },
     );
+  });
+
+  it('does not mark failed event processed when saving the failed video fails', async () => {
+    videoRepository.findById.mockResolvedValue(
+      buildVideo({ status: VideoStatus.PROCESSING }),
+    );
+    videoRepository.save.mockRejectedValue(new Error('PostgreSQL unavailable'));
+
+    await expect(
+      useCase.execute({
+        eventId: 'event-1',
+        data: {
+          videoId: 'video-1',
+          errorMessage: 'FFmpeg failed',
+        },
+      }),
+    ).rejects.toThrow('PostgreSQL unavailable');
+
+    expect(idempotencyStore.setIfNotExists).not.toHaveBeenCalledWith(
+      'media:event:event-1',
+      '1',
+      60 * 60 * 24,
+    );
+    expect(idempotencyStore.delete).toHaveBeenCalledWith(
+      'media:event:processing:event-1',
+    );
+    expect(
+      videoStatusEventPublisher.publishVideoStatusChanged,
+    ).not.toHaveBeenCalled();
   });
 });
 

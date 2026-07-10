@@ -32,6 +32,22 @@ export class VideoUploadSessionGuardService {
     videoId: string;
     uploadId: string;
   }): Promise<VideoUploadSession> {
+    const session = await this.getOwnedDraftSession(input);
+    if (session.status !== VideoUploadSessionStatus.ACTIVE) {
+      throw new ConflictException(ERROR_MESSAGES.UPLOAD_SESSION_NOT_ACTIVE);
+    }
+    if (session.expiresAt.getTime() <= Date.now()) {
+      throw new ConflictException(ERROR_MESSAGES.UPLOAD_SESSION_NOT_ACTIVE);
+    }
+
+    return session;
+  }
+
+  async getOwnedDraftSession(input: {
+    userId: string;
+    videoId: string;
+    uploadId: string;
+  }): Promise<VideoUploadSession> {
     const video = await this.videoRepository.findById(input.videoId);
     if (!video) {
       throw new NotFoundException(ERROR_MESSAGES.VIDEO_NOT_FOUND);
@@ -52,12 +68,6 @@ export class VideoUploadSessionGuardService {
     }
     if (session.userId !== input.userId) {
       throw new ForbiddenException(ERROR_MESSAGES.UPLOAD_SESSION_NOT_OWNED);
-    }
-    if (session.status !== VideoUploadSessionStatus.ACTIVE) {
-      throw new ConflictException(ERROR_MESSAGES.UPLOAD_SESSION_NOT_ACTIVE);
-    }
-    if (session.expiresAt.getTime() <= Date.now()) {
-      throw new ConflictException(ERROR_MESSAGES.UPLOAD_SESSION_NOT_ACTIVE);
     }
 
     return session;
