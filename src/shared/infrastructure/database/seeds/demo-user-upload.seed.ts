@@ -627,6 +627,7 @@ async function uploadLikeUser(input: {
   await input.dependencies.confirmVideoUploadUseCase.execute({
     userId: input.userId,
     videoId: upload.videoId,
+    uploadId: upload.uploadId,
     resolutions: ['480p', '720p'],
     thumbnailObjectKey: null,
   });

@@ -265,6 +265,37 @@ describe('VideosController', () => {
     });
   });
 
+  it('submits upload using the route upload session id', async () => {
+    confirmVideoUploadUseCase.execute.mockResolvedValue({
+      status: VideoStatus.PENDING_MODERATION,
+      message: 'Video is waiting for moderation',
+    });
+
+    const result = await (
+      controller.submitUpload as unknown as (
+        userId: string,
+        videoId: string,
+        uploadId: string,
+        dto: { resolutions: string[]; thumbnailObjectKey?: string | null },
+      ) => Promise<unknown>
+    )('owner-1', 'video-1', 'upload-1', {
+      resolutions: ['720p'],
+      thumbnailObjectKey: null,
+    });
+
+    expect(confirmVideoUploadUseCase.execute).toHaveBeenCalledWith({
+      userId: 'owner-1',
+      videoId: 'video-1',
+      uploadId: 'upload-1',
+      resolutions: ['720p'],
+      thumbnailObjectKey: null,
+    });
+    expect(result).toEqual({
+      status: VideoStatus.PENDING_MODERATION,
+      message: 'Video is waiting for moderation',
+    });
+  });
+
   it('generates video metadata suggestions', async () => {
     generateVideoMetadataSuggestionUseCase.execute.mockResolvedValue({
       title: 'Better Video Title',

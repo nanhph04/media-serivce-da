@@ -12,6 +12,7 @@ import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import { LoggerService } from '@shared/infrastructure/logger/logger.service';
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   NotFoundException,
 } from '@shared/domain/exceptions/domain.exception';
@@ -21,6 +22,11 @@ import {
   type IVideoRepository,
   VIDEO_REPOSITORY,
 } from '../../domain/repositories/video.repository';
+import {
+  type IVideoUploadSessionRepository,
+  VideoUploadSessionStatus,
+  VIDEO_UPLOAD_SESSION_REPOSITORY,
+} from '../../domain/repositories/video-upload-session.repository';
 import type { VideoEntity } from '../../domain/entities/video.entity';
 import {
   VIDEO_OUTBOX_TRANSACTION,
@@ -59,6 +65,8 @@ export class ConfirmVideoUploadUseCase extends BaseUseCase<
   constructor(
     @Inject(VIDEO_REPOSITORY)
     private readonly videoRepository: IVideoRepository,
+    @Inject(VIDEO_UPLOAD_SESSION_REPOSITORY)
+    private readonly uploadSessionRepository: IVideoUploadSessionRepository,
     @Inject(OBJECT_STORAGE_SERVICE)
     private readonly objectStorageService: IObjectStorageService,
     @Inject(VIDEO_OUTBOX_TRANSACTION)
@@ -84,6 +92,7 @@ export class ConfirmVideoUploadUseCase extends BaseUseCase<
       throw new ForbiddenException(ERROR_MESSAGES.VIDEO_NOT_OWNED);
     }
     video.assertDraftUploadMutable();
+    await this.assertCompletedUploadSession(command);
 
     const exists = await this.objectStorageService.objectExists(
       'raw',
@@ -182,6 +191,24 @@ export class ConfirmVideoUploadUseCase extends BaseUseCase<
 
   private createConfirmedRawFileKey(videoId: string): string {
     return `uploads/confirmed/${videoId}/${crypto.randomUUID()}.mp4`;
+  }
+
+  private async assertCompletedUploadSession(
+    command: ConfirmVideoUploadCommand,
+  ): Promise<void> {
+    const session = await this.uploadSessionRepository.findByVideoAndUploadId(
+      command.videoId,
+      command.uploadId,
+    );
+    if (!session) {
+      throw new NotFoundException(ERROR_MESSAGES.UPLOAD_SESSION_NOT_FOUND);
+    }
+    if (session.userId !== command.userId) {
+      throw new ForbiddenException(ERROR_MESSAGES.UPLOAD_SESSION_NOT_OWNED);
+    }
+    if (session.status !== VideoUploadSessionStatus.COMPLETED) {
+      throw new ConflictException(ERROR_MESSAGES.UPLOAD_SESSION_NOT_COMPLETED);
+    }
   }
 
   private async applyCustomThumbnail(

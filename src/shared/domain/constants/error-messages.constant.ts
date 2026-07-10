@@ -117,6 +117,7 @@ export const ERROR_MESSAGES = {
   UPLOAD_SESSION_NOT_FOUND: 'Upload session not found',
   UPLOAD_SESSION_NOT_OWNED: 'You do not own this upload session',
   UPLOAD_SESSION_NOT_ACTIVE: 'Upload session is not active',
+  UPLOAD_SESSION_NOT_COMPLETED: 'Upload session is not completed',
   UPLOAD_MISSING_PARTS: 'Upload is missing one or more parts',
   PART_NUMBER_INVALID: 'Part number is invalid',
   PART_NUMBER_OUT_OF_RANGE: 'Part number is out of range',

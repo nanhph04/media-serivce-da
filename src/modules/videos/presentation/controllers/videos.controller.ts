@@ -322,12 +322,14 @@ export class VideosController {
   async submitUpload(
     @CurrentUserId() userId: string,
     @Param('videoId') videoId: string,
+    @Param('uploadId') uploadId: string,
     @Body() dto: ConfirmVideoUploadRequestDto,
   ): Promise<ApiResponse<ConfirmVideoUploadResponseDto>> {
     return apiResponseContract(
       await this.confirmVideoUploadUseCase.execute({
         userId,
         videoId,
+        uploadId,
         resolutions: dto.resolutions,
         thumbnailObjectKey: dto.thumbnailObjectKey,
       }),

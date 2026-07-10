@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   NotFoundException,
 } from '@shared/domain/exceptions/domain.exception';
@@ -8,12 +9,16 @@ import {
   VideoVisibility,
 } from '../../domain/entities/video.entity';
 import { VideoEntity } from '../../domain/entities/video.entity';
+import { VideoUploadSessionStatus } from '../../domain/repositories/video-upload-session.repository';
 import { ConfirmVideoUploadUseCase } from './confirm-video-upload.use-case';
 
 describe('ConfirmVideoUploadUseCase', () => {
   const videoRepository = {
     findById: jest.fn(),
     save: jest.fn(),
+  };
+  const uploadSessionRepository = {
+    findByVideoAndUploadId: jest.fn(),
   };
   const objectStorageService = {
     objectExists: jest.fn(),
@@ -39,19 +44,24 @@ describe('ConfirmVideoUploadUseCase', () => {
     logWarn: jest.fn(),
   };
 
-  const useCase = new ConfirmVideoUploadUseCase(
-    videoRepository as never,
-    objectStorageService as never,
-    videoOutboxTransaction as never,
-    videoUploadConfig as never,
-    videoStatusEventPublisher as never,
-    loggerService as never,
-  );
+  let useCase: ConfirmVideoUploadUseCase;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    useCase = new ConfirmVideoUploadUseCase(
+      videoRepository as never,
+      uploadSessionRepository as never,
+      objectStorageService as never,
+      videoOutboxTransaction as never,
+      videoUploadConfig as never,
+      videoStatusEventPublisher as never,
+      loggerService as never,
+    );
     videoUploadConfig.getMaxVideoUploadSizeBytes.mockReturnValue(
       2 * 1024 * 1024 * 1024,
+    );
+    uploadSessionRepository.findByVideoAndUploadId.mockResolvedValue(
+      buildUploadSession(),
     );
     objectStorageService.getBucketName.mockReturnValue('media-raw');
     objectStorageService.copyObject.mockResolvedValue(undefined);
@@ -70,6 +80,7 @@ describe('ConfirmVideoUploadUseCase', () => {
       useCase.execute({
         userId: 'owner-1',
         videoId: 'video-1',
+        uploadId: 'upload-1',
         resolutions: ['1080p'],
       }),
     ).rejects.toThrow(BadRequestException);
@@ -89,6 +100,7 @@ describe('ConfirmVideoUploadUseCase', () => {
       useCase.execute({
         userId: 'owner-1',
         videoId: 'video-1',
+        uploadId: 'upload-1',
         resolutions: ['720p'],
       }),
     ).rejects.toThrow('Uploaded video file is empty or invalid');
@@ -104,6 +116,7 @@ describe('ConfirmVideoUploadUseCase', () => {
     const result = await useCase.execute({
       userId: 'owner-1',
       videoId: 'video-1',
+      uploadId: 'upload-1',
       resolutions: ['1080p', '480p', '720p'],
     });
 
@@ -171,6 +184,7 @@ describe('ConfirmVideoUploadUseCase', () => {
       useCase.execute({
         userId: 'owner-1',
         videoId: 'video-1',
+        uploadId: 'upload-1',
         resolutions: ['720p'],
       }),
     ).rejects.toThrow('copy failed');
@@ -192,6 +206,7 @@ describe('ConfirmVideoUploadUseCase', () => {
       useCase.execute({
         userId: 'owner-1',
         videoId: 'video-1',
+        uploadId: 'upload-1',
         resolutions: ['720p'],
       }),
     ).rejects.toThrow(outboxError);
@@ -212,6 +227,7 @@ describe('ConfirmVideoUploadUseCase', () => {
       useCase.execute({
         userId: 'owner-1',
         videoId: 'missing',
+        uploadId: 'upload-1',
         resolutions: ['720p'],
       }),
     ).rejects.toThrow(NotFoundException);
@@ -226,9 +242,33 @@ describe('ConfirmVideoUploadUseCase', () => {
       useCase.execute({
         userId: 'owner-1',
         videoId: 'video-1',
+        uploadId: 'upload-1',
         resolutions: ['720p'],
       }),
     ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('rejects submit when the route upload session is not completed', async () => {
+    videoRepository.findById.mockResolvedValue(buildDraftVideo());
+    uploadSessionRepository.findByVideoAndUploadId.mockResolvedValue(
+      buildUploadSession({ status: VideoUploadSessionStatus.ACTIVE }),
+    );
+
+    await expect(
+      useCase.execute({
+        userId: 'owner-1',
+        videoId: 'video-1',
+        uploadId: 'other-upload-id',
+        resolutions: ['720p'],
+      }),
+    ).rejects.toThrow(ConflictException);
+
+    expect(uploadSessionRepository.findByVideoAndUploadId).toHaveBeenCalledWith(
+      'video-1',
+      'other-upload-id',
+    );
+    expect(objectStorageService.objectExists).not.toHaveBeenCalled();
+    expect(videoOutboxTransaction.saveVideoWithOutbox).not.toHaveBeenCalled();
   });
 });
 
@@ -262,4 +302,29 @@ function buildDraftVideo(
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
     updatedAt: new Date('2026-01-01T00:00:00.000Z'),
   });
+}
+
+function buildUploadSession(
+  overrides: Partial<{
+    uploadId: string;
+    status: VideoUploadSessionStatus;
+    userId: string;
+  }> = {},
+) {
+  return {
+    id: 'session-1',
+    videoId: 'video-1',
+    userId: overrides.userId ?? 'owner-1',
+    rawFileKey: 'uploads/raw/channel-1/video.mp4',
+    uploadId: overrides.uploadId ?? 'upload-1',
+    partSizeBytes: 16 * 1024 * 1024,
+    fileName: 'video.mp4',
+    fileSize: 1024,
+    fileLastModified: new Date('2026-05-20T10:00:00.000Z'),
+    status: overrides.status ?? VideoUploadSessionStatus.COMPLETED,
+    expiresAt: new Date('2026-05-21T10:00:00.000Z'),
+    createdAt: new Date('2026-05-20T10:00:00.000Z'),
+    updatedAt: new Date('2026-05-20T10:00:00.000Z'),
+    parts: [],
+  };
 }
