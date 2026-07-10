@@ -58,8 +58,14 @@ describe('HandleVideoModerationCompletedUseCase', () => {
     );
   });
 
-  it('marks safe moderated video as processing and persists transcode dispatch intent', async () => {
-    videoRepository.findById.mockResolvedValue(buildVideo());
+  it('marks safe moderated video as processing with authoritative DB dispatch fields', async () => {
+    videoRepository.findById.mockResolvedValue(
+      buildVideo({
+        ownerId: 'db-owner-1',
+        rawFileKey: 'uploads/raw/db/video.mp4',
+        resolutions: ['1080p'],
+      }),
+    );
 
     await useCase.execute({
       eventId: 'event-1',
@@ -70,16 +76,16 @@ describe('HandleVideoModerationCompletedUseCase', () => {
         reason: 'safe',
         confidence: 0.1,
         evidenceTimestampSeconds: null,
-        rawFileKey: 'uploads/raw/channel-1/video.mp4',
+        rawFileKey: 'uploads/raw/event/spoofed.mp4',
         resolutions: ['480p', '720p'],
-        userId: 'owner-1',
+        userId: 'event-owner-1',
       },
     });
 
     const savedVideo = videoProcessingDispatchTransaction
       .saveVideoWithProcessingDispatch.mock.calls[0][0] as VideoEntity;
     expect(savedVideo.status).toBe(VideoStatus.PROCESSING);
-    expect(savedVideo.resolutions).toEqual(['480p', '720p']);
+    expect(savedVideo.resolutions).toEqual(['1080p']);
     expect(
       videoProcessingDispatchTransaction.saveVideoWithProcessingDispatch,
     ).toHaveBeenCalledWith(
@@ -88,9 +94,9 @@ describe('HandleVideoModerationCompletedUseCase', () => {
         jobId: 'transcode-video-1',
         payload: {
           videoId: 'video-1',
-          rawFileKey: 'uploads/raw/channel-1/video.mp4',
-          resolution: ['480p', '720p'],
-          userId: 'owner-1',
+          rawFileKey: 'uploads/raw/db/video.mp4',
+          resolution: ['1080p'],
+          userId: 'db-owner-1',
           thumbnailTargetObjectKey: 'videos/video-1/thumbnails/default.jpg',
           thumbnailTargetBucket: 'media-public',
         },
@@ -128,7 +134,7 @@ describe('HandleVideoModerationCompletedUseCase', () => {
     ).toHaveBeenCalledWith(
       expect.objectContaining({
         videoId: 'video-1',
-        userId: 'owner-1',
+        userId: 'db-owner-1',
         status: VideoStatus.PROCESSING,
         jobStatus: 'processing',
       }),
@@ -136,7 +142,9 @@ describe('HandleVideoModerationCompletedUseCase', () => {
   });
 
   it('marks yellow moderation result as pending manual review without transcoding', async () => {
-    videoRepository.findById.mockResolvedValue(buildVideo());
+    videoRepository.findById.mockResolvedValue(
+      buildVideo({ resolutions: ['1080p'] }),
+    );
 
     await useCase.execute({
       eventId: 'event-1',
@@ -156,14 +164,14 @@ describe('HandleVideoModerationCompletedUseCase', () => {
           thresholds: { manual: 0.6, reject: 0.9 },
         },
         rawFileKey: 'uploads/raw/channel-1/video.mp4',
-        resolutions: ['720p'],
+        resolutions: ['480p'],
         userId: 'owner-1',
       },
     });
 
     const savedVideo = videoRepository.save.mock.calls[0][0] as VideoEntity;
     expect(savedVideo.status).toBe(VideoStatus.PENDING_MANUAL_REVIEW);
-    expect(savedVideo.resolutions).toEqual(['720p']);
+    expect(savedVideo.resolutions).toEqual(['1080p']);
     expect(savedVideo.errorMessage).toBe('NSFW score 0.72 at 00:12');
     expect(savedVideo.moderationDetails).toEqual({
       reason: 'NSFW score 0.72 at 00:12',

@@ -78,6 +78,7 @@ export interface AdminVideosPage {
 
 export interface IVideoRepository {
   save(video: VideoEntity): Promise<void>;
+  saveIfStatus(video: VideoEntity, expectedStatus: VideoStatus): Promise<boolean>;
   findById(id: string): Promise<VideoEntity | null>;
   findBasicById(id: string): Promise<VideoEntity | null>;
   deleteDraftById(id: string): Promise<void>;

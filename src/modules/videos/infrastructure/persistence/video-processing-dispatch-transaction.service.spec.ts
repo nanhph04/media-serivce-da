@@ -14,6 +14,7 @@ import { VideoProcessingDispatchStatus } from './video-processing-dispatch.orm-e
 describe('VideoProcessingDispatchTransactionService', () => {
   const manager = {
     save: jest.fn(),
+    update: jest.fn(),
     delete: jest.fn(),
     insert: jest.fn(),
     query: jest.fn(),
@@ -30,6 +31,7 @@ describe('VideoProcessingDispatchTransactionService', () => {
       callback(manager),
     );
     manager.save.mockResolvedValue(undefined);
+    manager.update.mockResolvedValue({ affected: 1 });
     manager.delete.mockResolvedValue(undefined);
     manager.insert.mockResolvedValue(undefined);
     manager.query.mockResolvedValue(undefined);
@@ -77,6 +79,64 @@ describe('VideoProcessingDispatchTransactionService', () => {
         expect.any(Date),
       ],
     );
+  });
+
+  it('conditionally saves video and dispatch only when current status matches', async () => {
+    const video = buildProcessingVideo();
+
+    await expect(
+      service.saveVideoWithProcessingDispatchIfStatus(
+        video,
+        {
+          jobId: 'transcode-video-1',
+          payload: {
+            videoId: 'video-1',
+            rawFileKey: 'raw.mp4',
+            resolution: ['720p'],
+            userId: 'owner-1',
+          },
+        },
+        VideoStatus.PENDING_MANUAL_REVIEW,
+      ),
+    ).resolves.toBe(true);
+
+    expect(manager.update).toHaveBeenCalledWith(
+      VideoOrmEntity,
+      { id: 'video-1', status: VideoStatus.PENDING_MANUAL_REVIEW },
+      expect.objectContaining({ status: VideoStatus.PROCESSING }),
+    );
+    expect(manager.delete).toHaveBeenCalledWith(VideoTagOrmEntity, {
+      videoId: 'video-1',
+    });
+    expect(manager.query).toHaveBeenCalledWith(
+      expect.stringContaining('ON CONFLICT ("job_id") DO NOTHING'),
+      expect.arrayContaining(['video-1', 'transcode-video-1']),
+    );
+  });
+
+  it('skips tag and dispatch writes when conditional status update misses', async () => {
+    manager.update.mockResolvedValueOnce({ affected: 0 });
+    const video = buildProcessingVideo();
+
+    await expect(
+      service.saveVideoWithProcessingDispatchIfStatus(
+        video,
+        {
+          jobId: 'transcode-video-1',
+          payload: {
+            videoId: 'video-1',
+            rawFileKey: 'raw.mp4',
+            resolution: ['720p'],
+            userId: 'owner-1',
+          },
+        },
+        VideoStatus.PENDING_MANUAL_REVIEW,
+      ),
+    ).resolves.toBe(false);
+
+    expect(manager.delete).not.toHaveBeenCalled();
+    expect(manager.insert).not.toHaveBeenCalled();
+    expect(manager.query).not.toHaveBeenCalled();
   });
 });
 

@@ -7,6 +7,7 @@ import type { VideoProcessingJobPayload } from '@shared/application/interfaces/v
 import { BaseUseCase } from '@shared/application/use-cases/base.use-case';
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   NotFoundException,
 } from '@shared/domain/exceptions/domain.exception';
@@ -39,6 +40,7 @@ import {
   VideoThumbnailSource,
   type VideoEntity,
 } from '../../domain/entities/video.entity';
+import { VideoStatus } from '../../domain/entities/video.types';
 
 @Injectable()
 export class ModerateAdminVideoUseCase extends BaseUseCase<
@@ -79,13 +81,15 @@ export class ModerateAdminVideoUseCase extends BaseUseCase<
     if (command.action === 'approve') {
       video.approveManualReviewForProcessing();
       const payload = this.createTranscodePayload(video);
-      await this.videoProcessingDispatchTransaction.saveVideoWithProcessingDispatch(
+      const didSave = await this.videoProcessingDispatchTransaction.saveVideoWithProcessingDispatchIfStatus(
         video,
         {
           jobId: this.createTranscodeJobId(video.id),
           payload,
         },
+        VideoStatus.PENDING_MANUAL_REVIEW,
       );
+      this.ensureModerationDecisionSaved(didSave);
       this.publishVideoStatusChanged(video);
       await this.moderationOutcomePublisher.publishModerationOutcome({
         videoId: video.id,
@@ -101,7 +105,11 @@ export class ModerateAdminVideoUseCase extends BaseUseCase<
       });
     } else {
       video.rejectManualReview(command.reason ?? '');
-      await this.videoRepository.save(video);
+      const didSave = await this.videoRepository.saveIfStatus(
+        video,
+        VideoStatus.PENDING_MANUAL_REVIEW,
+      );
+      this.ensureModerationDecisionSaved(didSave);
     }
 
     await this.videoCacheInvalidator.invalidateMetadata(video.id);
@@ -166,6 +174,12 @@ export class ModerateAdminVideoUseCase extends BaseUseCase<
   private ensureAdminRole(role: string | undefined): void {
     if (role !== 'admin') {
       throw new ForbiddenException(ERROR_MESSAGES.ADMIN_ROLE_REQUIRED);
+    }
+  }
+
+  private ensureModerationDecisionSaved(didSave: boolean): void {
+    if (!didSave) {
+      throw new ConflictException(ERROR_MESSAGES.VIDEO_NOT_PENDING_MANUAL_REVIEW);
     }
   }
 }

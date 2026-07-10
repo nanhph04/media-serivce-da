@@ -114,8 +114,8 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
     }
 
     if (command.data.status === 'SAFE') {
-      video.markProcessing({ resolutions: command.data.resolutions });
-      const payload = this.createTranscodePayload(video, command.data);
+      video.markProcessing();
+      const payload = this.createTranscodePayload(video);
       await this.videoProcessingDispatchTransaction.saveVideoWithProcessingDispatch(
         video,
         {
@@ -141,7 +141,6 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
       video.markPendingManualReview(
         command.data.reason,
         this.toModerationDetails(command.data),
-        { resolutions: command.data.resolutions },
       );
       await this.videoRepository.save(video);
       this.publishVideoStatusChanged(video);
@@ -233,15 +232,12 @@ export class HandleVideoModerationCompletedUseCase extends BaseUseCase<
     return `transcode-${videoId}`;
   }
 
-  private createTranscodePayload(
-    video: VideoEntity,
-    data: HandleVideoModerationCompletedCommand['data'],
-  ): VideoProcessingJobPayload {
+  private createTranscodePayload(video: VideoEntity): VideoProcessingJobPayload {
     return {
-      videoId: data.videoId,
-      rawFileKey: data.rawFileKey,
-      resolution: data.resolutions,
-      userId: data.userId,
+      videoId: video.id,
+      rawFileKey: video.rawFileKey,
+      resolution: video.resolutions,
+      userId: video.ownerId,
       thumbnailTargetObjectKey:
         video.thumbnailSource === VideoThumbnailSource.AUTO
           ? this.createAutoThumbnailObjectKey(video.id)

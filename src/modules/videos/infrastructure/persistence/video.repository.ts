@@ -7,6 +7,7 @@ import {
   Repository,
   type FindOptionsWhere,
 } from 'typeorm';
+import type { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import {
   VideoDeletionStatus,
   VideoEntity,
@@ -50,47 +51,7 @@ export class VideoRepository implements IVideoRepository {
 
   async save(video: VideoEntity): Promise<void> {
     await this.dataSource.transaction(async (manager) => {
-      await manager.save(VideoOrmEntity, {
-        id: video.id,
-        channelId: video.channelId,
-        ownerId: video.ownerId,
-        title: video.title,
-        description: video.description,
-        categoryId: video.category.id,
-        visibility: video.visibility,
-        status: video.status,
-        price: video.price,
-        requiredTierLevel: video.requiredTierLevel,
-        rawFileKey: video.rawFileKey,
-        masterPlaylistKey: video.masterPlaylistKey,
-        thumbnailObjectKey: video.thumbnailObjectKey,
-        thumbnailUrl: video.thumbnailUrl,
-        thumbnailSource: video.thumbnailSource,
-        thumbnailStatus: video.thumbnailStatus,
-        thumbnailGeneratedAt: video.thumbnailGeneratedAt,
-        thumbnailError: video.thumbnailError,
-        durationSeconds: video.durationSeconds,
-        resolutions: video.resolutions,
-        processingWarnings: video.processingWarnings,
-        errorMessage: video.errorMessage,
-        moderationDetails: video.moderationDetails
-          ? { ...video.moderationDetails }
-          : null,
-        viewCount: video.viewCount,
-        publishedAt: video.publishedAt,
-        isDeleted: video.isDeleted,
-        deletedAt: video.deletedAt,
-        deletedBy: video.deletedBy,
-        deleteReason: video.deleteReason,
-        deletionStatus: video.deletionStatus,
-        deleteRequestedAt: video.deleteRequestedAt,
-        refundCompletedAt: video.refundCompletedAt,
-        refundSummary: video.refundSummary,
-        storageDeletedAt: video.storageDeletedAt,
-        createdAt: video.createdAt,
-        updatedAt: video.updatedAt,
-        statusChangedAt: video.statusChangedAt,
-      });
+      await manager.save(VideoOrmEntity, this.toOrmPersistence(video));
 
       await manager.delete(VideoTagOrmEntity, { videoId: video.id });
 
@@ -104,6 +65,38 @@ export class VideoRepository implements IVideoRepository {
           })),
         );
       }
+    });
+  }
+
+  async saveIfStatus(
+    video: VideoEntity,
+    expectedStatus: VideoStatus,
+  ): Promise<boolean> {
+    return this.dataSource.transaction(async (manager) => {
+      const result = await manager.update(
+        VideoOrmEntity,
+        { id: video.id, status: expectedStatus },
+        this.toOrmMutableFields(video) as QueryDeepPartialEntity<VideoOrmEntity>,
+      );
+
+      if (!result.affected) {
+        return false;
+      }
+
+      await manager.delete(VideoTagOrmEntity, { videoId: video.id });
+
+      if (video.tags.length > 0) {
+        await manager.insert(
+          VideoTagOrmEntity,
+          video.tags.map((tag) => ({
+            videoId: video.id,
+            tagId: tag.id,
+            createdAt: new Date(),
+          })),
+        );
+      }
+
+      return true;
     });
   }
 
@@ -706,6 +699,56 @@ export class VideoRepository implements IVideoRepository {
 
   private toUtcDateString(date: Date): string {
     return date.toISOString().slice(0, 10);
+  }
+
+  private toOrmPersistence(video: VideoEntity): Partial<VideoOrmEntity> {
+    return {
+      id: video.id,
+      ...this.toOrmMutableFields(video),
+      createdAt: video.createdAt,
+    };
+  }
+
+  private toOrmMutableFields(video: VideoEntity): Partial<VideoOrmEntity> {
+    return {
+      channelId: video.channelId,
+      ownerId: video.ownerId,
+      title: video.title,
+      description: video.description,
+      categoryId: video.category.id,
+      visibility: video.visibility,
+      status: video.status,
+      price: video.price,
+      requiredTierLevel: video.requiredTierLevel,
+      rawFileKey: video.rawFileKey,
+      masterPlaylistKey: video.masterPlaylistKey,
+      thumbnailObjectKey: video.thumbnailObjectKey,
+      thumbnailUrl: video.thumbnailUrl,
+      thumbnailSource: video.thumbnailSource,
+      thumbnailStatus: video.thumbnailStatus,
+      thumbnailGeneratedAt: video.thumbnailGeneratedAt,
+      thumbnailError: video.thumbnailError,
+      durationSeconds: video.durationSeconds,
+      resolutions: video.resolutions,
+      processingWarnings: video.processingWarnings,
+      errorMessage: video.errorMessage,
+      moderationDetails: video.moderationDetails
+        ? { ...video.moderationDetails }
+        : null,
+      viewCount: video.viewCount,
+      publishedAt: video.publishedAt,
+      isDeleted: video.isDeleted,
+      deletedAt: video.deletedAt,
+      deletedBy: video.deletedBy,
+      deleteReason: video.deleteReason,
+      deletionStatus: video.deletionStatus,
+      deleteRequestedAt: video.deleteRequestedAt,
+      refundCompletedAt: video.refundCompletedAt,
+      refundSummary: video.refundSummary,
+      storageDeletedAt: video.storageDeletedAt,
+      updatedAt: video.updatedAt,
+      statusChangedAt: video.statusChangedAt,
+    };
   }
 
   async findAdminVideoById(id: string): Promise<VideoEntity | null> {

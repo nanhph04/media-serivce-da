@@ -1,6 +1,14 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { VideoRepository } from './video.repository';
-import { VideoStatus } from '../../domain/entities/video.entity';
+import {
+  VideoStatus,
+  VideoThumbnailSource,
+  VideoThumbnailStatus,
+  VideoVisibility,
+  type VideoEntity,
+} from '../../domain/entities/video.entity';
+import { VideoOrmEntity } from './video.orm-entity';
+import { VideoTagOrmEntity } from './video-tag.orm-entity';
 
 describe('VideoRepository', () => {
   const execute = jest.fn();
@@ -25,10 +33,13 @@ describe('VideoRepository', () => {
     },
   };
   const manager = {
+    save: jest.fn(),
+    update: jest.fn(),
     delete: jest.fn(),
+    insert: jest.fn(),
   };
   const dataSource = {
-    transaction: jest.fn((callback: (managerArg: typeof manager) => void) =>
+    transaction: jest.fn((callback: (managerArg: typeof manager) => unknown) =>
       Promise.resolve(callback(manager)),
     ),
   };
@@ -56,7 +67,10 @@ describe('VideoRepository', () => {
     setParameter.mockReturnValue({
       getRawOne,
     });
+    manager.save.mockResolvedValue(undefined);
+    manager.update.mockResolvedValue({ affected: 1 });
     manager.delete.mockResolvedValue(undefined);
+    manager.insert.mockResolvedValue(undefined);
   });
 
   it('increments view_count atomically for the target video', async () => {
@@ -121,6 +135,35 @@ describe('VideoRepository', () => {
       relations: { category: true, videoTags: { tag: true } },
     });
     expect(video?.category.slug).toBe('music');
+  });
+
+  it('conditionally saves a video only when current status matches', async () => {
+    const video = buildRepositoryVideo(VideoStatus.REJECTED);
+
+    await expect(
+      repository.saveIfStatus(video, VideoStatus.PENDING_MANUAL_REVIEW),
+    ).resolves.toBe(true);
+
+    expect(manager.update).toHaveBeenCalledWith(
+      VideoOrmEntity,
+      { id: 'video-1', status: VideoStatus.PENDING_MANUAL_REVIEW },
+      expect.objectContaining({ status: VideoStatus.REJECTED }),
+    );
+    expect(manager.delete).toHaveBeenCalledWith(VideoTagOrmEntity, {
+      videoId: 'video-1',
+    });
+  });
+
+  it('skips tag writes when conditional video save misses', async () => {
+    manager.update.mockResolvedValueOnce({ affected: 0 });
+    const video = buildRepositoryVideo(VideoStatus.REJECTED);
+
+    await expect(
+      repository.saveIfStatus(video, VideoStatus.PENDING_MANUAL_REVIEW),
+    ).resolves.toBe(false);
+
+    expect(manager.delete).not.toHaveBeenCalled();
+    expect(manager.insert).not.toHaveBeenCalled();
   });
 
   it('aggregates ready video count and total views for channel eligibility', async () => {
@@ -624,6 +667,56 @@ function buildVideoRow(): {
     category: buildCategoryRow(),
     videoTags: [],
   };
+}
+
+function buildRepositoryVideo(status: VideoStatus): VideoEntity {
+  return {
+    id: 'video-1',
+    channelId: 'channel-1',
+    ownerId: 'owner-1',
+    title: 'Video',
+    description: 'Description',
+    category: { id: 'category-1' },
+    tags: [],
+    visibility: VideoVisibility.PUBLIC,
+    status,
+    price: 0,
+    requiredTierLevel: null,
+    rawFileKey: 'raw/video.mp4',
+    masterPlaylistKey: null,
+    thumbnailObjectKey: null,
+    thumbnailUrl: null,
+    thumbnailSource: VideoThumbnailSource.AUTO,
+    thumbnailStatus: VideoThumbnailStatus.PROCESSING,
+    thumbnailGeneratedAt: null,
+    thumbnailError: null,
+    durationSeconds: null,
+    resolutions: ['720p'],
+    processingWarnings: [],
+    errorMessage: status === VideoStatus.REJECTED ? 'Policy issue' : null,
+    moderationDetails:
+      status === VideoStatus.REJECTED
+        ? {
+            reason: 'Policy issue',
+            confidence: 1,
+            evidenceTimestampSeconds: null,
+          }
+        : null,
+    viewCount: 0,
+    publishedAt: null,
+    isDeleted: false,
+    deletedAt: null,
+    deletedBy: null,
+    deleteReason: null,
+    deletionStatus: 'active',
+    deleteRequestedAt: null,
+    refundCompletedAt: null,
+    refundSummary: null,
+    storageDeletedAt: null,
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+    statusChangedAt: new Date('2026-01-02T00:00:00.000Z'),
+  } as unknown as VideoEntity;
 }
 
 function buildCategoryRow(): {
