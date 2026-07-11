@@ -465,7 +465,10 @@ export class VideoQueryService implements IVideoQueryService {
     const sessions = await this.uploadSessionOrmRepository.find({
       where: {
         videoId: In(draftVideoIds),
-        status: VideoUploadSessionStatus.ACTIVE,
+        status: In([
+          VideoUploadSessionStatus.ACTIVE,
+          VideoUploadSessionStatus.COMPLETED,
+        ]),
         expiresAt: MoreThan(new Date()),
       },
       order: { createdAt: 'DESC' },

@@ -13,6 +13,7 @@ import {
   VideoThumbnailStatus,
   VideoVisibility,
 } from '../../domain/entities/video.entity';
+import { VideoUploadSessionStatus } from '../../domain/repositories/video-upload-session.repository';
 import { VIDEO_CACHE_KEYS, VIDEO_CACHE_TTL_SECONDS } from '../cache.constants';
 import { VideoQueryService } from './video-query.service';
 
@@ -540,6 +541,60 @@ describe('VideoQueryService', () => {
         statuses: [VideoStatus.DRAFT],
         visibilities: [VideoVisibility.PRIVATE],
       },
+    );
+  });
+
+  it('includes completed upload sessions for draft studio videos', async () => {
+    videoRepository.findStudioByOwnerId.mockResolvedValue({
+      items: [
+        buildVideo({
+          status: VideoStatus.DRAFT,
+          visibility: VideoVisibility.PRIVATE,
+        }),
+      ],
+      total: 1,
+    });
+    uploadSessionOrmRepository.find.mockResolvedValue([
+      {
+        videoId: 'video-1',
+        uploadId: 'upload-completed-1',
+        partSizeBytes: 5 * 1024 * 1024,
+        status: VideoUploadSessionStatus.COMPLETED,
+        expiresAt: new Date('2026-01-02T00:00:00.000Z'),
+        fileName: 'draft.mp4',
+        fileSize: '123456789',
+      },
+    ]);
+
+    await expect(
+      service.getStudioVideos('owner-1', {
+        page: 1,
+        limit: 20,
+        statuses: [VideoStatus.DRAFT],
+        visibilities: [VideoVisibility.PRIVATE],
+      }),
+    ).resolves.toMatchObject({
+      items: [
+        {
+          id: 'video-1',
+          status: VideoStatus.DRAFT,
+          uploadId: 'upload-completed-1',
+          uploadSessionStatus: VideoUploadSessionStatus.COMPLETED,
+        },
+      ],
+    });
+    expect(uploadSessionOrmRepository.find).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          status: expect.objectContaining({
+            _type: 'in',
+            _value: [
+              VideoUploadSessionStatus.ACTIVE,
+              VideoUploadSessionStatus.COMPLETED,
+            ],
+          }),
+        }),
+      }),
     );
   });
 
