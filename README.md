@@ -1,99 +1,129 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Media Service
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Media Service là service trung tâm của hệ thống media, chịu trách nhiệm quản lý kênh, video, danh mục, gói hội viên, quyền xem video và các nghiệp vụ liên quan đến nội dung.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Vai trò chính
 
-## Description
+- Tạo và quản lý channel của người dùng.
+- Tải video lên Object Storage theo cơ chế multipart upload.
+- Lưu metadata video, trạng thái xử lý, trạng thái kiểm duyệt và trạng thái xuất bản.
+- Gửi job xử lý video sang Media Processing Service qua BullMQ/Redis.
+- Gửi yêu cầu kiểm duyệt sang Moderation Service qua Kafka/event.
+- Cung cấp dữ liệu phát video HLS cho người xem đủ quyền.
+- Quản lý danh mục, gói hội viên, mua hội viên và mở khóa video.
+- Nhận event từ Finance Service, Media Processing Service và Moderation Service để cập nhật dữ liệu media.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Tích hợp hệ thống
 
-## Project setup
+| Thành phần | Cách tích hợp |
+| --- | --- |
+| API Gateway | Client gọi API media thông qua gateway; service đọc các header nội bộ do gateway gắn. |
+| PostgreSQL | Lưu channel, video, category, membership, quyền truy cập, lượt xem và outbox. |
+| Redis/BullMQ | Đẩy job xử lý video cho Media Processing Service. |
+| Kafka | Publish/consume event xử lý video, kiểm duyệt, thanh toán và lượt xem. |
+| MinIO/Object Storage | Lưu video gốc, HLS output, thumbnail và public media asset. |
+| Finance Service | Tạo/thực hiện thanh toán nội bộ cho video trả phí và membership. |
+| Media Processing Service | Xử lý transcode HLS và thumbnail. |
+| Moderation Service | Kiểm duyệt nội dung video. |
 
-```bash
-$ npm install
+## Tài liệu liên quan
+
+| Tài liệu | Mục đích |
+| --- | --- |
+| [`docs/API.md`](docs/API.md) | Danh sách API Media dành cho Frontend/Mobile. |
+| [`docs/DATABASE.md`](docs/DATABASE.md) | Thiết kế dữ liệu media, channel, video, membership và quyền truy cập. |
+| [`docs/ENV.md`](docs/ENV.md) | Biến môi trường quan trọng. |
+| [`docs/EVENTS.md`](docs/EVENTS.md) | Event publish/consume của Media Service. |
+| [`docs/FLOWS.md`](docs/FLOWS.md) | Các luồng nghiệp vụ media chính. |
+| [`docs/SEQUENCE_DIAGRAMS.md`](docs/SEQUENCE_DIAGRAMS.md) | Mục lục sequence diagram. |
+| [`docs/ACTIVITY_DIAGRAMS.md`](docs/ACTIVITY_DIAGRAMS.md) | Mục lục activity diagram. |
+
+## Yêu cầu môi trường
+
+- Node.js 22.x
+- npm
+- PostgreSQL
+- Redis
+- Kafka nếu bật `KAFKA_ENABLE=true`
+- MinIO/Object Storage
+- Finance Service nếu dùng thanh toán nội bộ
+- Media Processing Service và Moderation Service nếu chạy đủ luồng upload video
+
+## Cấu hình môi trường
+
+Tạo file `.env` từ file mẫu:
+
+```powershell
+Copy-Item .env.example .env
 ```
 
-## Compile and run the project
+Các nhóm biến quan trọng:
 
-```bash
-# development
-$ npm run start
+| Nhóm biến | Ý nghĩa |
+| --- | --- |
+| `PORT` | Cổng chạy service, mặc định `4002`. |
+| `DB_*` | Kết nối PostgreSQL và cấu hình migration. |
+| `REDIS_*`, `BULLMQ_*` | Queue xử lý video và queue moderation. |
+| `KAFKA_*` | Event xử lý video, kiểm duyệt, thanh toán, lượt xem. |
+| `MINIO_*` | Bucket video gốc, video đã xử lý và public asset. |
+| `INTERNAL_GATEWAY_SECRET`, `MEDIA_INTERNAL_SERVICE_ALLOWLIST` | Bảo vệ request nội bộ. |
+| `FINANCE_*` | Kết nối và secret gọi Finance Service. |
+| `PLAYBACK_TOKEN_*`, `VIDEO_VIEW_*` | Cấu hình phát video và ghi nhận lượt xem. |
+| `MEMBERSHIP_*`, `PAYMENT_*` | Quy tắc membership và giải ngân doanh thu. |
+| `ZAI_*` | AI gợi ý metadata nếu tính năng được bật. |
 
-# watch mode
-$ npm run start:dev
+## Chạy local
 
-# production mode
-$ npm run start:prod
+```powershell
+npm install
+npm run migration:run
+npm run start:dev
 ```
 
+Nếu cần dữ liệu demo cho upload:
 
-## Run tests
-
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+```powershell
+npm run seed:demo-user-upload
 ```
 
-## Deployment
+## Chạy bằng Docker Compose
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+Đảm bảo network `app-network` và hạ tầng dùng chung đã chạy, sau đó:
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+```powershell
+docker compose up -d --build
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+Compose publish cổng `4002:4002`, mount source vào container và chạy `npm run start:dev`.
 
-## Resources
+## Migration database
 
-Check out a few resources that may come in handy when working with NestJS:
+```powershell
+npm run migration:show
+npm run migration:run
+npm run migration:revert
+```
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+## Lệnh phát triển
 
-## Support
+```powershell
+npm run build
+npm run start
+npm run start:dev
+npm run start:prod
+npm run lint
+npm run format
+npm run test
+npm run test:e2e
+npm run test:cov
+```
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+## Luồng nghiệp vụ tiêu biểu
 
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- Upload video multipart và xác nhận upload.
+- Xử lý video HLS/thumbnail qua Media Processing Service.
+- Kiểm duyệt video qua Moderation Service.
+- Xem video và kiểm tra quyền truy cập.
+- Mở khóa video trả phí.
+- Mua và gia hạn gói hội viên.
+- Quản lý channel, category và trạng thái xuất bản video.
